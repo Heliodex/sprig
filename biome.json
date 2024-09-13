@@ -1,12 +1,13 @@
 {
-	"$schema": "./Site/node_modules/@biomejs/biome/configuration_schema.json",
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"formatter": {
 		"indentWidth": 4
 	},
 	"linter": {
 		"rules": {
 			"nursery": {
-				"all": true
+				"all": true,
+				"useImportRestrictions": "off"
 			}
 		}
 	},

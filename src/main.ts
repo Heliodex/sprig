@@ -1,6 +1,10 @@
 import "./style.css"
+import webEngine from "./webEngine.ts"
+import gamecode from "./game.ts"
 
-const app = document.querySelector<HTMLDivElement>("#app")
-if (!app) throw new Error("no app")
+const canvas = document.querySelector<HTMLCanvasElement>("#canvas")
+if (!canvas) throw new Error("no canvas")
 
-console.log(app)
+const game = webEngine(canvas)
+gamecode(game.api)
+

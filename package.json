@@ -7,9 +7,13 @@
 		"preview": "vite preview"
 	},
 	"devDependencies": {
+		"@biomejs/biome": "^1.9.0",
+		"@types/bun": "latest",
 		"typescript": "^5.5.3",
-		"vite": "^5.4.1",
-		"@types/bun": "latest"
+		"vite": "^5.4.1"
 	},
-	"module": "index.ts"
+	"module": "index.ts",
+	"dependencies": {
+		"sprig": "^1.1.3"
+	}
 }
