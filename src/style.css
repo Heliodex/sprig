@@ -2,3 +2,8 @@
 	background-color: black;
 	color: white;
 }
+
+#canvas {
+	width: 640px;
+	image-rendering: pixelated;
+}

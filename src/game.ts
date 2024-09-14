@@ -1,23 +1,41 @@
 import type { SpriteType } from "sprig"
 import type { WebEngineAPI } from "./webEngine"
 
-const char = `
-0...............
-0...............
-0...............
-.0..............
-.0..............
-.0..............
-..0.............
-..0.............
-...0............
-...0............
-....0...........
-....00..........
-......00........
-........00......
-..........000...
-.............000`
+const detab = (s: string) => s.replace(/\t/g, "")
+
+// double size both horizontally and vertically
+function doublesize(s: string) {
+	const lines = s.split("\n")
+	const newLines = []
+	for (const line of lines) {
+		const newLine = []
+		for (const char of line) {
+			newLine.push(char)
+			newLine.push(char)
+		}
+		newLines.push(newLine.join(""))
+		newLines.push(newLine.join(""))
+	}
+	return newLines.join("\n")
+}
+
+const char = detab(`
+	.0.0.0.0.0.0.0.0
+	0.0.0.0.0.0.0.0.
+	.0.0.0.0.0.0.0.0
+	0.0.0.0.0.0.0.0.
+	.0.0.0.0.0.0.0.0
+	0.0.0.0.0.0.0.0.
+	.0.0.0.0.0.0.0.0
+	0.0.0.0.0.0.0.0.
+	.0.0.0.0.0.0.0.0
+	0.0.0.0.0.0.0.0.
+	.0.0.0.0.0.0.0.0
+	0.0.0.0.0.0.0.0.
+	.0.0.0.0.0.0.0.0
+	0.0.0.0.0.0.0.0.
+	.0.0.0.0.0.0.0.0
+	0.0.0.0.0.0.0.0.`)
 
 export default async (api: WebEngineAPI) => {
 	const {
@@ -38,18 +56,18 @@ export default async (api: WebEngineAPI) => {
 	setSolids([])
 
 	const level = 0
+	// 10x8 max size
 	const levels = [
-		map`
-....................
-...12...............
-...34...............
-....................
-....................
-....................
-....................
-....................
-....................
-....................`,
+		detab(`
+1.1.1.1.1.
+.1.1.1.1.1
+1.1.1.1.1.
+.1.1.1.1.1
+1.1.1.1.1.
+.1.1.1.1.1
+1.1.1.1.1.
+.1.1.1.1.1
+`),
 	]
 	const legend: [string, string][] = []
 
