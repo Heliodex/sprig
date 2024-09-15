@@ -42,16 +42,18 @@ export default (canvas: HTMLCanvasElement): Ret => {
 	ctx.imageSmoothingEnabled = false
 
 	const _gameloop = (): void => {
-		const { width, height } = state.dimensions
-		if (width === 0 || height === 0) return
+		const width = 10
+		const height = 8
+		const actualWidth = width * 16
+		const actualHeight = height * 16
 
 		ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-		offscreenCanvas.width = width * 16
-		offscreenCanvas.height = height * 16
+		offscreenCanvas.width = actualWidth
+		offscreenCanvas.height = actualHeight
 
 		offscreenCtx.fillStyle = "white"
-		offscreenCtx.fillRect(0, 0, width * 16, height * 16)
+		offscreenCtx.fillRect(0, 0, actualWidth, actualHeight)
 
 		const grid = api.getGrid()
 
@@ -73,12 +75,6 @@ export default (canvas: HTMLCanvasElement): Ret => {
 			}
 		}
 
-		const scale = Math.min(
-			canvas.width / (width * 16),
-			canvas.height / (height * 16)
-		)
-		const actualWidth = offscreenCanvas.width * scale
-		const actualHeight = offscreenCanvas.height * scale
 		ctx.drawImage(
 			offscreenCanvas,
 			(canvas.width - actualWidth) / 2,

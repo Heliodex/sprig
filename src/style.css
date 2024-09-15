@@ -1,9 +1,14 @@
 :root {
 	background-color: black;
 	color: white;
+	overflow: hidden;
 }
 
 #canvas {
-	width: 640px;
+	width: 250px;
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
 	image-rendering: pixelated;
+	outline: none;
 }
