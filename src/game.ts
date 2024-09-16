@@ -110,8 +110,29 @@ export default async (api: WebEngineAPI) => {
 			starfields[field].push(starfieldLine(chances[field]))
 	}
 
+	let moveDirection = ""
+	onInput("a", () => {
+		if (moveDirection) return
+		moveDirection = "left"
+	})
+	onInput("d", () => {
+		if (moveDirection) return
+		moveDirection = "right"
+	})
+	window.addEventListener("keyup", e => {
+		if (e.key === "a" || e.key === "d") moveDirection = ""
+	})
+
 	async function render() {
 		display.fill(black)
+
+		// move sprite
+		if (moveDirection === "left") sprite.pos[0] -= 1
+		else if (moveDirection === "right") sprite.pos[0] += 1
+
+		const o = sprite.offset[0]
+		if (sprite.pos[0] < o) sprite.pos[0] = o
+		else if (sprite.pos[0] > 160 - o + 1) sprite.pos[0] = 160 - o + 1
 
 		// starfields
 		for (const field in starcolours) {
@@ -183,8 +204,4 @@ export default async (api: WebEngineAPI) => {
 	}
 
 	render()
-
-	onInput("w", () => {
-		console.log("w")
-	})
 }
