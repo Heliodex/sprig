@@ -1,5 +1,5 @@
 import type { WebEngineAPI } from "./webEngine"
-import { black, darkgrey, transparent, colours, white } from "./colours"
+import { black, darkgrey, colours, white, lightgrey } from "./colours"
 
 const space = " ".charCodeAt(0)
 const allChars = [space, ...colours]
@@ -82,20 +82,7 @@ const sprite = new Sprite({
 })
 
 export default async (api: WebEngineAPI) => {
-	const {
-		// afterInput,
-		// bitmap,
-		// getAll,
-		// getFirst,
-		// getState,
-		// map,
-		onInput,
-		// playTune,
-		setLegend,
-		setMap,
-		// setPushables,
-		// setSolids,
-	} = api
+	const { onInput, setLegend, setMap } = api
 
 	const display = new Int8Array(160 * 128)
 
@@ -104,15 +91,49 @@ export default async (api: WebEngineAPI) => {
 		display[pos] = colour
 	}
 
-	function update() {
-		// sprite.pos[1] -= 1
-		setTimeout(update, 100)
+	function starfieldLine(chance: number) {
+		const line: boolean[] = []
+		for (let i = 0; i < 160; i++) line.push(Math.random() < chance)
+		return line
 	}
 
-	update()
+	// darkgrey, lightgrey, white
+	const starfields: boolean[][][] = []
+	const starcolours = [darkgrey, darkgrey, lightgrey, white]
+	const chances = [0.0005, 0.0015, 0.001, 0.0005]
+	const updateSpeed = [31, 5, 2, 1]
+	const framesSinceLastUpdate = [0, 0, 0, 0]
+
+	for (const field in starcolours) {
+		starfields[field] = []
+		for (let i = 0; i < 128; i++)
+			starfields[field].push(starfieldLine(chances[field]))
+	}
 
 	async function render() {
-		display.fill(darkgrey)
+		display.fill(black)
+
+		// starfields
+		for (const field in starcolours) {
+			framesSinceLastUpdate[field]++
+			if (framesSinceLastUpdate[field] >= updateSpeed[field]) {
+				framesSinceLastUpdate[field] = 0
+
+				starfields[field].pop()
+				starfields[field].unshift(starfieldLine(chances[field]))
+			}
+
+			const colour = starcolours[field]
+
+			for (let y = 0; y < 128; y++)
+				for (let x = 0; x < 160; x++)
+					if (starfields[field][y][x]) {
+						const pos = y * 160 + x
+						if (display[pos] === black) display[pos] = colour
+						else display[pos] = lightgrey
+					}
+		}
+
 		const startTime = Date.now()
 
 		// drawing
