@@ -134,7 +134,7 @@ export default (canvas: HTMLCanvasElement): Ret => {
 	}
 	const afterInputs: (() => void)[] = []
 
-	const keydown = (e: KeyboardEvent) => {
+	function keydown(e: KeyboardEvent) {
 		// monkeypatch
 		const keyMap: { [k: string]: InputKey } = {
 			",": "w",
@@ -147,8 +147,7 @@ export default (canvas: HTMLCanvasElement): Ret => {
 			n: "l",
 		}
 		const key = keyMap[e.key]
-
-		if (!VALID_INPUTS.includes(key as InputKey)) return
+		if (!VALID_INPUTS.includes(key)) return
 
 		for (const validKey of VALID_INPUTS)
 			if (key === validKey) for (const fn of tileInputs[key]) fn()
@@ -166,7 +165,7 @@ export default (canvas: HTMLCanvasElement): Ret => {
 	}
 	canvas.addEventListener("keydown", keydown)
 
-	const onInput = (key: InputKey, fn: () => void): void => {
+	function onInput(key: InputKey, fn: () => void): void {
 		if (!VALID_INPUTS.includes(key))
 			throw new Error(
 				`Unknown input key, "${key}": expected one of ${VALID_INPUTS.join(", ")}`
