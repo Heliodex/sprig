@@ -28,6 +28,18 @@ type Ret = {
 	state: GameState
 	cleanup(): void
 }
+
+export const keyMap: { [k: string]: InputKey } = {
+	",": "w",
+	a: "a",
+	o: "s",
+	e: "d",
+	c: "i",
+	h: "j",
+	t: "k",
+	n: "l",
+}
+
 export default (canvas: HTMLCanvasElement): Ret => {
 	const { api, state } = baseEngine()
 
@@ -135,17 +147,6 @@ export default (canvas: HTMLCanvasElement): Ret => {
 	const afterInputs: (() => void)[] = []
 
 	function keydown(e: KeyboardEvent) {
-		// monkeypatch
-		const keyMap: { [k: string]: InputKey } = {
-			",": "w",
-			a: "a",
-			o: "s",
-			e: "d",
-			c: "i",
-			h: "j",
-			t: "k",
-			n: "l",
-		}
 		const key = keyMap[e.key]
 		if (!VALID_INPUTS.includes(key)) return
 

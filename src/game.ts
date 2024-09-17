@@ -1,19 +1,21 @@
-import type { WebEngineAPI } from "./webEngine"
+import { type WebEngineAPI, keyMap } from "./webEngine"
 import { black, darkgrey, colours, white, lightgrey } from "./colours"
 
 const space = " ".charCodeAt(0)
 const allChars = [space, ...colours]
 
 class Sprite {
-	#texture: string[][] = []
+	type: "ship" | "bullet" = "ship"
+	#textures: string[][] = []
 	#interval = 300
 	size: [number, number] = [0, 0]
 	pos: [number, number] = [0, 0]
 	offset: [number, number] = [0, 0]
 	constructor(props: {
+		type: typeof Sprite.prototype.type
 		textures: string[]
-		pos: [number, number]
-		offset: [number, number]
+		pos: typeof Sprite.prototype.pos
+		offset: typeof Sprite.prototype.offset
 	}) {
 		for (const i in props.textures) {
 			const texture = props.textures[i]
@@ -30,7 +32,8 @@ class Sprite {
 
 			// get longest line in texture
 			const longest = Math.max(...texLines.map(l => l.length))
-			this.#texture[i] = texLines
+			this.type = props.type
+			this.#textures[i] = texLines
 			this.size = [longest, texLines.length]
 			this.pos = props.pos
 			this.offset = props.offset
@@ -40,12 +43,13 @@ class Sprite {
 	get texture() {
 		// random texture that changes every [interval] ms
 		const index =
-			Math.floor(Date.now() / this.#interval) % this.#texture.length
-		return this.#texture[index]
+			Math.floor(Date.now() / this.#interval) % this.#textures.length
+		return this.#textures[index]
 	}
 }
 
-const sprite = new Sprite({
+const ship = new Sprite({
+	type: "ship",
 	textures: [
 		`
 		    3
@@ -81,6 +85,11 @@ const sprite = new Sprite({
 	offset: [5, 13],
 })
 
+const bulletTex = `
+	7
+	7
+	7`
+
 export default async (api: WebEngineAPI) => {
 	const { onInput, setLegend, setMap } = api
 
@@ -110,6 +119,7 @@ export default async (api: WebEngineAPI) => {
 			starfields[field].push(starfieldLine(chances[field]))
 	}
 
+	// movement
 	let moveDirection = ""
 	onInput("a", () => {
 		if (moveDirection) return
@@ -120,19 +130,44 @@ export default async (api: WebEngineAPI) => {
 		moveDirection = "right"
 	})
 	window.addEventListener("keyup", e => {
-		if (e.key === "a" || e.key === "d") moveDirection = ""
+		const key = keyMap[e.key]
+		if (!key) return
+		if (key === "a" || key === "d") moveDirection = ""
+	})
+
+	// sprites
+	const sprites = new Set<Sprite>([ship])
+
+	// bullets
+	const newBullet = (x: number) =>
+		new Sprite({
+			type: "bullet",
+			textures: [bulletTex],
+			pos: [x, 108],
+			offset: [1, 0],
+		})
+
+	onInput("w", () => {
+		sprites.add(newBullet(ship.pos[0]))
 	})
 
 	async function render() {
 		display.fill(black)
 
-		// move sprite
-		if (moveDirection === "left") sprite.pos[0] -= 1
-		else if (moveDirection === "right") sprite.pos[0] += 1
+		// move ship
+		if (moveDirection === "left") ship.pos[0] -= 1
+		else if (moveDirection === "right") ship.pos[0] += 1
 
-		const o = sprite.offset[0]
-		if (sprite.pos[0] < o) sprite.pos[0] = o
-		else if (sprite.pos[0] > 160 - o + 1) sprite.pos[0] = 160 - o + 1
+		const o = ship.offset[0]
+		if (ship.pos[0] < o) ship.pos[0] = o
+		else if (ship.pos[0] > 160 - o + 1) ship.pos[0] = 160 - o + 1
+
+		// move bullets
+		const bullets = [...sprites].filter(s => s.type === "bullet")
+		for (const bullet of bullets) {
+			bullet.pos[1] -= 3
+			if (bullet.pos[1] < 0) sprites.delete(bullet)
+		}
 
 		// starfields
 		for (const field in starcolours) {
@@ -157,19 +192,20 @@ export default async (api: WebEngineAPI) => {
 
 		const startTime = Date.now()
 
-		// drawing
-		const toDraw = sprite.texture
+		for (const sprite of sprites) {
+			const toDraw = sprite.texture
 
-		const [xPos, yPos] = sprite.pos
-		const [xOffset, yOffset] = sprite.offset
+			const [xPos, yPos] = sprite.pos
+			const [xOffset, yOffset] = sprite.offset
 
-		for (let y = 0; y < toDraw.length; y++)
-			for (let x = 0; x < toDraw[y].length; x++)
-				if (toDraw[y].charCodeAt(x) !== space)
-					setPixel(
-						(y + yPos - yOffset) * 160 + (x + xPos - xOffset),
-						toDraw[y].charCodeAt(x)
-					)
+			for (let y = 0; y < toDraw.length; y++)
+				for (let x = 0; x < toDraw[y].length; x++)
+					if (toDraw[y].charCodeAt(x) !== space)
+						setPixel(
+							(y + yPos - yOffset) * 160 + (x + xPos - xOffset),
+							toDraw[y].charCodeAt(x)
+						)
+		}
 
 		// screen paint
 		const legend: [string, string][] = []
