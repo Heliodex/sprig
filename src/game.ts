@@ -5,7 +5,7 @@ const space = " ".charCodeAt(0)
 const allChars = [space, ...colours]
 
 class Sprite {
-	type: "ship" | "bullet" = "ship"
+	type: "ship" | "bullet" | "enemy" = "ship"
 	#textures: string[][] = []
 	#interval = 300
 	size: [number, number] = [0, 0]
@@ -16,6 +16,7 @@ class Sprite {
 		textures: string[]
 		pos: typeof Sprite.prototype.pos
 		offset: typeof Sprite.prototype.offset
+		interval?: number
 	}) {
 		for (const i in props.textures) {
 			const texture = props.textures[i]
@@ -90,6 +91,21 @@ const bulletTex = `
 	7
 	7`
 
+// supposed to be a funky planet or asteroid
+const enemyTexs = [
+	`
+	  LL LLL
+	 LH1LHHHL
+	1HHHHH1HL 
+	LL1HHHHHHL
+	1HHHHHLLHL
+	1HHH1HHHHL
+	1HH1HHHHH1
+	1HHLHHLHHL
+	 11HHH1H1
+	   111 1 `,
+]
+
 export default async (api: WebEngineAPI) => {
 	const { onInput, setLegend, setMap } = api
 
@@ -151,7 +167,22 @@ export default async (api: WebEngineAPI) => {
 		sprites.add(newBullet(ship.pos[0]))
 	})
 
+	// enemies
+	const newEnemy = (x: number) =>
+		new Sprite({
+			type: "enemy",
+			textures: enemyTexs,
+			pos: [x, 0],
+			offset: [6, 12],
+		})
+
+	// onInput("s", () => {
+	sprites.add(newEnemy(ship.pos[0]))
+	// })
+
 	async function render() {
+		const startTime = Date.now()
+
 		display.fill(black)
 
 		// move ship
@@ -167,6 +198,11 @@ export default async (api: WebEngineAPI) => {
 		for (const bullet of bullets) {
 			bullet.pos[1] -= 3
 			if (bullet.pos[1] < 0) sprites.delete(bullet)
+		}
+		const enemies = [...sprites].filter(s => s.type === "enemy")
+		for (const enemy of enemies) {
+			enemy.pos[1] += 0.5
+			if (enemy.pos[1] > 142) sprites.delete(enemy)
 		}
 
 		// starfields
@@ -190,12 +226,10 @@ export default async (api: WebEngineAPI) => {
 					}
 		}
 
-		const startTime = Date.now()
-
 		for (const sprite of sprites) {
 			const toDraw = sprite.texture
 
-			const [xPos, yPos] = sprite.pos
+			const [xPos, yPos] = sprite.pos.map(Math.floor)
 			const [xOffset, yOffset] = sprite.offset
 
 			for (let y = 0; y < toDraw.length; y++)
