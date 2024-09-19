@@ -109,8 +109,8 @@ const enemyTexs = [
 export default async (api: WebEngineAPI) => {
 	const { onInput, setLegend, setMap } = api
 
+	const spriteLocMap = new Map<number, Sprite>()
 	const display = new Int8Array(160 * 128)
-
 	const getPixel = (pos: number) => String.fromCharCode(display[pos])
 	function setPixel(pos: number, colour: number) {
 		display[pos] = colour
@@ -159,7 +159,7 @@ export default async (api: WebEngineAPI) => {
 		new Sprite({
 			type: "bullet",
 			textures: [bulletTex],
-			pos: [x, 108],
+			pos: [x, 106],
 			offset: [1, 0],
 		})
 
@@ -184,6 +184,7 @@ export default async (api: WebEngineAPI) => {
 		const startTime = Date.now()
 
 		display.fill(black)
+		spriteLocMap.clear()
 
 		// move ship
 		if (moveDirection === "left") ship.pos[0] -= 1
@@ -232,13 +233,27 @@ export default async (api: WebEngineAPI) => {
 			const [xPos, yPos] = sprite.pos.map(Math.floor)
 			const [xOffset, yOffset] = sprite.offset
 
+			const collisionsDetected = new Set<Sprite>()
+
 			for (let y = 0; y < toDraw.length; y++)
 				for (let x = 0; x < toDraw[y].length; x++)
-					if (toDraw[y].charCodeAt(x) !== space)
-						setPixel(
-							(y + yPos - yOffset) * 160 + (x + xPos - xOffset),
-							toDraw[y].charCodeAt(x)
-						)
+					if (toDraw[y].charCodeAt(x) !== space) {
+						// it's drawing time
+						const pos =
+							(y + yPos - yOffset) * 160 + (x + xPos - xOffset)
+						if (pos < 0 || pos >= 160 * 128) continue
+
+						const possibleCollision = spriteLocMap.get(pos)
+						if (
+							possibleCollision &&
+							!collisionsDetected.has(possibleCollision)
+						) {
+							collisionsDetected.add(possibleCollision)
+							console.log("collided with", possibleCollision.type)
+						}
+						setPixel(pos, toDraw[y].charCodeAt(x))
+						spriteLocMap.set(pos, sprite)
+					}
 		}
 
 		// screen paint
