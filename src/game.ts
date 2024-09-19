@@ -155,6 +155,8 @@ export default async (api: WebEngineAPI) => {
 	const sprites = new Set<Sprite>([ship])
 
 	// bullets
+	let framesSinceLastBullet = 10
+
 	const newBullet = (x: number) =>
 		new Sprite({
 			type: "bullet",
@@ -164,6 +166,8 @@ export default async (api: WebEngineAPI) => {
 		})
 
 	onInput("w", () => {
+		if (framesSinceLastBullet < 10) return
+		framesSinceLastBullet = 0
 		sprites.add(newBullet(ship.pos[0]))
 	})
 
@@ -180,7 +184,17 @@ export default async (api: WebEngineAPI) => {
 	sprites.add(newEnemy(ship.pos[0]))
 	// })
 
-	async function render() {
+	function handleCollision(a: Sprite, b: Sprite) {
+		if (a.type === "bullet" && b.type === "enemy") {
+			sprites.delete(a)
+			sprites.delete(b)
+		} else if (a.type === "enemy" && b.type === "ship") {
+			sprites.delete(a)
+			sprites.delete(b)
+		}
+	}
+
+	function render() {
 		const startTime = Date.now()
 
 		display.fill(black)
@@ -227,6 +241,8 @@ export default async (api: WebEngineAPI) => {
 					}
 		}
 
+		framesSinceLastBullet++
+
 		for (const sprite of sprites) {
 			const toDraw = sprite.texture
 
@@ -250,6 +266,7 @@ export default async (api: WebEngineAPI) => {
 						) {
 							collisionsDetected.add(possibleCollision)
 							console.log("collided with", possibleCollision.type)
+							handleCollision(sprite, possibleCollision)
 						}
 						setPixel(pos, toDraw[y].charCodeAt(x))
 						spriteLocMap.set(pos, sprite)
