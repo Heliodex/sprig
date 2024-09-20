@@ -4,107 +4,118 @@ import { black, darkgrey, colours, white, lightgrey } from "./colours"
 const space = " ".charCodeAt(0)
 const allChars = [space, ...colours]
 
-class Sprite {
-	type: "ship" | "bullet" | "enemy" = "ship"
-	#textures: string[][] = []
-	#interval = 300
-	size: [number, number] = [0, 0]
-	pos: [number, number] = [0, 0]
-	offset: [number, number] = [0, 0]
-	constructor(props: {
-		type: typeof Sprite.prototype.type
-		textures: string[]
-		pos: typeof Sprite.prototype.pos
-		offset: typeof Sprite.prototype.offset
-		interval?: number
-	}) {
-		for (const i in props.textures) {
-			const texture = props.textures[i]
-			const texLines = texture
-				.replaceAll("\r", "")
-				.replaceAll("\t", "")
-				.split("\n")
-			if (texLines[0] === "") texLines.shift()
+function transformTextures(startTexs: string[]): string[][] {
+	const textures: string[][] = []
+	for (const tex of startTexs) {
+		const texLines = tex
+			.replaceAll("\r", "")
+			.replaceAll("\t", "")
+			.split("\n")
+		texLines.shift()
 
-			for (const line of texLines)
-				for (const char of line)
-					if (!allChars.includes(char.charCodeAt(0)))
-						throw new Error(`Unknown colour: ${char.charCodeAt(0)}`)
+		for (const line of texLines)
+			for (const char of line)
+				if (!allChars.includes(char.charCodeAt(0)))
+					throw new Error(`Unknown colour: ${char.charCodeAt(0)}`)
 
-			// get longest line in texture
-			const longest = Math.max(...texLines.map(l => l.length))
-			this.type = props.type
-			this.#textures[i] = texLines
-			this.size = [longest, texLines.length]
-			this.pos = props.pos
-			this.offset = props.offset
-		}
+		textures.push(texLines)
 	}
+	return textures
+}
+
+abstract class Sprite {
+	textures: readonly string[][] = []
+	#interval = 300
+	pos = [0, 0]
+	offset = [0, 0]
 
 	get texture() {
 		// random texture that changes every [interval] ms
 		const index =
-			Math.floor(Date.now() / this.#interval) % this.#textures.length
-		return this.#textures[index]
+			Math.floor(Date.now() / this.#interval) % this.textures.length
+		return this.textures[index]
+	}
+
+	get size() {
+		const width = Math.max(...this.texture.map(l => l.length))
+		const height = this.texture.length
+		return [width, height]
 	}
 }
 
-const ship = new Sprite({
-	type: "ship",
-	textures: [
+class Ship extends Sprite {
+	textures = transformTextures([
 		`
-		    3
-		    2
-		   323
-		   323
-		  33233
-		  33233
-		 3232323
-		 3232323
-		3323 3233
-		333   333
-		 LL   LL
-		 96   69
-		 6     6`,
+			    3
+			    2
+			   323
+			   323
+			  33233
+			  33233
+			 3232323
+			 3232323
+			3323 3233
+			333   333
+			 LL   LL
+			 96   69
+			 6     6`,
 		`
-		    3
-		    2
-		   323
-		   323
-		  33233
-		  33233
-		 3232323
-		 3232323
-		3323 3233
-		333   333
-		 LL   LL
-		 99   99
-		 96   69
-		 6     6`,
-	],
-	pos: [80, 120],
-	offset: [5, 13],
-})
+			    3
+			    2
+			   323
+			   323
+			  33233
+			  33233
+			 3232323
+			 3232323
+			3323 3233
+			333   333
+			 LL   LL
+			 99   99
+			 96   69
+			 6     6`,
+	])
+	pos = [80, 120]
+	offset = [5, 13]
+}
 
-const bulletTex = `
-	7
-	7
-	7`
+class Bullet extends Sprite {
+	textures = transformTextures([
+		`
+			7
+			7
+			7`,
+	])
+	offset = [1, 0]
+	constructor(x: number) {
+		super()
+		this.pos = [x, 106]
+	}
+}
 
-// supposed to be a funky planet or asteroid
-const enemyTexs = [
-	`
-	  LL LLL
-	 LH1LHHHL
-	1HHHHH1HL 
-	LL1HHHHHHL
-	1HHHHHLLHL
-	1HHH1HHHHL
-	1HH1HHHHH1
-	1HHLHHLHHL
-	 11HHH1H1
-	   111 1 `,
-]
+class Enemy extends Sprite {
+	// supposed to be a funky planet or asteroid
+	textures = transformTextures([
+		`
+			  LL LLL
+			 LH1LHHHL
+			1HHHHH1HL 
+			LL1HHHHHHL
+			1HHHHHLLHL
+			1HHH1HHHHL
+			1HH1HHHHH1
+			1HHLHHLHHL
+			 11HHH1H1
+			   111 1 `,
+	])
+	offset = [6, 12]
+	constructor(x: number) {
+		super()
+		this.pos = [x, 0]
+	}
+}
+
+const ship = new Ship()
 
 export default async (api: WebEngineAPI) => {
 	const { onInput, setLegend, setMap } = api
@@ -157,38 +168,21 @@ export default async (api: WebEngineAPI) => {
 	// bullets
 	let framesSinceLastBullet = 10
 
-	const newBullet = (x: number) =>
-		new Sprite({
-			type: "bullet",
-			textures: [bulletTex],
-			pos: [x, 106],
-			offset: [1, 0],
-		})
-
 	onInput("w", () => {
 		if (framesSinceLastBullet < 10) return
 		framesSinceLastBullet = 0
-		sprites.add(newBullet(ship.pos[0]))
+		sprites.add(new Bullet(ship.pos[0]))
 	})
 
-	// enemies
-	const newEnemy = (x: number) =>
-		new Sprite({
-			type: "enemy",
-			textures: enemyTexs,
-			pos: [x, 0],
-			offset: [6, 12],
-		})
-
 	// onInput("s", () => {
-	sprites.add(newEnemy(ship.pos[0]))
+	sprites.add(new Enemy(ship.pos[0]))
 	// })
 
 	function handleCollision(a: Sprite, b: Sprite) {
-		if (a.type === "bullet" && b.type === "enemy") {
+		if (a instanceof Bullet && b instanceof Enemy) {
 			sprites.delete(a)
 			sprites.delete(b)
-		} else if (a.type === "enemy" && b.type === "ship") {
+		} else if (a instanceof Enemy && b instanceof Ship) {
 			sprites.delete(a)
 			sprites.delete(b)
 		}
@@ -209,12 +203,12 @@ export default async (api: WebEngineAPI) => {
 		else if (ship.pos[0] > 160 - o + 1) ship.pos[0] = 160 - o + 1
 
 		// move bullets
-		const bullets = [...sprites].filter(s => s.type === "bullet")
+		const bullets = [...sprites].filter(s => s instanceof Bullet)
 		for (const bullet of bullets) {
 			bullet.pos[1] -= 3
 			if (bullet.pos[1] < 0) sprites.delete(bullet)
 		}
-		const enemies = [...sprites].filter(s => s.type === "enemy")
+		const enemies = [...sprites].filter(s => s instanceof Enemy)
 		for (const enemy of enemies) {
 			enemy.pos[1] += 0.5
 			if (enemy.pos[1] > 142) sprites.delete(enemy)
@@ -265,7 +259,7 @@ export default async (api: WebEngineAPI) => {
 							!collisionsDetected.has(possibleCollision)
 						) {
 							collisionsDetected.add(possibleCollision)
-							console.log("collided with", possibleCollision.type)
+							console.log("collided with", possibleCollision.constructor.name)
 							handleCollision(sprite, possibleCollision)
 						}
 						setPixel(pos, toDraw[y].charCodeAt(x))
