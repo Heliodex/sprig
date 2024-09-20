@@ -123,8 +123,39 @@ export default async (api: WebEngineAPI) => {
 	const spriteLocMap = new Map<number, Sprite>()
 	const display = new Int8Array(160 * 128)
 	const getPixel = (pos: number) => String.fromCharCode(display[pos])
-	function setPixel(pos: number, colour: number) {
-		display[pos] = colour
+
+	function drawSprite(sprite: Sprite) {
+		const toDraw = sprite.texture
+
+		const [xPos, yPos] = sprite.pos.map(Math.floor)
+		const [xOffset, yOffset] = sprite.offset
+
+		const collisionsDetected = new Set<Sprite>()
+
+		for (let y = 0; y < toDraw.length; y++)
+			for (let x = 0; x < toDraw[y].length; x++)
+				if (toDraw[y].charCodeAt(x) !== space) {
+					// it's drawing time
+					const pos =
+						(y + yPos - yOffset) * 160 + (x + xPos - xOffset)
+					if (pos < 0 || pos >= 160 * 128) continue
+
+					const possibleCollision = spriteLocMap.get(pos)
+					if (
+						possibleCollision &&
+						!collisionsDetected.has(possibleCollision) &&
+						possibleCollision.constructor !== sprite.constructor
+					) {
+						collisionsDetected.add(possibleCollision)
+						console.log(
+							"collided with",
+							possibleCollision.constructor.name
+						)
+						handleCollision(sprite, possibleCollision)
+					}
+					display[pos] = toDraw[y].charCodeAt(x)
+					spriteLocMap.set(pos, sprite)
+				}
 	}
 
 	function starfieldLine(chance: number) {
@@ -167,6 +198,7 @@ export default async (api: WebEngineAPI) => {
 
 	// bullets
 	let framesSinceLastBullet = 10
+	let framesSinceLastEnemy = 20
 
 	onInput("w", () => {
 		if (framesSinceLastBullet < 10) return
@@ -174,15 +206,17 @@ export default async (api: WebEngineAPI) => {
 		sprites.add(new Bullet(ship.pos[0]))
 	})
 
-	// onInput("s", () => {
-	sprites.add(new Enemy(ship.pos[0]))
-	// })
-
 	function handleCollision(a: Sprite, b: Sprite) {
-		if (a instanceof Bullet && b instanceof Enemy) {
+		if (
+			(a instanceof Bullet && b instanceof Enemy) ||
+			(b instanceof Bullet && a instanceof Enemy)
+		) {
 			sprites.delete(a)
 			sprites.delete(b)
-		} else if (a instanceof Enemy && b instanceof Ship) {
+		} else if (
+			(a instanceof Enemy && b instanceof Ship) ||
+			(b instanceof Enemy && a instanceof Ship)
+		) {
 			sprites.delete(a)
 			sprites.delete(b)
 		}
@@ -214,10 +248,14 @@ export default async (api: WebEngineAPI) => {
 			if (enemy.pos[1] > 142) sprites.delete(enemy)
 		}
 
+		if (framesSinceLastEnemy++ > 50) {
+			sprites.add(new Enemy(Math.random() * 160))
+			framesSinceLastEnemy = 0
+		}
+
 		// starfields
 		for (const field in starcolours) {
-			framesSinceLastUpdate[field]++
-			if (framesSinceLastUpdate[field] >= updateSpeed[field]) {
+			if (framesSinceLastUpdate[field]++ >= updateSpeed[field]) {
 				framesSinceLastUpdate[field] = 0
 
 				starfields[field].pop()
@@ -228,44 +266,12 @@ export default async (api: WebEngineAPI) => {
 
 			for (let y = 0; y < 128; y++)
 				for (let x = 0; x < 160; x++)
-					if (starfields[field][y][x]) {
-						const pos = y * 160 + x
-						if (display[pos] === black) display[pos] = colour
-						else display[pos] = lightgrey
-					}
+					if (starfields[field][y][x]) display[y * 160 + x] = colour
 		}
 
 		framesSinceLastBullet++
 
-		for (const sprite of sprites) {
-			const toDraw = sprite.texture
-
-			const [xPos, yPos] = sprite.pos.map(Math.floor)
-			const [xOffset, yOffset] = sprite.offset
-
-			const collisionsDetected = new Set<Sprite>()
-
-			for (let y = 0; y < toDraw.length; y++)
-				for (let x = 0; x < toDraw[y].length; x++)
-					if (toDraw[y].charCodeAt(x) !== space) {
-						// it's drawing time
-						const pos =
-							(y + yPos - yOffset) * 160 + (x + xPos - xOffset)
-						if (pos < 0 || pos >= 160 * 128) continue
-
-						const possibleCollision = spriteLocMap.get(pos)
-						if (
-							possibleCollision &&
-							!collisionsDetected.has(possibleCollision)
-						) {
-							collisionsDetected.add(possibleCollision)
-							console.log("collided with", possibleCollision.constructor.name)
-							handleCollision(sprite, possibleCollision)
-						}
-						setPixel(pos, toDraw[y].charCodeAt(x))
-						spriteLocMap.set(pos, sprite)
-					}
-		}
+		for (const sprite of sprites) drawSprite(sprite)
 
 		// screen paint
 		const legend: [string, string][] = []
