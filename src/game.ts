@@ -25,15 +25,13 @@ function transformTextures(startTexs: string[]): string[][] {
 
 abstract class Sprite {
 	textures: readonly string[][] = []
-	#interval = 300
+	currentTex = 0
+	framesSinceLastTex = 0
 	pos = [0, 0]
 	offset = [0, 0]
 
 	get texture() {
-		// random texture that changes every [interval] ms
-		const index =
-			Math.floor(Date.now() / this.#interval) % this.textures.length
-		return this.textures[index]
+		return this.textures[this.currentTex % this.textures.length]
 	}
 
 	get size() {
@@ -112,6 +110,66 @@ class Enemy extends Sprite {
 	constructor(x: number) {
 		super()
 		this.pos = [x, 0]
+	}
+}
+
+class Explosion extends Sprite {
+	textures = transformTextures([
+
+		`
+		        63 
+		      6 636
+		     66996 3
+		    9 96339 3
+		    969333969
+		    9 9336963
+		     3699936
+		      636 6
+		       996`,
+		`
+		      96636
+		     66999 6
+		    3 9939996
+		    6993 3939
+		    693 6 396
+		    6393 39 6
+		    399939996
+		     6 69993
+		      69663`,
+
+		`
+		        9
+		      66666
+		     6999996
+		   3 699 996
+		    969 C 969
+		     699 996
+		    96999996
+		      66666 3
+		        9`,
+		`
+
+		        9
+		    3  696 9
+		      6   6
+		     99 C 99
+		      6   6
+		    9  696  3
+		        9`,
+		`
+
+		           9
+		     3  6  
+		       9 9 
+		      6   6 
+		       9 9 6
+		     9  6    3
+		         `,
+	])
+	offset = [8, 8]
+	constructor(pos: number[]) {
+		super()
+		this.pos = pos
 	}
 }
 
@@ -206,19 +264,18 @@ export default async (api: WebEngineAPI) => {
 		sprites.add(new Bullet(ship.pos[0]))
 	})
 
-	function handleCollision(a: Sprite, b: Sprite) {
-		if (
-			(a instanceof Bullet && b instanceof Enemy) ||
-			(b instanceof Bullet && a instanceof Enemy)
-		) {
+	function handleCollision(s1: Sprite, s2: Sprite) {
+		const [a, b] = [s1, s2].sort((s1, s2) =>
+			s1.constructor.name.localeCompare(s2.constructor.name)
+		)
+		if (a instanceof Bullet && b instanceof Enemy) {
 			sprites.delete(a)
 			sprites.delete(b)
-		} else if (
-			(a instanceof Enemy && b instanceof Ship) ||
-			(b instanceof Enemy && a instanceof Ship)
-		) {
+			sprites.add(new Explosion(b.pos))
+		} else if (a instanceof Enemy && b instanceof Ship) {
 			sprites.delete(a)
 			sprites.delete(b)
+			sprites.add(new Explosion(b.pos))
 		}
 	}
 
@@ -227,6 +284,11 @@ export default async (api: WebEngineAPI) => {
 
 		display.fill(black)
 		spriteLocMap.clear()
+
+		if (ship.framesSinceLastTex++ > 15) {
+			ship.currentTex++
+			ship.framesSinceLastTex = 0
+		}
 
 		// move ship
 		if (moveDirection === "left") ship.pos[0] -= 1
@@ -237,15 +299,21 @@ export default async (api: WebEngineAPI) => {
 		else if (ship.pos[0] > 160 - o + 1) ship.pos[0] = 160 - o + 1
 
 		// move bullets
-		const bullets = [...sprites].filter(s => s instanceof Bullet)
-		for (const bullet of bullets) {
-			bullet.pos[1] -= 3
-			if (bullet.pos[1] < 0) sprites.delete(bullet)
+		const ss = [...sprites]
+		for (const b of ss.filter(s => s instanceof Bullet)) {
+			b.pos[1] -= 3
+			if (b.pos[1] < 0) sprites.delete(b)
 		}
-		const enemies = [...sprites].filter(s => s instanceof Enemy)
-		for (const enemy of enemies) {
-			enemy.pos[1] += 0.5
-			if (enemy.pos[1] > 142) sprites.delete(enemy)
+		for (const e of ss.filter(s => s instanceof Enemy)) {
+			e.pos[1] += 0.5
+			if (e.pos[1] > 142) sprites.delete(e)
+		}
+		for (const e of ss.filter(s => s instanceof Explosion)) {
+			if (e.framesSinceLastTex++ > 5) {
+				e.currentTex++
+				e.framesSinceLastTex = 0
+			}
+			if (e.currentTex >= e.textures.length) sprites.delete(e)
 		}
 
 		if (framesSinceLastEnemy++ > 50) {
