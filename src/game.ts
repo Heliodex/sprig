@@ -33,7 +33,6 @@ abstract class Sprite {
 	get texture() {
 		return this.textures[this.currentTex % this.textures.length]
 	}
-
 	get size() {
 		const width = Math.max(...this.texture.map(l => l.length))
 		const height = this.texture.length
@@ -115,16 +114,15 @@ class Enemy extends Sprite {
 
 class Explosion extends Sprite {
 	textures = transformTextures([
-
 		`
-		        63 
-		      6 636
+		    33 63 3
+		    3 6 636
 		     66996 3
 		    9 96339 3
 		    969333969
 		    9 9336963
-		     3699936
-		      636 6
+		     36999363
+		    33636 6 3
 		       996`,
 		`
 		      96636
@@ -173,7 +171,41 @@ class Explosion extends Sprite {
 	}
 }
 
-const ship = new Ship()
+class GameOver extends Sprite {
+	textures = transformTextures([
+		`
+			222222222222222222222222222222222222222
+			200000000000000000000000000000000000002
+			200000000000000000000000000000000000002
+			200000000000000000000000000000000000002
+			200002222200000200000200000200222220002
+			200020000000000200000220002200200000002
+			200020000000002020000202020200200000002
+			200020000000002020000202020200222200002
+			200020022200020002000200200200200000002
+			200020000200022222000200200200200000002
+			200020000200200000200200000200200000002
+			200002222000200000200200000200222220002
+			200000000000000000000000000000000000002
+			200000000000000000000000000000000000002
+			200000000000000000000000000000000000002
+			200000222200020000020022222002222000002
+			200002000020020000020020000002000200002
+			200002000020002000200020000002000200002
+			200002000020002000200022220002222000002
+			200002000020000202000020000002200000002
+			200002000020000202000020000002020000002
+			200002000020000020000020000002002000002
+			200000222200000020000022222002000200002
+			200000000000000000000000000000000000002
+			200000000000000000000000000000000000002
+			200000000000000000000000000000000000002
+			222222222222222222222222222222222222222
+			`
+	])
+	pos = [80, 50]
+	offset = [20, 0]
+}
 
 export default async (api: WebEngineAPI) => {
 	const { onInput, setLegend, setMap } = api
@@ -181,6 +213,8 @@ export default async (api: WebEngineAPI) => {
 	const spriteLocMap = new Map<number, Sprite>()
 	const display = new Int8Array(160 * 128)
 	const getPixel = (pos: number) => String.fromCharCode(display[pos])
+
+	let gameState = "playing"
 
 	function drawSprite(sprite: Sprite) {
 		const toDraw = sprite.texture
@@ -194,8 +228,9 @@ export default async (api: WebEngineAPI) => {
 			for (let x = 0; x < toDraw[y].length; x++)
 				if (toDraw[y].charCodeAt(x) !== space) {
 					// it's drawing time
-					const pos =
-						(y + yPos - yOffset) * 160 + (x + xPos - xOffset)
+					const xp = x + xPos - xOffset
+					const yp = y + yPos - yOffset
+					const pos = yp * 160 + xp
 					if (pos < 0 || pos >= 160 * 128) continue
 
 					const possibleCollision = spriteLocMap.get(pos)
@@ -205,12 +240,9 @@ export default async (api: WebEngineAPI) => {
 						possibleCollision.constructor !== sprite.constructor
 					) {
 						collisionsDetected.add(possibleCollision)
-						console.log(
-							"collided with",
-							possibleCollision.constructor.name
-						)
 						handleCollision(sprite, possibleCollision)
 					}
+					if (xp < 0 || xp >= 160) continue
 					display[pos] = toDraw[y].charCodeAt(x)
 					spriteLocMap.set(pos, sprite)
 				}
@@ -238,20 +270,25 @@ export default async (api: WebEngineAPI) => {
 	// movement
 	let moveDirection = ""
 	onInput("a", () => {
+		if (gameState !== "playing") return
 		if (moveDirection) return
 		moveDirection = "left"
 	})
 	onInput("d", () => {
+		if (gameState !== "playing") return
 		if (moveDirection) return
 		moveDirection = "right"
 	})
 	window.addEventListener("keyup", e => {
+		if (gameState !== "playing") return
 		const key = keyMap[e.key]
 		if (!key) return
 		if (key === "a" || key === "d") moveDirection = ""
 	})
 
 	// sprites
+	const ship = new Ship()
+	const gameOver = new GameOver()
 	const sprites = new Set<Sprite>([ship])
 
 	// bullets
@@ -259,6 +296,7 @@ export default async (api: WebEngineAPI) => {
 	let framesSinceLastEnemy = 20
 
 	onInput("w", () => {
+		if (gameState !== "playing") return
 		if (framesSinceLastBullet < 10) return
 		framesSinceLastBullet = 0
 		sprites.add(new Bullet(ship.pos[0]))
@@ -275,7 +313,9 @@ export default async (api: WebEngineAPI) => {
 		} else if (a instanceof Enemy && b instanceof Ship) {
 			sprites.delete(a)
 			sprites.delete(b)
+			sprites.add(new Explosion(a.pos))
 			sprites.add(new Explosion(b.pos))
+			gameState = "over"
 		}
 	}
 
@@ -316,7 +356,7 @@ export default async (api: WebEngineAPI) => {
 			if (e.currentTex >= e.textures.length) sprites.delete(e)
 		}
 
-		if (framesSinceLastEnemy++ > 50) {
+		if (framesSinceLastEnemy++ > 50 && gameState === "playing") {
 			sprites.add(new Enemy(Math.random() * 160))
 			framesSinceLastEnemy = 0
 		}
@@ -340,6 +380,7 @@ export default async (api: WebEngineAPI) => {
 		framesSinceLastBullet++
 
 		for (const sprite of sprites) drawSprite(sprite)
+		if(gameState === "over") drawSprite(gameOver)
 
 		// screen paint
 		const legend: [string, string][] = []
