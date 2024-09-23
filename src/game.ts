@@ -106,9 +106,33 @@ class Enemy extends Sprite {
 			   111 1 `,
 	])
 	offset = [6, 12]
-	constructor(x: number) {
+	velocity = [0, 0.5]
+	constructor(pos: number[], velocity: number[]) {
 		super()
-		this.pos = [x, 0]
+		this.pos = pos
+		this.velocity = velocity
+	}
+}
+
+class SmallEnemy extends Sprite {
+	textures = transformTextures([
+		`
+
+		 	   LLL
+		 	  LHHHL
+		 	 1HLHHL
+		 	 1H1HH1L
+		 	 1HHHHHL
+		 	  1HLH1
+		 	   111 `,
+	])
+	offset = [6, 12]
+	velocity = [0, 0.5]
+	immunity = 15
+	constructor(pos: number[], velocity: number[]) {
+		super()
+		this.pos = pos
+		this.velocity = velocity
 	}
 }
 
@@ -167,7 +191,7 @@ class Explosion extends Sprite {
 	offset = [8, 8]
 	constructor(pos: number[]) {
 		super()
-		this.pos = pos
+		this.pos = structuredClone(pos)
 	}
 }
 
@@ -201,7 +225,7 @@ class GameOver extends Sprite {
 			200000000000000000000000000000000000002
 			200000000000000000000000000000000000002
 			222222222222222222222222222222222222222
-			`
+			`,
 	])
 	pos = [80, 50]
 	offset = [20, 0]
@@ -230,19 +254,20 @@ export default async (api: WebEngineAPI) => {
 					// it's drawing time
 					const xp = x + xPos - xOffset
 					const yp = y + yPos - yOffset
+					if (xp < 0 || xp >= 160) continue
+
 					const pos = yp * 160 + xp
-					if (pos < 0 || pos >= 160 * 128) continue
+					if (pos < 0 || pos >= 160 * 128) continue // necessary?
 
 					const possibleCollision = spriteLocMap.get(pos)
 					if (
 						possibleCollision &&
 						!collisionsDetected.has(possibleCollision) &&
-						possibleCollision.constructor !== sprite.constructor
+						possibleCollision !== sprite
 					) {
 						collisionsDetected.add(possibleCollision)
 						handleCollision(sprite, possibleCollision)
 					}
-					if (xp < 0 || xp >= 160) continue
 					display[pos] = toDraw[y].charCodeAt(x)
 					spriteLocMap.set(pos, sprite)
 				}
@@ -302,20 +327,52 @@ export default async (api: WebEngineAPI) => {
 		sprites.add(new Bullet(ship.pos[0]))
 	})
 
-	function handleCollision(s1: Sprite, s2: Sprite) {
-		const [a, b] = [s1, s2].sort((s1, s2) =>
+	function handleCollision(...ss: [Sprite, Sprite]) {
+		const [a, b] = ss.sort((s1, s2) =>
 			s1.constructor.name.localeCompare(s2.constructor.name)
 		)
 		if (a instanceof Bullet && b instanceof Enemy) {
 			sprites.delete(a)
 			sprites.delete(b)
 			sprites.add(new Explosion(b.pos))
-		} else if (a instanceof Enemy && b instanceof Ship) {
+			sprites.add(new SmallEnemy(b.pos, b.velocity))
+		} else if (a instanceof Bullet && b instanceof SmallEnemy) {
+			sprites.delete(a)
+			sprites.delete(b)
+			sprites.add(new Explosion(b.pos))
+		} else if (
+			(a instanceof Enemy && b instanceof Ship) ||
+			(a instanceof Ship && b instanceof SmallEnemy)
+		) {
 			sprites.delete(a)
 			sprites.delete(b)
 			sprites.add(new Explosion(a.pos))
 			sprites.add(new Explosion(b.pos))
 			gameState = "over"
+		} else if (
+			a instanceof SmallEnemy &&
+			b instanceof SmallEnemy &&
+			a.immunity < 0 &&
+			b.immunity < 0
+		) {
+			sprites.delete(a)
+			sprites.delete(b)
+			sprites.add(new Explosion(a.pos))
+			sprites.add(new Explosion(b.pos))
+		} else if (
+			a instanceof Enemy &&
+			b instanceof SmallEnemy &&
+			b.immunity < 0
+		) {
+			sprites.delete(a)
+			sprites.delete(b)
+			sprites.add(new SmallEnemy(a.pos, a.velocity))
+			sprites.add(new Explosion(b.pos))
+		} else if (a instanceof Enemy && b instanceof Enemy) {
+			sprites.delete(a)
+			sprites.delete(b)
+			sprites.add(new SmallEnemy(a.pos, [-a.velocity[0], a.velocity[1]]))
+			sprites.add(new SmallEnemy(b.pos, [-b.velocity[0], b.velocity[1]]))
 		}
 	}
 
@@ -344,10 +401,16 @@ export default async (api: WebEngineAPI) => {
 			b.pos[1] -= 3
 			if (b.pos[1] < 0) sprites.delete(b)
 		}
-		for (const e of ss.filter(s => s instanceof Enemy)) {
-			e.pos[1] += 0.5
+		for (const e of ss.filter(
+			s => s instanceof Enemy || s instanceof SmallEnemy
+		)) {
+			e.pos[0] += e.velocity[0]
+			e.pos[1] += e.velocity[1]
 			if (e.pos[1] > 142) sprites.delete(e)
 		}
+
+		for (const e of ss.filter(s => s instanceof SmallEnemy)) e.immunity--
+
 		for (const e of ss.filter(s => s instanceof Explosion)) {
 			if (e.framesSinceLastTex++ > 5) {
 				e.currentTex++
@@ -356,8 +419,14 @@ export default async (api: WebEngineAPI) => {
 			if (e.currentTex >= e.textures.length) sprites.delete(e)
 		}
 
-		if (framesSinceLastEnemy++ > 50 && gameState === "playing") {
-			sprites.add(new Enemy(Math.random() * 160))
+		if (framesSinceLastEnemy++ > 20 && gameState === "playing") {
+			const x = Math.random() * 160
+			const velocity = [
+				Math.random() * 0.5 - 0.25,
+				Math.random() * 0.75 + 0.25,
+			]
+			const classToAdd = Math.random() < 0.25 ? SmallEnemy : Enemy
+			sprites.add(new classToAdd([x, 0], velocity))
 			framesSinceLastEnemy = 0
 		}
 
@@ -380,7 +449,7 @@ export default async (api: WebEngineAPI) => {
 		framesSinceLastBullet++
 
 		for (const sprite of sprites) drawSprite(sprite)
-		if(gameState === "over") drawSprite(gameOver)
+		if (gameState === "over") drawSprite(gameOver)
 
 		// screen paint
 		const legend: [string, string][] = []
