@@ -29,6 +29,7 @@ abstract class Sprite {
 	framesSinceLastTex = 0
 	pos = [0, 0]
 	offset = [0, 0]
+	collidable = true
 
 	get texture() {
 		return this.textures[this.currentTex % this.textures.length]
@@ -96,7 +97,7 @@ class Enemy extends Sprite {
 		`
 			  LL LLL
 			 LH1LHHHL
-			1HHHHH1HL 
+			1HHHHH1HL
 			LL1HHHHHHL
 			1HHHHHLLHL
 			1HHH1HHHHL
@@ -181,13 +182,14 @@ class Explosion extends Sprite {
 		`
 
 		           9
-		     3  6  
-		       9 9 
-		      6   6 
+		     3  6
+		       9 9
+		      6   6
 		       9 9 6
 		     9  6    3
 		         `,
 	])
+	collidable = false
 	offset = [8, 8]
 	constructor(pos: number[]) {
 		super()
@@ -227,8 +229,104 @@ class GameOver extends Sprite {
 			222222222222222222222222222222222222222
 			`,
 	])
+	collidable = false
 	pos = [80, 50]
 	offset = [20, 0]
+}
+
+const scoreTexs = transformTextures([
+	`
+		 22
+		2  2
+		2  2
+		2  2
+		2  2
+		2  2
+		 22`,
+	`
+		  2
+		 22
+		  2
+		  2
+		  2
+		  2
+		 222`,
+	`
+		 22
+		2  2
+		   2
+		  2
+		 2
+		2
+		2222`,
+	`
+		2222
+		  2
+		 2
+		222
+		   2
+		   2
+		222`,
+	`
+		  2
+		 22
+		2 2
+		2222
+		  2
+		  2
+		  2`,
+	`
+		2222
+		2
+		222
+		   2
+		   2
+		2  2
+		 22`,
+	`
+		  2
+		 2
+		2
+		222
+		2  2
+		2  2
+		 22`,
+	`
+		2222
+		   2
+		   2
+		  2
+		  2
+		 2
+		 2`,
+	`
+		 22
+		2  2
+		2  2
+		 22
+		2  2
+		2  2
+		 22`,
+	`
+		 22
+		2  2
+		2  2
+		 222
+		   2
+		  2
+		 2`,
+])
+
+class ScoreNumber extends Sprite {
+	textures = scoreTexs
+	offset = [0, 0]
+	pos = [0, 0]
+	collidable = false
+	constructor(pos: number, num: number) {
+		super()
+		this.pos = [pos * 5, 0]
+		this.currentTex = num
+	}
 }
 
 export default async (api: WebEngineAPI) => {
@@ -239,6 +337,8 @@ export default async (api: WebEngineAPI) => {
 	const getPixel = (pos: number) => String.fromCharCode(display[pos])
 
 	let gameState = "playing"
+	let score = 0
+	let stage = 1
 
 	function drawSprite(sprite: Sprite) {
 		const toDraw = sprite.texture
@@ -263,7 +363,9 @@ export default async (api: WebEngineAPI) => {
 					if (
 						possibleCollision &&
 						!collisionsDetected.has(possibleCollision) &&
-						possibleCollision !== sprite
+						possibleCollision !== sprite &&
+						possibleCollision.collidable &&
+						sprite.collidable
 					) {
 						collisionsDetected.add(possibleCollision)
 						handleCollision(sprite, possibleCollision)
@@ -319,10 +421,17 @@ export default async (api: WebEngineAPI) => {
 	// bullets
 	let framesSinceLastBullet = 10
 	let framesSinceLastEnemy = 20
+	const bulletCost = 10
 
 	onInput("w", () => {
-		if (gameState !== "playing") return
-		if (framesSinceLastBullet < 10) return
+		if (
+			gameState !== "playing" ||
+			framesSinceLastBullet < 5 ||
+			score < bulletCost
+		)
+			return
+
+		score -= bulletCost
 		framesSinceLastBullet = 0
 		sprites.add(new Bullet(ship.pos[0]))
 	})
@@ -336,10 +445,12 @@ export default async (api: WebEngineAPI) => {
 			sprites.delete(b)
 			sprites.add(new Explosion(b.pos))
 			sprites.add(new SmallEnemy(b.pos, b.velocity))
+			score += 200
 		} else if (a instanceof Bullet && b instanceof SmallEnemy) {
 			sprites.delete(a)
 			sprites.delete(b)
 			sprites.add(new Explosion(b.pos))
+			score += 100
 		} else if (
 			(a instanceof Enemy && b instanceof Ship) ||
 			(a instanceof Ship && b instanceof SmallEnemy)
@@ -419,13 +530,54 @@ export default async (api: WebEngineAPI) => {
 			if (e.currentTex >= e.textures.length) sprites.delete(e)
 		}
 
-		if (framesSinceLastEnemy++ > 20 && gameState === "playing") {
+		let framesPerEnemy = 100
+		if (score > 20000) framesPerEnemy = 15
+		else if (score > 15000) framesPerEnemy = 20
+		else if (score > 10000) framesPerEnemy = 30
+		else if (score > 6000) framesPerEnemy = 40
+		else if (score > 4000) framesPerEnemy = 50
+		else if (score > 2500) framesPerEnemy = 60
+		else if (score > 1000) framesPerEnemy = 80
+
+		let smallEnemyChance = 1
+		if (score > 12000) smallEnemyChance = 0
+		else if (score > 9000) smallEnemyChance = 0.2
+		else if (score > 7500) smallEnemyChance = 0.4
+		else if (score > 3000) smallEnemyChance = 0.6
+		else if (score > 1500) smallEnemyChance = 0.8
+
+		let velocityMultiplier = 1
+		if (score > 30000) velocityMultiplier = 2
+		else if (score > 25000) velocityMultiplier = 1.7
+		else if (score > 20000) velocityMultiplier = 1.5
+		else if (score > 17500) velocityMultiplier = 1.3
+		else if (score > 16000) velocityMultiplier = 1.1
+
+		if (stage < 2 && score > 15000) {
+			stage++
+			// yellow
+			for (const tex of scoreTexs)
+				for (const i in tex) tex[i] = tex[i].replaceAll("2", "6")
+		}
+		if (stage < 3 && score > 30000) {
+			stage++
+			// red
+			for (const tex of scoreTexs)
+				for (const i in tex) tex[i] = tex[i].replaceAll("6", "3")
+		}
+
+		if (
+			framesSinceLastEnemy++ > framesPerEnemy &&
+			gameState === "playing"
+		) {
 			const x = Math.random() * 160
 			const velocity = [
 				Math.random() * 0.5 - 0.25,
-				Math.random() * 0.75 + 0.25,
+				(Math.random() * 0.75 + 0.25) * velocityMultiplier,
 			]
-			const classToAdd = Math.random() < 0.25 ? SmallEnemy : Enemy
+
+			const classToAdd =
+				Math.random() < smallEnemyChance ? SmallEnemy : Enemy
 			sprites.add(new classToAdd([x, 0], velocity))
 			framesSinceLastEnemy = 0
 		}
@@ -450,6 +602,12 @@ export default async (api: WebEngineAPI) => {
 
 		for (const sprite of sprites) drawSprite(sprite)
 		if (gameState === "over") drawSprite(gameOver)
+		else score += 0.5
+
+		// draw score
+		const scoreStr = Math.floor(score).toString()
+		for (let i = 0; i < scoreStr.length; i++)
+			drawSprite(new ScoreNumber(i, +scoreStr[i]))
 
 		// screen paint
 		const legend: [string, string][] = []
