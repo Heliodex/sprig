@@ -110,6 +110,10 @@ class Enemy extends Sprite {
 	velocity = [0, 0.5]
 	constructor(pos: number[], velocity: number[]) {
 		super()
+
+		if (pos[0] < 0) velocity[0] = Math.abs(velocity[0]) + 0.2
+		else if (pos[0] > 160) velocity[0] = -Math.abs(velocity[0]) - 0.2
+
 		this.pos = pos
 		this.velocity = velocity
 	}
@@ -132,6 +136,10 @@ class SmallEnemy extends Sprite {
 	immunity = 15
 	constructor(pos: number[], velocity: number[]) {
 		super()
+
+		if (pos[0] < 0) velocity[0] = Math.abs(velocity[0]) + 0.2
+		else if (pos[0] > 160) velocity[0] = -Math.abs(velocity[0]) - 0.2
+
 		this.pos = pos
 		this.velocity = velocity
 	}
@@ -343,7 +351,7 @@ export default async (api: WebEngineAPI) => {
 	function drawSprite(sprite: Sprite) {
 		const toDraw = sprite.texture
 
-		const [xPos, yPos] = sprite.pos.map(Math.floor)
+		const [xPos, yPos] = sprite.pos.map(Math.round)
 		const [xOffset, yOffset] = sprite.offset
 
 		const collisionsDetected = new Set<Sprite>()
@@ -420,18 +428,10 @@ export default async (api: WebEngineAPI) => {
 
 	// bullets
 	let framesSinceLastBullet = 10
-	let framesSinceLastEnemy = 20
-	const bulletCost = 10
+	let framesSinceLastEnemy = 100
 
 	onInput("w", () => {
-		if (
-			gameState !== "playing" ||
-			framesSinceLastBullet < 5 ||
-			score < bulletCost
-		)
-			return
-
-		score -= bulletCost
+		if (gameState !== "playing" || framesSinceLastBullet < 10) return
 		framesSinceLastBullet = 0
 		sprites.add(new Bullet(ship.pos[0]))
 	})
@@ -487,20 +487,29 @@ export default async (api: WebEngineAPI) => {
 		}
 	}
 
+	let lastFrame = 0
+
 	function render() {
+		if (Date.now() - lastFrame < 1000 / 30) {
+			// should we render? nah can't be botherd yet
+			requestAnimationFrame(render)
+			return
+		}
+		lastFrame = Date.now()
+
 		const startTime = Date.now()
 
 		display.fill(black)
 		spriteLocMap.clear()
 
-		if (ship.framesSinceLastTex++ > 15) {
+		if (ship.framesSinceLastTex++ > 7) {
 			ship.currentTex++
 			ship.framesSinceLastTex = 0
 		}
 
 		// move ship
-		if (moveDirection === "left") ship.pos[0] -= 1
-		else if (moveDirection === "right") ship.pos[0] += 1
+		if (moveDirection === "left") ship.pos[0] -= 1.5
+		else if (moveDirection === "right") ship.pos[0] += 1.5
 
 		const o = ship.offset[0]
 		if (ship.pos[0] < o) ship.pos[0] = o
@@ -523,21 +532,23 @@ export default async (api: WebEngineAPI) => {
 		for (const e of ss.filter(s => s instanceof SmallEnemy)) e.immunity--
 
 		for (const e of ss.filter(s => s instanceof Explosion)) {
-			if (e.framesSinceLastTex++ > 5) {
+			if (e.framesSinceLastTex++ > 2) {
 				e.currentTex++
 				e.framesSinceLastTex = 0
 			}
 			if (e.currentTex >= e.textures.length) sprites.delete(e)
 		}
 
-		let framesPerEnemy = 100
-		if (score > 20000) framesPerEnemy = 15
-		else if (score > 15000) framesPerEnemy = 20
-		else if (score > 10000) framesPerEnemy = 30
-		else if (score > 6000) framesPerEnemy = 40
-		else if (score > 4000) framesPerEnemy = 50
-		else if (score > 2500) framesPerEnemy = 60
-		else if (score > 1000) framesPerEnemy = 80
+		let framesPerEnemy = 60
+		if (score > 40000) framesPerEnemy = 3
+		else if (score > 30000) framesPerEnemy = 7
+		else if (score > 23000) framesPerEnemy = 10
+		else if (score > 15000) framesPerEnemy = 15
+		else if (score > 10000) framesPerEnemy = 20
+		else if (score > 6000) framesPerEnemy = 25
+		else if (score > 4000) framesPerEnemy = 33
+		else if (score > 2500) framesPerEnemy = 40
+		else if (score > 1000) framesPerEnemy = 50
 
 		let smallEnemyChance = 1
 		if (score > 12000) smallEnemyChance = 0
@@ -547,10 +558,12 @@ export default async (api: WebEngineAPI) => {
 		else if (score > 1500) smallEnemyChance = 0.8
 
 		let velocityMultiplier = 1
-		if (score > 30000) velocityMultiplier = 2
-		else if (score > 25000) velocityMultiplier = 1.7
+		if (score > 60000) velocityMultiplier = 3
+		if (score > 50000) velocityMultiplier = 2.5
+		else if (score > 30000) velocityMultiplier = 2
+		else if (score > 27000) velocityMultiplier = 1.7
 		else if (score > 20000) velocityMultiplier = 1.5
-		else if (score > 17500) velocityMultiplier = 1.3
+		else if (score > 18000) velocityMultiplier = 1.3
 		else if (score > 16000) velocityMultiplier = 1.1
 
 		if (stage < 2 && score > 15000) {
@@ -570,10 +583,11 @@ export default async (api: WebEngineAPI) => {
 			framesSinceLastEnemy++ > framesPerEnemy &&
 			gameState === "playing"
 		) {
-			const x = Math.random() * 160
+			const x = Math.random() * 240 - 40
 			const velocity = [
-				Math.random() * 0.5 - 0.25,
-				(Math.random() * 0.75 + 0.25) * velocityMultiplier,
+				(Math.random() * 0.75 - 0.3) *
+					Math.min(1, velocityMultiplier - 1),
+				(Math.random() * 0.75 + 0.3) * velocityMultiplier,
 			]
 
 			const classToAdd =
@@ -636,7 +650,7 @@ export default async (api: WebEngineAPI) => {
 		setMap(screen.join(""))
 
 		const t = Date.now() - startTime
-		if (t > 16) console.log("rendered in", t, "ms")
+		if (t > 1000 / 30) console.log("rendered in", t, "ms")
 
 		requestAnimationFrame(render)
 	}
