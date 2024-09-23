@@ -91,24 +91,30 @@ class Bullet extends Sprite {
 	}
 }
 
+const suddenDeathify = (s: string) =>
+	s.replaceAll("H", "3").replaceAll("L", "9").replaceAll("1", "6")
+
+const enemyTexs = transformTextures([
+	`
+		  LL LLL
+		 LH1LHHHL
+		1HHHHH1HL
+		LL1HHHHHHL
+		1HHHHHLLHL
+		1HHH1HHHHL
+		1HH1HHHHH1
+		1HHLHHLHHL
+		 11HHH1H1
+		   111 1 `,
+])
+
 class Enemy extends Sprite {
 	// supposed to be a funky planet or asteroid
-	textures = transformTextures([
-		`
-			  LL LLL
-			 LH1LHHHL
-			1HHHHH1HL
-			LL1HHHHHHL
-			1HHHHHLLHL
-			1HHH1HHHHL
-			1HH1HHHHH1
-			1HHLHHLHHL
-			 11HHH1H1
-			   111 1 `,
-	])
+	textures = enemyTexs
 	offset = [6, 12]
 	velocity = [0, 0.5]
-	constructor(pos: number[], velocity: number[]) {
+	suddenDeath = false
+	constructor(pos: number[], velocity: number[], suddenDeath = false) {
 		super()
 
 		if (pos[0] < 0) velocity[0] = Math.abs(velocity[0]) + 0.2
@@ -116,25 +122,29 @@ class Enemy extends Sprite {
 
 		this.pos = pos
 		this.velocity = velocity
+		this.suddenDeath = suddenDeath
 	}
 }
 
-class SmallEnemy extends Sprite {
-	textures = transformTextures([
-		`
+const smallEnemyTexs = transformTextures([
+	`
 
-		 	   LLL
-		 	  LHHHL
-		 	 1HLHHL
-		 	 1H1HH1L
-		 	 1HHHHHL
-		 	  1HLH1
-		 	   111 `,
-	])
+	 	   LLL
+	 	  LH1HL
+	 	 1HHHHL
+	 	 1H1HLHL
+	 	 1LHHHL
+	 	  1HLH1
+	 	   111 `,
+])
+
+class SmallEnemy extends Sprite {
+	textures = smallEnemyTexs
 	offset = [6, 12]
 	velocity = [0, 0.5]
 	immunity = 15
-	constructor(pos: number[], velocity: number[]) {
+	suddenDeath = false
+	constructor(pos: number[], velocity: number[], suddenDeath = false) {
 		super()
 
 		if (pos[0] < 0) velocity[0] = Math.abs(velocity[0]) + 0.2
@@ -142,6 +152,7 @@ class SmallEnemy extends Sprite {
 
 		this.pos = pos
 		this.velocity = velocity
+		this.suddenDeath = suddenDeath
 	}
 }
 
@@ -160,22 +171,22 @@ class Explosion extends Sprite {
 		`
 		      96636
 		     66999 6
-		    3 9939996
-		    6993 3939
+		    3 9939696
+		    6963 3939
 		    693 6 396
-		    6393 39 6
-		    399939996
+		    6363 39 6
+		    399939696
 		     6 69993
 		      69663`,
 
 		`
 		        9
 		      66666
-		     6999996
-		   3 699 996
-		    969 C 969
-		     699 996
-		    96999996
+		     6999936
+		   3 696 996
+		    969 C 669
+		     639 996
+		    96969936
 		      66666 3
 		        9`,
 		`
@@ -365,8 +376,6 @@ export default async (api: WebEngineAPI) => {
 					if (xp < 0 || xp >= 160) continue
 
 					const pos = yp * 160 + xp
-					if (pos < 0 || pos >= 160 * 128) continue // necessary?
-
 					const possibleCollision = spriteLocMap.get(pos)
 					if (
 						possibleCollision &&
@@ -456,8 +465,8 @@ export default async (api: WebEngineAPI) => {
 			(a instanceof Ship && b instanceof SmallEnemy)
 		) {
 			sprites.delete(a)
-			sprites.delete(b)
 			sprites.add(new Explosion(a.pos))
+			sprites.delete(b)
 			sprites.add(new Explosion(b.pos))
 			gameState = "over"
 		} else if (
@@ -466,9 +475,10 @@ export default async (api: WebEngineAPI) => {
 			a.immunity < 0 &&
 			b.immunity < 0
 		) {
+			if (stage >= 4) return
 			sprites.delete(a)
-			sprites.delete(b)
 			sprites.add(new Explosion(a.pos))
+			sprites.delete(b)
 			sprites.add(new Explosion(b.pos))
 		} else if (
 			a instanceof Enemy &&
@@ -476,14 +486,27 @@ export default async (api: WebEngineAPI) => {
 			b.immunity < 0
 		) {
 			sprites.delete(a)
+			sprites.add(new SmallEnemy(a.pos, a.velocity, stage >= 4))
+			if (stage >= 4) return
 			sprites.delete(b)
-			sprites.add(new SmallEnemy(a.pos, a.velocity))
 			sprites.add(new Explosion(b.pos))
 		} else if (a instanceof Enemy && b instanceof Enemy) {
 			sprites.delete(a)
 			sprites.delete(b)
-			sprites.add(new SmallEnemy(a.pos, [-a.velocity[0], a.velocity[1]]))
-			sprites.add(new SmallEnemy(b.pos, [-b.velocity[0], b.velocity[1]]))
+			sprites.add(
+				new SmallEnemy(
+					a.pos,
+					[-a.velocity[0], a.velocity[1]],
+					stage >= 4
+				)
+			)
+			sprites.add(
+				new SmallEnemy(
+					b.pos,
+					[-b.velocity[0], b.velocity[1]],
+					stage >= 4
+				)
+			)
 		}
 	}
 
@@ -524,13 +547,16 @@ export default async (api: WebEngineAPI) => {
 		for (const e of ss.filter(
 			s => s instanceof Enemy || s instanceof SmallEnemy
 		)) {
+			if (e.suddenDeath) {
+				// accelerate towards the ship, muahahahha
+				e.velocity[0] += e.pos[0] < ship.pos[0] ? 0.02 : -0.02
+				e.velocity[1] += 0.03
+			}
 			e.pos[0] += e.velocity[0]
 			e.pos[1] += e.velocity[1]
 			if (e.pos[1] > 142) sprites.delete(e)
 		}
-
 		for (const e of ss.filter(s => s instanceof SmallEnemy)) e.immunity--
-
 		for (const e of ss.filter(s => s instanceof Explosion)) {
 			if (e.framesSinceLastTex++ > 2) {
 				e.currentTex++
@@ -540,7 +566,8 @@ export default async (api: WebEngineAPI) => {
 		}
 
 		let framesPerEnemy = 60
-		if (score > 40000) framesPerEnemy = 3
+		if (score > 65000) framesPerEnemy = 2
+		else if (score > 40000) framesPerEnemy = 3
 		else if (score > 30000) framesPerEnemy = 7
 		else if (score > 23000) framesPerEnemy = 10
 		else if (score > 15000) framesPerEnemy = 15
@@ -578,6 +605,18 @@ export default async (api: WebEngineAPI) => {
 			for (const tex of scoreTexs)
 				for (const i in tex) tex[i] = tex[i].replaceAll("6", "3")
 		}
+		if (stage < 4 && score > 70000) {
+			stage++
+			// small sudden death
+			for (const tex of smallEnemyTexs)
+				for (const i in tex) tex[i] = suddenDeathify(tex[i])
+		}
+		if (stage < 5 && score > 75000) {
+			stage++
+			// sudden death
+			for (const tex of enemyTexs)
+				for (const i in tex) tex[i] = suddenDeathify(tex[i])
+		}
 
 		if (
 			framesSinceLastEnemy++ > framesPerEnemy &&
@@ -590,9 +629,9 @@ export default async (api: WebEngineAPI) => {
 				(Math.random() * 0.75 + 0.3) * velocityMultiplier,
 			]
 
-			const classToAdd =
-				Math.random() < smallEnemyChance ? SmallEnemy : Enemy
-			sprites.add(new classToAdd([x, 0], velocity))
+			if (Math.random() < smallEnemyChance)
+				sprites.add(new SmallEnemy([x, 0], velocity, stage >= 4))
+			else sprites.add(new Enemy([x, 0], velocity, stage >= 5))
 			framesSinceLastEnemy = 0
 		}
 
@@ -605,11 +644,10 @@ export default async (api: WebEngineAPI) => {
 				starfields[field].unshift(starfieldLine(chances[field]))
 			}
 
-			const colour = starcolours[field]
-
 			for (let y = 0; y < 128; y++)
 				for (let x = 0; x < 160; x++)
-					if (starfields[field][y][x]) display[y * 160 + x] = colour
+					if (starfields[field][y][x])
+						display[y * 160 + x] = starcolours[field]
 		}
 
 		framesSinceLastBullet++
