@@ -622,14 +622,17 @@ export default async (api: WebEngineAPI) => {
 			sprites.add(ship)
 		}
 		gameState = "playing"
+		moveDirection = ""
+		requestAnimationFrame(render)
 	})
 	onInput("k", () => {
-		if (gameState !== "playing") return 
+		if (gameState !== "playing") return
 		gameState = "paused"
-		moveDirection = ""
 	})
 	onInput("l", () => {
-		if (["paused", "over"].includes(gameState)) gameState = "menu"
+		if (!["paused", "over"].includes(gameState)) return
+		gameState = "menu"
+		requestAnimationFrame(render)
 	})
 
 	onInput("w", () => {
@@ -705,7 +708,7 @@ export default async (api: WebEngineAPI) => {
 
 	let lastFrame = 0
 
-	function paintAndFinish() {
+	function paint() {
 		const legend: [string, string][] = []
 		const screen: string[] = []
 
@@ -730,7 +733,6 @@ export default async (api: WebEngineAPI) => {
 
 		setLegend(...legend)
 		setMap(screen.join(""))
-		requestAnimationFrame(render)
 	}
 
 	function render() {
@@ -744,23 +746,28 @@ export default async (api: WebEngineAPI) => {
 		display.fill(black)
 		spriteLocMap.clear()
 
-		if (gameState === "playing") {
-			if (ship.framesSinceLastTex++ > 7) {
-				ship.currentTex++
-				ship.framesSinceLastTex = 0
+		if (gameState === "menu") {
+			drawSprite(new Intro())
+			paint()
+			return
+		}
+
+		// starfields
+		for (const field in starcolours) {
+			if (framesSinceLastUpdate[field] >= updateSpeed[field]) {
+				framesSinceLastUpdate[field] = 0
+
+				starfields[field].pop()
+				starfields[field].unshift(starfieldLine(chances[field]))
 			}
 
-			if (moveDirection === "left")
-				// move ship
-				ship.pos[0] -= 1.5
-			else if (moveDirection === "right") ship.pos[0] += 1.5
+			for (let y = 0; y < 128; y++)
+				for (let x = 0; x < 160; x++)
+					if (starfields[field][y][x])
+						display[y * 160 + x] = starcolours[field]
+		}
 
-			const o = ship.offset[0]
-			if (ship.pos[0] < o) ship.pos[0] = o
-			else if (ship.pos[0] > 160 - o + 1) ship.pos[0] = 160 - o + 1
-
-			// score/difficulty calculation
-
+		function difficultyCalculation() {
 			if (stage < 2 && score > 15000) {
 				stage++
 				// yellow score
@@ -785,7 +792,9 @@ export default async (api: WebEngineAPI) => {
 				for (const tex of enemyTexs)
 					for (const i in tex) tex[i] = suddenDeathify(tex[i])
 			}
+		}
 
+		function spawnEnemies() {
 			const framesPerE = framesPerEnemy(score)
 			const velMult = velocityMultiplier(score)
 			const smallEChance = smallEnemyChance(score)
@@ -804,7 +813,23 @@ export default async (api: WebEngineAPI) => {
 			}
 		}
 
-		if (["playing", "over"].includes(gameState)) {
+		function updatePlayingSprites() {
+			if (ship.framesSinceLastTex++ > 7) {
+				ship.currentTex++
+				ship.framesSinceLastTex = 0
+			}
+
+			if (moveDirection === "left")
+				// move ship
+				ship.pos[0] -= 1.5
+			else if (moveDirection === "right") ship.pos[0] += 1.5
+
+			const o = ship.offset[0]
+			if (ship.pos[0] < o) ship.pos[0] = o
+			else if (ship.pos[0] > 160 - o + 1) ship.pos[0] = 160 - o + 1
+		}
+
+		function updateSprites() {
 			// move bullets
 			const ss = [...sprites]
 			for (const b of ss.filter(s => s instanceof Bullet)) {
@@ -833,39 +858,31 @@ export default async (api: WebEngineAPI) => {
 				if (e.currentTex >= e.textures.length) sprites.delete(e)
 			}
 
-			// starfields
-			for (const field in starcolours) {
-				if (framesSinceLastUpdate[field]++ >= updateSpeed[field]) {
-					framesSinceLastUpdate[field] = 0
-
-					starfields[field].pop()
-					starfields[field].unshift(starfieldLine(chances[field]))
-				}
-
-				for (let y = 0; y < 128; y++)
-					for (let x = 0; x < 160; x++)
-						if (starfields[field][y][x])
-							display[y * 160 + x] = starcolours[field]
-			}
-
 			framesSinceLastBullet++
-		} else if (gameState === "menu") {
-			drawSprite(new Intro())
-			paintAndFinish()
-			return
+			score += 0.5
+		}
+
+		if (gameState !== "paused") {
+			if (gameState === "playing") {
+				difficultyCalculation()
+				spawnEnemies()
+				updatePlayingSprites()
+			}
+			for (const field in starcolours) framesSinceLastUpdate[field]++
+			updateSprites()
 		}
 
 		for (const sprite of sprites) drawSprite(sprite)
 
-		if (gameState === "over") drawSprite(gameOver)
-		else if (gameState !== "paused") score += 0.5
-
-		// draw score
+		// stuff on top of everything else
 		const scoreStr = Math.floor(score).toString()
 		for (let i = 0; i < scoreStr.length; i++)
 			drawSprite(new ScoreNumber(i, +scoreStr[i]))
 
-		paintAndFinish()
+		if (gameState === "over") drawSprite(gameOver)
+
+		paint()
+		if (gameState !== "paused") requestAnimationFrame(render)
 	}
 
 	render()
