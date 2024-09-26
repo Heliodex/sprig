@@ -34,11 +34,6 @@ abstract class Sprite {
 	get texture() {
 		return this.textures[this.currentTex % this.textures.length]
 	}
-	get size() {
-		const width = Math.max(...this.texture.map(l => l.length))
-		const height = this.texture.length
-		return [width, height]
-	}
 }
 
 class Ship extends Sprite {
@@ -570,7 +565,13 @@ function velocityMultiplier(s: number) {
 }
 
 export default async (api: WebEngineAPI) => {
-	const { onInput, setLegend, setMap } = api
+	const { onInput, setLegend, setMap, playTune } = api
+
+	const x = "1000:C4~1000,"
+
+	console.log(x)
+
+	playTune(x)
 
 	const spriteLocMap = new Map<number, Sprite>()
 	const display = new Int8Array(160 * 128)
@@ -660,7 +661,7 @@ export default async (api: WebEngineAPI) => {
 	})
 
 	onInput("i", () => {
-		if (!["paused", "over", "menu"].includes(gameState)) return
+		if (gameState === "playing") return
 		if (gameState !== "paused") {
 			score = 0
 			stage = 1
@@ -680,7 +681,7 @@ export default async (api: WebEngineAPI) => {
 		gameState = "paused"
 	})
 	onInput("l", () => {
-		if (!["paused", "over"].includes(gameState)) return
+		if (["menu", "playing"].includes(gameState)) return
 		gameState = "menu"
 		requestAnimationFrame(render)
 	})
