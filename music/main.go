@@ -7,14 +7,16 @@ import (
 
 	"github.com/gotracker/playback/format/it"
 	"github.com/gotracker/playback/format/it/layout"
-	"github.com/gotracker/playback/period"
 	"github.com/gotracker/playback/format/it/volume"
 	"github.com/gotracker/playback/index"
+	"github.com/gotracker/playback/period"
 	"github.com/gotracker/playback/player/feature"
 	"github.com/gotracker/playback/song"
 )
 
 var instruments = []rune{'~', '^', '-', '/'}
+
+const bpr = 4
 
 func main() {
 	data, err := it.IT.Load("./track.it", []feature.Feature{})
@@ -23,7 +25,7 @@ func main() {
 	}
 
 	bpm := float64(data.GetInitialBPM())
-	ms := int(bpm / 0.6 / 2)
+	ms := int((60/bpm) * 1000 / bpr)
 
 	patterns := []index.Pattern{0}
 
@@ -37,13 +39,10 @@ func main() {
 
 		rows := pattern.NumRows()
 		for i := range index.Row(rows) {
-			row := pattern.GetRow(i).(layout.Row[period.Linear])
-
 			toPrint.WriteString(fmt.Sprintf("\n%d", ms))
-
 			firstNote := true
 
-			row.ForEach(func(c index.Channel, d song.ChannelData[volume.Volume]) (bool, error) {
+			pattern.GetRow(i).(layout.Row[period.Linear]).ForEach(func(c index.Channel, d song.ChannelData[volume.Volume]) (bool, error) {
 				n := d.GetNote()
 				ns := n.String()
 				if ns == "C-0" {
@@ -51,7 +50,7 @@ func main() {
 				}
 
 				note := strings.ReplaceAll(ns, "-", "")
-				instrument := instruments[c]
+				instrument := instruments[d.GetInstrument() - 1]
 
 				if firstNote {
 					toPrint.WriteString(": ")
