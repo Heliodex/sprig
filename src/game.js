@@ -1,12 +1,56 @@
-import { type WebEngineAPI, keyMap } from "./webEngine"
-import { black, darkgrey, colours, white, lightgrey } from "./colours"
-import type { PlayTuneRes } from "sprig"
+/*
+@title: Sprig Shooter
+@author: Heliodex
+@tags: ["advanced", "space", "endless", "dodge", "singleplayer", "shooter"]
+@img: "Sprig Shooter"
+@addedOn: 2024-09-30
+
+Space-themed shooter! Control your ship and shoot down enemies (purple asteroid/planet thingies) to blow them into pieces and earn score. Try to get your score as high as possible (duh) and avoid getting hit by enemies (duh too).
+The game is endless and difficulty increases as you progress. Good luck, cadet!
+*/
+
+// Watch out when opening any bitmap`` or tune`` strings in the Sprig editor, as it may corrupt them due to being created in an external program. If this happens, simply undo the changes.
+
+const black = "0".charCodeAt(0)
+const lightgrey = "1".charCodeAt(0)
+const white = "2".charCodeAt(0)
+const red = "3".charCodeAt(0)
+const lime = "4".charCodeAt(0)
+const blue = "5".charCodeAt(0)
+const yellow = "6".charCodeAt(0)
+const cyan = "7".charCodeAt(0)
+const pink = "8".charCodeAt(0)
+const orange = "9".charCodeAt(0)
+const brown = "C".charCodeAt(0)
+const green = "D".charCodeAt(0)
+const gold = "F".charCodeAt(0)
+const purple = "H".charCodeAt(0)
+const darkgrey = "L".charCodeAt(0)
+const transparent = ".".charCodeAt(0)
 
 const space = " ".charCodeAt(0)
-const allChars = [space, ...colours]
+const allChars = [
+	space,
+	black,
+	darkgrey,
+	lightgrey,
+	white,
+	red,
+	brown,
+	blue,
+	cyan,
+	yellow,
+	lime,
+	green,
+	gold,
+	pink,
+	purple,
+	orange,
+	transparent,
+]
 
-function transformTextures(startTexs: string[]): string[][] {
-	const textures: string[][] = []
+function transformTextures(startTexs) {
+	const textures = []
 	for (const tex of startTexs) {
 		const texLines = tex
 			.replaceAll("\r", "")
@@ -25,7 +69,7 @@ function transformTextures(startTexs: string[]): string[][] {
 }
 
 // The good part of "Take Flight", transcribed to crazed 4-voice horror
-const music = `
+const music = tune`
 194: A2-194 + C3^194,
 194: A1~194 + C3^194,
 194: C3-194 + C1/194,
@@ -160,8 +204,8 @@ const randomExplode = () =>
 	`0: ${notes[Math.floor(Math.random() * notes.length)]}1/500`
 const bullet = "0: C4-100 + C3-200 + C2-300 + C1-400 + C0-500"
 
-abstract class Sprite {
-	textures: readonly string[][] = []
+class Sprite {
+	textures = []
 	currentTex = 0
 	framesSinceLastTex = 0
 	pos = [0, 0]
@@ -175,7 +219,7 @@ abstract class Sprite {
 
 class Ship extends Sprite {
 	textures = transformTextures([
-		`
+		bitmap`
 			    3
 			    2
 			   323
@@ -189,7 +233,7 @@ class Ship extends Sprite {
 			 LL   LL
 			 96   69
 			 6     6`,
-		`
+		bitmap`
 			    3
 			    2
 			   323
@@ -211,24 +255,24 @@ class Ship extends Sprite {
 
 class Bullet extends Sprite {
 	textures = transformTextures([
-		`
+		bitmap`
 			7
 			7
 			7`,
 	])
 	offset = [1, 0]
-	constructor(x: number) {
+	constructor(x) {
 		super()
 		this.pos = [x, 106]
 	}
 }
 
-const suddenDeathify = (s: string) =>
+const suddenDeathify = s =>
 	s.replaceAll("H", "3").replaceAll("L", "9").replaceAll("1", "6")
 
 // supposed to be a funky planet or asteroid
 const enemyTexs = transformTextures([
-	`
+	bitmap`
 		  LL LLL
 		 LH1LHHHL
 		1HHHHH1HL
@@ -246,7 +290,7 @@ class Enemy extends Sprite {
 	offset = [6, 12]
 	velocity = [0, 0.5]
 	suddenDeath = false
-	constructor(pos: number[], velocity: number[], suddenDeath = false) {
+	constructor(pos, velocity, suddenDeath = false) {
 		super()
 
 		if (pos[0] < 0) velocity[0] = Math.abs(velocity[0]) + 0.2
@@ -259,7 +303,7 @@ class Enemy extends Sprite {
 }
 
 const smallEnemyTexs = transformTextures([
-	`
+	bitmap`
 
 	 	   LLL
 	 	  LH1HL
@@ -276,7 +320,7 @@ class SmallEnemy extends Sprite {
 	velocity = [0, 0.5]
 	immunity = 15
 	suddenDeath = false
-	constructor(pos: number[], velocity: number[], suddenDeath = false) {
+	constructor(pos, velocity, suddenDeath = false) {
 		super()
 
 		if (pos[0] < 0) velocity[0] = Math.abs(velocity[0]) + 0.2
@@ -290,7 +334,7 @@ class SmallEnemy extends Sprite {
 
 class Explosion extends Sprite {
 	textures = transformTextures([
-		`
+		bitmap`
 		    33 63 3
 		    3 6 636
 		     66996 3
@@ -300,7 +344,7 @@ class Explosion extends Sprite {
 		     36999363
 		    33636 6 3
 		       996`,
-		`
+		bitmap`
 		      96636
 		     66999 6
 		    3 9939696
@@ -311,7 +355,7 @@ class Explosion extends Sprite {
 		     6 69993
 		      69663`,
 
-		`
+		bitmap`
 		        9
 		      66666
 		     6999936
@@ -321,7 +365,7 @@ class Explosion extends Sprite {
 		    96969936
 		      66666 3
 		        9`,
-		`
+		bitmap`
 
 		        9
 		    3  696 9
@@ -330,7 +374,7 @@ class Explosion extends Sprite {
 		      6   6
 		    9  696  3
 		        9`,
-		`
+		bitmap`
 
 		           9
 		     3  6
@@ -342,7 +386,7 @@ class Explosion extends Sprite {
 	])
 	collidable = false
 	offset = [8, 8]
-	constructor(pos: number[]) {
+	constructor(pos) {
 		super()
 		this.pos = structuredClone(pos)
 	}
@@ -350,7 +394,7 @@ class Explosion extends Sprite {
 
 class Paused extends Sprite {
 	textures = transformTextures([
-		`
+		bitmap`
 			222222222222222222222222222222222222222222222222222
 			200000000000000000000000000000000000000000000000002
 			200000000000000000000000000000000000000000000000002
@@ -392,7 +436,7 @@ class Paused extends Sprite {
 
 class GameOver extends Sprite {
 	textures = transformTextures([
-		`
+		bitmap`
 			22222222222222222222222222222222222222222222222222222222222222222222222222
 			20000000000000000000000000000000000000000000000000000000000000000000000002
 			20000000000000000000000000000000000000000000000000000000000000000000000002
@@ -435,7 +479,7 @@ class GameOver extends Sprite {
 
 class Intro extends Sprite {
 	textures = transformTextures([
-		`	
+		bitmap`	
 			HHHLLHHHHL000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001HHHHHHHH1100000000000000000000000000000000000000
 			LHHHHH1HHL000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001LHHLLHHHL000000000000000000000000000000000000000
 			LHHHHHHH100000000000000000000L0000000000000000000000000000000000000000000000000000000000000000000000000000000001HHHHLHHHL000000000000000000000000000000000000000
@@ -573,7 +617,7 @@ class Intro extends Sprite {
 }
 
 const scoreTexs = transformTextures([
-	`
+	bitmap`
 		 22
 		2  2
 		2  2
@@ -581,7 +625,7 @@ const scoreTexs = transformTextures([
 		2  2
 		2  2
 		 22`,
-	`
+	bitmap`
 		  2
 		 22
 		  2
@@ -589,7 +633,7 @@ const scoreTexs = transformTextures([
 		  2
 		  2
 		 222`,
-	`
+	bitmap`
 		 22
 		2  2
 		   2
@@ -597,7 +641,7 @@ const scoreTexs = transformTextures([
 		 2
 		2
 		2222`,
-	`
+	bitmap`
 		2222
 		  2
 		 2
@@ -605,7 +649,7 @@ const scoreTexs = transformTextures([
 		   2
 		   2
 		222`,
-	`
+	bitmap`
 		  2
 		 22
 		2 2
@@ -613,7 +657,7 @@ const scoreTexs = transformTextures([
 		  2
 		  2
 		  2`,
-	`
+	bitmap`
 		2222
 		2
 		222
@@ -621,7 +665,7 @@ const scoreTexs = transformTextures([
 		   2
 		2  2
 		 22`,
-	`
+	bitmap`
 		  2
 		 2
 		2
@@ -629,7 +673,7 @@ const scoreTexs = transformTextures([
 		2  2
 		2  2
 		 22`,
-	`
+	bitmap`
 		2222
 		   2
 		   2
@@ -637,7 +681,7 @@ const scoreTexs = transformTextures([
 		  2
 		 2
 		 2`,
-	`
+	bitmap`
 		 22
 		2  2
 		2  2
@@ -645,7 +689,7 @@ const scoreTexs = transformTextures([
 		2  2
 		2  2
 		 22`,
-	`
+	bitmap`
 		 22
 		2  2
 		2  2
@@ -660,14 +704,14 @@ class ScoreNumber extends Sprite {
 	offset = [0, 0]
 	pos = [0, 0]
 	collidable = false
-	constructor(pos: number, num: number) {
+	constructor(pos, num) {
 		super()
 		this.pos = [pos * 5, 0]
 		this.currentTex = num
 	}
 }
 
-function framesPerEnemy(s: number) {
+function framesPerEnemy(s) {
 	if (s > 65000) return 2
 	if (s > 40000) return 3
 	if (s > 30000) return 7
@@ -681,7 +725,7 @@ function framesPerEnemy(s: number) {
 	return 60
 }
 
-function smallEnemyChance(s: number) {
+function smallEnemyChance(s) {
 	if (s > 12000) return 0
 	if (s > 9000) return 0.2
 	if (s > 7500) return 0.4
@@ -690,7 +734,7 @@ function smallEnemyChance(s: number) {
 	return 1
 }
 
-function velocityMultiplier(s: number) {
+function velocityMultiplier(s) {
 	if (s > 60000) return 3
 	if (s > 50000) return 2.5
 	if (s > 30000) return 2
@@ -701,383 +745,367 @@ function velocityMultiplier(s: number) {
 	return 1
 }
 
-export default async (api: WebEngineAPI) => {
-	const { onInput, setLegend, setMap, playTune } = api
+const spriteLocMap = new Map()
+const display = new Int8Array(160 * 128)
+const getPixel = pos => String.fromCharCode(display[pos])
 
-	const spriteLocMap = new Map<number, Sprite>()
-	const display = new Int8Array(160 * 128)
-	const getPixel = (pos: number) => String.fromCharCode(display[pos])
+function drawSprite(sprite) {
+	const toDraw = sprite.texture
 
-	function drawSprite(sprite: Sprite) {
-		const toDraw = sprite.texture
+	const [xPos, yPos] = sprite.pos.map(Math.round)
+	const [xOffset, yOffset] = sprite.offset
 
-		const [xPos, yPos] = sprite.pos.map(Math.round)
-		const [xOffset, yOffset] = sprite.offset
+	const collisionsDetected = new Set()
 
-		const collisionsDetected = new Set<Sprite>()
+	for (let y = 0; y < toDraw.length; y++)
+		for (let x = 0; x < toDraw[y].length; x++)
+			if (toDraw[y].charCodeAt(x) !== space) {
+				// it's drawing time
+				const xp = x + xPos - xOffset
+				const yp = y + yPos - yOffset
+				if (xp < 0 || xp >= 160) continue
 
-		for (let y = 0; y < toDraw.length; y++)
-			for (let x = 0; x < toDraw[y].length; x++)
-				if (toDraw[y].charCodeAt(x) !== space) {
-					// it's drawing time
-					const xp = x + xPos - xOffset
-					const yp = y + yPos - yOffset
-					if (xp < 0 || xp >= 160) continue
-
-					const pos = yp * 160 + xp
-					const possibleCollision = spriteLocMap.get(pos)
-					if (
-						possibleCollision &&
-						!collisionsDetected.has(possibleCollision) &&
-						possibleCollision !== sprite &&
-						possibleCollision.collidable &&
-						sprite.collidable
-					) {
-						collisionsDetected.add(possibleCollision)
-						handleCollision(sprite, possibleCollision)
-					}
-					display[pos] = toDraw[y].charCodeAt(x)
-					spriteLocMap.set(pos, sprite)
+				const pos = yp * 160 + xp
+				const possibleCollision = spriteLocMap.get(pos)
+				if (
+					possibleCollision &&
+					!collisionsDetected.has(possibleCollision) &&
+					possibleCollision !== sprite &&
+					possibleCollision.collidable &&
+					sprite.collidable
+				) {
+					collisionsDetected.add(possibleCollision)
+					handleCollision(sprite, possibleCollision)
 				}
-	}
-
-	function starfieldLine(chance: number) {
-		const line: boolean[] = []
-		for (let i = 0; i < 160; i++) line.push(Math.random() < chance)
-		return line
-	}
-
-	const starfields: boolean[][][] = []
-	const starcolours = [darkgrey, darkgrey, lightgrey, white]
-	const chances = [0.0005, 0.0015, 0.001, 0.0005]
-	const updateSpeed = [31, 5, 2, 1]
-
-	for (const field in starcolours) {
-		starfields[field] = []
-		for (let i = 0; i < 128; i++)
-			starfields[field].push(starfieldLine(chances[field]))
-	}
-
-	// sprites
-	let ship = new Ship()
-	const paused = new Paused()
-	const gameOver = new GameOver()
-	const sprites = new Set<Sprite>()
-
-	let gameState = "menu"
-	let score = 0
-	let stage = 1
-	let framesSinceLastUpdate = [0, 0, 0, 0]
-	let framesSinceLastBullet = 0
-	let framesSinceLastEnemy = 60
-
-	// movement
-	let moveDirection = ""
-	onInput("a", () => {
-		if (gameState !== "playing") return
-		if (moveDirection) return
-		moveDirection = "left"
-	})
-	onInput("d", () => {
-		if (gameState !== "playing") return
-		if (moveDirection) return
-		moveDirection = "right"
-	})
-	window.addEventListener("keyup", e => {
-		if (gameState !== "playing") return
-		const key = keyMap[e.key]
-		if (!key) return
-		if (key === "a" || key === "d") moveDirection = ""
-	})
-
-	onInput("i", () => {
-		if (gameState === "playing") return
-		if (gameState !== "paused") {
-			score = 0
-			stage = 1
-			framesSinceLastUpdate = [0, 0, 0, 0]
-			framesSinceLastBullet = 0
-			framesSinceLastEnemy = 60
-			sprites.clear()
-			ship = new Ship()
-			sprites.add(ship)
-		}
-		gameState = "playing"
-		moveDirection = ""
-		requestAnimationFrame(render)
-	})
-	onInput("k", () => {
-		if (gameState !== "playing") return
-		gameState = "paused"
-	})
-	onInput("l", () => {
-		if (["menu", "playing"].includes(gameState)) return
-		gameState = "menu"
-		requestAnimationFrame(render)
-	})
-
-	onInput("w", () => {
-		if (gameState !== "playing" || framesSinceLastBullet < 10) return
-		framesSinceLastBullet = 0
-		sprites.add(new Bullet(ship.pos[0]))
-		playTune(bullet)
-	})
-
-	function handleCollision(...ss: [Sprite, Sprite]) {
-		const [a, b] = ss.sort((s1, s2) =>
-			s1.constructor.name.localeCompare(s2.constructor.name)
-		)
-		if (a instanceof Bullet && b instanceof Enemy) {
-			sprites.delete(a)
-			sprites.delete(b)
-			sprites.add(new Explosion(b.pos))
-			sprites.add(new SmallEnemy(b.pos, b.velocity))
-			score += 200
-			playTune(randomExplode())
-		} else if (a instanceof Bullet && b instanceof SmallEnemy) {
-			sprites.delete(a)
-			sprites.delete(b)
-			sprites.add(new Explosion(b.pos))
-			score += 100
-			playTune(randomExplode())
-		} else if (
-			(a instanceof Enemy && b instanceof Ship) ||
-			(a instanceof Ship && b instanceof SmallEnemy)
-		) {
-			sprites.delete(a)
-			sprites.add(new Explosion(a.pos))
-			sprites.delete(b)
-			sprites.add(new Explosion(b.pos))
-			gameState = "over"
-			playTune(randomExplode())
-		} else if (
-			a instanceof SmallEnemy &&
-			b instanceof SmallEnemy &&
-			a.immunity < 0 &&
-			b.immunity < 0
-		) {
-			if (stage >= 4) return
-			sprites.delete(a)
-			sprites.add(new Explosion(a.pos))
-			sprites.delete(b)
-			sprites.add(new Explosion(b.pos))
-			playTune(randomExplode())
-		} else if (
-			a instanceof Enemy &&
-			b instanceof SmallEnemy &&
-			b.immunity < 0
-		) {
-			sprites.delete(a)
-			sprites.add(new SmallEnemy(a.pos, a.velocity, stage >= 4))
-			if (stage >= 4) return
-			sprites.delete(b)
-			sprites.add(new Explosion(b.pos))
-			playTune(randomExplode())
-		} else if (a instanceof Enemy && b instanceof Enemy) {
-			sprites.delete(a)
-			sprites.delete(b)
-			sprites.add(
-				new SmallEnemy(
-					a.pos,
-					[-a.velocity[0], a.velocity[1]],
-					stage >= 4
-				)
-			)
-			sprites.add(
-				new SmallEnemy(
-					b.pos,
-					[-b.velocity[0], b.velocity[1]],
-					stage >= 4
-				)
-			)
-		}
-	}
-
-	let lastFrame = 0
-
-	function paint() {
-		const legend: [string, string][] = []
-		const screen: string[] = []
-
-		for (let my = 0; my < 8; my++) {
-			for (let mx = 0; mx < 10; mx++) {
-				const char = String.fromCharCode(mx + my * 10 + 47) // start after .
-
-				const bitmap: string[] = []
-				for (let ly = 0; ly < 16; ly++) {
-					for (let lx = 0; lx < 16; lx++)
-						bitmap.push(
-							getPixel((my * 16 + ly) * 160 + mx * 16 + lx)
-						)
-					bitmap.push("\n")
-				}
-
-				legend.push([char, bitmap.join("")])
-				screen.push(char)
+				display[pos] = toDraw[y].charCodeAt(x)
+				spriteLocMap.set(pos, sprite)
 			}
-			screen.push("\n")
-		}
-
-		setLegend(...legend)
-		setMap(screen.join(""))
-	}
-
-	let currentTune: PlayTuneRes | null = null
-
-	function render() {
-		if (Date.now() - lastFrame < 1000 / 30) {
-			// should we render? nah can't be botherd yet
-			requestAnimationFrame(render)
-			return
-		}
-		lastFrame = Date.now()
-
-		display.fill(black)
-		spriteLocMap.clear()
-
-		if (gameState === "menu") {
-			drawSprite(new Intro())
-			paint()
-			currentTune = playTune(music, 99)
-			return
-		}
-		currentTune?.end()
-		currentTune = null
-
-		// starfields
-		for (const field in starcolours) {
-			if (framesSinceLastUpdate[field] >= updateSpeed[field]) {
-				framesSinceLastUpdate[field] = 0
-
-				starfields[field].pop()
-				starfields[field].unshift(starfieldLine(chances[field]))
-			}
-
-			for (let y = 0; y < 128; y++)
-				for (let x = 0; x < 160; x++)
-					if (starfields[field][y][x])
-						display[y * 160 + x] = starcolours[field]
-		}
-
-		function difficultyCalculation() {
-			if (stage < 2 && score > 15000) {
-				stage++
-				// yellow score
-				for (const tex of scoreTexs)
-					for (const i in tex) tex[i] = tex[i].replaceAll("2", "6")
-			}
-			if (stage < 3 && score > 40000) {
-				stage++
-				// red score
-				for (const tex of scoreTexs)
-					for (const i in tex) tex[i] = tex[i].replaceAll("6", "3")
-			}
-			if (stage < 4 && score > 70000) {
-				stage++
-				// small sudden death
-				for (const tex of smallEnemyTexs)
-					for (const i in tex) tex[i] = suddenDeathify(tex[i])
-			}
-			if (stage < 5 && score > 75000) {
-				stage++
-				// sudden death
-				for (const tex of enemyTexs)
-					for (const i in tex) tex[i] = suddenDeathify(tex[i])
-			}
-		}
-
-		function spawnEnemies() {
-			const framesPerE = framesPerEnemy(score)
-			const velMult = velocityMultiplier(score)
-			const smallEChance = smallEnemyChance(score)
-
-			if (framesSinceLastEnemy++ > framesPerE) {
-				const x = Math.random() * 240 - 40
-				const velocity = [
-					(Math.random() * 0.75 - 0.3) * Math.min(1, velMult - 1),
-					(Math.random() * 0.75 + 0.3) * velMult,
-				]
-
-				if (Math.random() < smallEChance)
-					sprites.add(new SmallEnemy([x, 0], velocity, stage >= 4))
-				else sprites.add(new Enemy([x, 0], velocity, stage >= 5))
-				framesSinceLastEnemy = 0
-			}
-		}
-
-		function updatePlayingSprites() {
-			if (ship.framesSinceLastTex++ > 7) {
-				ship.currentTex++
-				ship.framesSinceLastTex = 0
-			}
-
-			if (moveDirection === "left")
-				// move ship
-				ship.pos[0] -= 1.5
-			else if (moveDirection === "right") ship.pos[0] += 1.5
-
-			const o = ship.offset[0]
-			if (ship.pos[0] < o) ship.pos[0] = o
-			else if (ship.pos[0] > 160 - o + 1) ship.pos[0] = 160 - o + 1
-
-			score += 0.5
-		}
-
-		function updateSprites() {
-			// move bullets
-			const ss = [...sprites]
-			for (const b of ss.filter(s => s instanceof Bullet)) {
-				b.pos[1] -= 3
-				if (b.pos[1] < 0) sprites.delete(b)
-			}
-			for (const e of ss.filter(
-				s => s instanceof Enemy || s instanceof SmallEnemy
-			)) {
-				if (e.suddenDeath) {
-					// accelerate towards the ship, muahahahha
-					e.velocity[0] += e.pos[0] < ship.pos[0] ? 0.02 : -0.02
-					e.velocity[1] += 0.03
-				}
-				e.pos[0] += e.velocity[0]
-				e.pos[1] += e.velocity[1]
-				if (e.pos[1] > 142) sprites.delete(e)
-			}
-			for (const e of ss.filter(s => s instanceof SmallEnemy))
-				e.immunity--
-			for (const e of ss.filter(s => s instanceof Explosion)) {
-				if (e.framesSinceLastTex++ > 2) {
-					e.currentTex++
-					e.framesSinceLastTex = 0
-				}
-				if (e.currentTex >= e.textures.length) sprites.delete(e)
-			}
-
-			framesSinceLastBullet++
-		}
-
-		if (gameState !== "paused") {
-			if (gameState === "playing") {
-				difficultyCalculation()
-				spawnEnemies()
-				updatePlayingSprites()
-			}
-			for (const field in starcolours) framesSinceLastUpdate[field]++
-			updateSprites()
-		}
-
-		for (const sprite of sprites) drawSprite(sprite)
-
-		// stuff on top of everything else
-		const scoreStr = Math.floor(score).toString()
-		for (let i = 0; i < scoreStr.length; i++)
-			drawSprite(new ScoreNumber(i, +scoreStr[i]))
-
-		if (gameState === "over") drawSprite(gameOver)
-		if (gameState === "paused") drawSprite(paused)
-		else requestAnimationFrame(render)
-
-		paint()
-	}
-
-	render()
 }
+
+function starfieldLine(chance) {
+	const line = []
+	for (let i = 0; i < 160; i++) line.push(Math.random() < chance)
+	return line
+}
+
+const starfields = []
+const starcolours = [darkgrey, darkgrey, lightgrey, white]
+const chances = [0.0005, 0.0015, 0.001, 0.0005]
+const updateSpeed = [31, 5, 2, 1]
+
+for (const field in starcolours) {
+	starfields[field] = []
+	for (let i = 0; i < 128; i++)
+		starfields[field].push(starfieldLine(chances[field]))
+}
+
+// sprites
+let ship = new Ship()
+const paused = new Paused()
+const gameOver = new GameOver()
+const sprites = new Set()
+
+let gameState = "menu"
+let score = 0
+let stage = 1
+let framesSinceLastUpdate = [0, 0, 0, 0]
+let framesSinceLastBullet = 0
+let framesSinceLastEnemy = 60
+
+// movement
+let moveDirection = ""
+onInput("a", () => {
+	if (gameState !== "playing") return
+	if (moveDirection) return
+	moveDirection = "left"
+})
+onInput("d", () => {
+	if (gameState !== "playing") return
+	if (moveDirection) return
+	moveDirection = "right"
+})
+window.addEventListener("keyup", e => {
+	if (gameState !== "playing") return
+	if (!e.key) return
+	if (e.key === "a" || e.key === "d") moveDirection = ""
+})
+
+onInput("i", () => {
+	if (gameState === "playing") return
+	if (gameState !== "paused") {
+		score = 0
+		stage = 1
+		framesSinceLastUpdate = [0, 0, 0, 0]
+		framesSinceLastBullet = 0
+		framesSinceLastEnemy = 60
+		sprites.clear()
+		ship = new Ship()
+		sprites.add(ship)
+	}
+	gameState = "playing"
+	moveDirection = ""
+	requestAnimationFrame(render)
+})
+onInput("k", () => {
+	if (gameState !== "playing") return
+	gameState = "paused"
+})
+onInput("l", () => {
+	if (["menu", "playing"].includes(gameState)) return
+	gameState = "menu"
+	requestAnimationFrame(render)
+})
+
+onInput("w", () => {
+	if (gameState !== "playing" || framesSinceLastBullet < 10) return
+	framesSinceLastBullet = 0
+	sprites.add(new Bullet(ship.pos[0]))
+	playTune(bullet)
+})
+
+function handleCollision(...ss) {
+	const [a, b] = ss.sort((s1, s2) =>
+		s1.constructor.name.localeCompare(s2.constructor.name)
+	)
+	if (a instanceof Bullet && b instanceof Enemy) {
+		sprites.delete(a)
+		sprites.delete(b)
+		sprites.add(new Explosion(b.pos))
+		sprites.add(new SmallEnemy(b.pos, b.velocity))
+		score += 200
+		playTune(randomExplode())
+	} else if (a instanceof Bullet && b instanceof SmallEnemy) {
+		sprites.delete(a)
+		sprites.delete(b)
+		sprites.add(new Explosion(b.pos))
+		score += 100
+		playTune(randomExplode())
+	} else if (
+		(a instanceof Enemy && b instanceof Ship) ||
+		(a instanceof Ship && b instanceof SmallEnemy)
+	) {
+		sprites.delete(a)
+		sprites.add(new Explosion(a.pos))
+		sprites.delete(b)
+		sprites.add(new Explosion(b.pos))
+		gameState = "over"
+		playTune(randomExplode())
+	} else if (
+		a instanceof SmallEnemy &&
+		b instanceof SmallEnemy &&
+		a.immunity < 0 &&
+		b.immunity < 0
+	) {
+		if (stage >= 4) return
+		sprites.delete(a)
+		sprites.add(new Explosion(a.pos))
+		sprites.delete(b)
+		sprites.add(new Explosion(b.pos))
+		playTune(randomExplode())
+	} else if (
+		a instanceof Enemy &&
+		b instanceof SmallEnemy &&
+		b.immunity < 0
+	) {
+		sprites.delete(a)
+		sprites.add(new SmallEnemy(a.pos, a.velocity, stage >= 4))
+		if (stage >= 4) return
+		sprites.delete(b)
+		sprites.add(new Explosion(b.pos))
+		playTune(randomExplode())
+	} else if (a instanceof Enemy && b instanceof Enemy) {
+		sprites.delete(a)
+		sprites.delete(b)
+		sprites.add(
+			new SmallEnemy(a.pos, [-a.velocity[0], a.velocity[1]], stage >= 4)
+		)
+		sprites.add(
+			new SmallEnemy(b.pos, [-b.velocity[0], b.velocity[1]], stage >= 4)
+		)
+	}
+}
+
+let lastFrame = 0
+
+function paint() {
+	const legend = []
+	const screen = []
+
+	for (let my = 0; my < 8; my++) {
+		for (let mx = 0; mx < 10; mx++) {
+			const char = String.fromCharCode(mx + my * 10 + 47) // start after .
+
+			const bitmap = []
+			for (let ly = 0; ly < 16; ly++) {
+				for (let lx = 0; lx < 16; lx++)
+					bitmap.push(getPixel((my * 16 + ly) * 160 + mx * 16 + lx))
+				bitmap.push("\n")
+			}
+
+			legend.push([char, bitmap.join("")])
+			screen.push(char)
+		}
+		screen.push("\n")
+	}
+
+	setLegend(...legend)
+	setMap(screen.join(""))
+}
+
+let currentTune = null
+
+function render() {
+	if (Date.now() - lastFrame < 1000 / 30) {
+		// should we render? nah can't be botherd yet
+		requestAnimationFrame(render)
+		return
+	}
+	lastFrame = Date.now()
+
+	display.fill(black)
+	spriteLocMap.clear()
+
+	if (gameState === "menu") {
+		drawSprite(new Intro())
+		paint()
+		currentTune = playTune(music, 99)
+		return
+	}
+	currentTune?.end()
+	currentTune = null
+
+	// starfields
+	for (const field in starcolours) {
+		if (framesSinceLastUpdate[field] >= updateSpeed[field]) {
+			framesSinceLastUpdate[field] = 0
+
+			starfields[field].pop()
+			starfields[field].unshift(starfieldLine(chances[field]))
+		}
+
+		for (let y = 0; y < 128; y++)
+			for (let x = 0; x < 160; x++)
+				if (starfields[field][y][x])
+					display[y * 160 + x] = starcolours[field]
+	}
+
+	function difficultyCalculation() {
+		if (stage < 2 && score > 15000) {
+			stage++
+			// yellow score
+			for (const tex of scoreTexs)
+				for (const i in tex) tex[i] = tex[i].replaceAll("2", "6")
+		}
+		if (stage < 3 && score > 40000) {
+			stage++
+			// red score
+			for (const tex of scoreTexs)
+				for (const i in tex) tex[i] = tex[i].replaceAll("6", "3")
+		}
+		if (stage < 4 && score > 70000) {
+			stage++
+			// small sudden death
+			for (const tex of smallEnemyTexs)
+				for (const i in tex) tex[i] = suddenDeathify(tex[i])
+		}
+		if (stage < 5 && score > 75000) {
+			stage++
+			// sudden death
+			for (const tex of enemyTexs)
+				for (const i in tex) tex[i] = suddenDeathify(tex[i])
+		}
+	}
+
+	function spawnEnemies() {
+		const framesPerE = framesPerEnemy(score)
+		const velMult = velocityMultiplier(score)
+		const smallEChance = smallEnemyChance(score)
+
+		if (framesSinceLastEnemy++ > framesPerE) {
+			const x = Math.random() * 240 - 40
+			const velocity = [
+				(Math.random() * 0.75 - 0.3) * Math.min(1, velMult - 1),
+				(Math.random() * 0.75 + 0.3) * velMult,
+			]
+
+			if (Math.random() < smallEChance)
+				sprites.add(new SmallEnemy([x, 0], velocity, stage >= 4))
+			else sprites.add(new Enemy([x, 0], velocity, stage >= 5))
+			framesSinceLastEnemy = 0
+		}
+	}
+
+	function updatePlayingSprites() {
+		if (ship.framesSinceLastTex++ > 7) {
+			ship.currentTex++
+			ship.framesSinceLastTex = 0
+		}
+
+		if (moveDirection === "left")
+			// move ship
+			ship.pos[0] -= 1.5
+		else if (moveDirection === "right") ship.pos[0] += 1.5
+
+		const o = ship.offset[0]
+		if (ship.pos[0] < o) ship.pos[0] = o
+		else if (ship.pos[0] > 160 - o + 1) ship.pos[0] = 160 - o + 1
+
+		score += 0.5
+	}
+
+	function updateSprites() {
+		// move bullets
+		const ss = [...sprites]
+		for (const b of ss.filter(s => s instanceof Bullet)) {
+			b.pos[1] -= 3
+			if (b.pos[1] < 0) sprites.delete(b)
+		}
+		for (const e of ss.filter(
+			s => s instanceof Enemy || s instanceof SmallEnemy
+		)) {
+			if (e.suddenDeath) {
+				// accelerate towards the ship, muahahahha
+				e.velocity[0] += e.pos[0] < ship.pos[0] ? 0.02 : -0.02
+				e.velocity[1] += 0.03
+			}
+			e.pos[0] += e.velocity[0]
+			e.pos[1] += e.velocity[1]
+			if (e.pos[1] > 142) sprites.delete(e)
+		}
+		for (const e of ss.filter(s => s instanceof SmallEnemy)) e.immunity--
+		for (const e of ss.filter(s => s instanceof Explosion)) {
+			if (e.framesSinceLastTex++ > 2) {
+				e.currentTex++
+				e.framesSinceLastTex = 0
+			}
+			if (e.currentTex >= e.textures.length) sprites.delete(e)
+		}
+
+		framesSinceLastBullet++
+	}
+
+	if (gameState !== "paused") {
+		if (gameState === "playing") {
+			difficultyCalculation()
+			spawnEnemies()
+			updatePlayingSprites()
+		}
+		for (const field in starcolours) framesSinceLastUpdate[field]++
+		updateSprites()
+	}
+
+	for (const sprite of sprites) drawSprite(sprite)
+
+	// stuff on top of everything else
+	const scoreStr = Math.floor(score).toString()
+	for (let i = 0; i < scoreStr.length; i++)
+		drawSprite(new ScoreNumber(i, +scoreStr[i]))
+
+	if (gameState === "over") drawSprite(gameOver)
+	if (gameState === "paused") drawSprite(paused)
+	else requestAnimationFrame(render)
+
+	paint()
+}
+
+render()
