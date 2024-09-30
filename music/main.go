@@ -25,9 +25,9 @@ func main() {
 	}
 
 	bpm := float64(data.GetInitialBPM())
-	ms := int((60/bpm) * 1000 / bpr)
+	ms := int((60 / bpm) * 1000 / bpr)
 
-	patterns := []index.Pattern{0}
+	patterns := []index.Pattern{0, 1, 3, 2}
 
 	var toPrint strings.Builder
 
@@ -42,7 +42,8 @@ func main() {
 			toPrint.WriteString(fmt.Sprintf("\n%d", ms))
 			firstNote := true
 
-			pattern.GetRow(i).(layout.Row[period.Linear]).ForEach(func(c index.Channel, d song.ChannelData[volume.Volume]) (bool, error) {
+			row := pattern.GetRow(i).(layout.Row[period.Linear])
+			row.ForEach(func(c index.Channel, d song.ChannelData[volume.Volume]) (bool, error) {
 				n := d.GetNote()
 				ns := n.String()
 				if ns == "C-0" {
@@ -50,7 +51,10 @@ func main() {
 				}
 
 				note := strings.ReplaceAll(ns, "-", "")
-				instrument := instruments[d.GetInstrument() - 1]
+				inst := d.GetInstrument() - 1
+				if inst < 0 {
+					return c < 4, nil
+				}
 
 				if firstNote {
 					toPrint.WriteString(": ")
@@ -59,7 +63,7 @@ func main() {
 				}
 				firstNote = false
 
-				toPrint.WriteString(fmt.Sprintf("%s%c%d", note, instrument, ms))
+				toPrint.WriteString(fmt.Sprintf("%s%c%d", note, instruments[inst], ms))
 
 				return c < 4, nil // 5 channelz
 			})

@@ -1,5 +1,6 @@
 import { type WebEngineAPI, keyMap } from "./webEngine"
 import { black, darkgrey, colours, white, lightgrey } from "./colours"
+import type { PlayTuneRes } from "sprig"
 
 const space = " ".charCodeAt(0)
 const allChars = [space, ...colours]
@@ -22,6 +23,142 @@ function transformTextures(startTexs: string[]): string[][] {
 	}
 	return textures
 }
+
+// The good part of "Take Flight", transcribed to crazed 4-voice horror
+const music = `
+194: A2-194 + C3^194,
+194: A1~194 + C3^194,
+194: C3-194 + C1/194,
+194: C1/194,
+194: A3-194 + C3^194,
+194: B3-194 + C3^194,
+194: C1/194,
+194: C4-194 + C3^194,
+194: B2^194,
+194: C3^194,
+194: C1/194,
+194: C1/194,
+194: C4-194 + C3^194,
+194: C3^194,
+194: C#4-194 + C1/194,
+194: C3^194,
+194: D4-194 + B2^194,
+194: C#4-194 + C#3^194,
+194: C4-194 + C#1/194,
+194: D4-194 + C#1/194,
+194: C#4-194 + C#3^194,
+194: C4-194 + C#3^194,
+194: C5-194 + C2/194,
+194: C4^194,
+194: B3^194,
+194: C4^194,
+194: C2/194,
+194: C2/194,
+194: C5-194 + C4^194,
+194: C4^194,
+194: C5-194 + C2/194,
+194: C4^194,
+194: F4-194,
+194: F4-194 + F3~194 + F3^194,
+194: G4-194 + F1/194 + F3^194,
+194: F4-194 + F1/194,
+194,
+194: C4-194 + F3^194,
+194: F1/194 + F3^194,
+194: C4-194,
+194: F3^194,
+194: E3^194,
+194: F1/194 + F3^194,
+194: F1/194,
+194: C4-194,
+194: F3^194,
+194: D4-194 + F1/194 + F3^194,
+194,
+194: D#4-194 + F3^194,
+194: D#3~194 + E3^194,
+194: B1/194 + C3^194,
+194: C4-194,
+194,
+194: C3^194,
+194: B1/194 + C3^194,
+194,
+194: D4-194 + C3^194,
+194: D3~194 + B2^194,
+194: D2/194 + G2^194,
+194: B3-194,
+194: G2^194,
+194: B2^194,
+194: D2/194 + C3^194,
+194,
+194: A3-194 + A3^194,
+194: A2-194 + A3^194,
+194: G3-194 + C1/194,
+194: C1/194,
+194: A3-194 + G3^194,
+194: B3-194 + G3^194,
+194: C1/194,
+194: C4-194 + A3^194,
+194: G3^194,
+194: A3^194,
+194: C1/194,
+194: C1/194,
+194: C4-194 + G3^194,
+194: G3^194,
+194: C#4-194 + C1/194,
+194: G3^194,
+194: D4-194 + A3^194,
+194: C#4-194 + C#3^194,
+194: C4-194 + C#1/194,
+194: D4-194 + C#1/194,
+194: C#4-194 + C#3^194,
+194: C4-194 + C#3^194,
+194: C5-194 + C2/194,
+194: C4^194,
+194: B3^194,
+194: C4^194,
+194: C2/194,
+194: C2/194,
+194: C5-194 + C4^194,
+194: C4^194,
+194: C5-194 + C2/194,
+194: C4^194,
+194: F4-194,
+194: F4-194 + F3^194,
+194: G4-194 + F1/194 + F3^194,
+194: F4-194 + F1/194,
+194,
+194: C4-194 + F3^194,
+194: F1/194 + F3^194,
+194: C4-194,
+194: F3^194,
+194: E3^194,
+194: F1/194 + F3^194,
+194: F1/194,
+194: C4-194,
+194: F3^194,
+194: D4-194 + F1/194 + F3^194,
+194,
+194: D#4-194 + F3^194,
+194: E3^194,
+194: B1/194 + C3^194,
+194: C4-194,
+194,
+194: C3^194,
+194: B1/194 + C3^194,
+194,
+194: D4-194 + C3^194,
+194: E3^194,
+194: D2/194 + F3^194,
+194: B3-194,
+194,
+194: C5^194,
+194: D2/194 + G#4^194,
+194: B4^194`
+
+const notes = "CDEF".split("")
+const randomExplode = () =>
+	`0: ${notes[Math.floor(Math.random() * notes.length)]}1/500`
+const bullet = "0: C4-100 + C3-200 + C2-300 + C1-400 + C0-500"
 
 abstract class Sprite {
 	textures: readonly string[][] = []
@@ -567,12 +704,6 @@ function velocityMultiplier(s: number) {
 export default async (api: WebEngineAPI) => {
 	const { onInput, setLegend, setMap, playTune } = api
 
-	const x = "1000:C4~1000,"
-
-	console.log(x)
-
-	playTune(x)
-
 	const spriteLocMap = new Map<number, Sprite>()
 	const display = new Int8Array(160 * 128)
 	const getPixel = (pos: number) => String.fromCharCode(display[pos])
@@ -690,6 +821,7 @@ export default async (api: WebEngineAPI) => {
 		if (gameState !== "playing" || framesSinceLastBullet < 10) return
 		framesSinceLastBullet = 0
 		sprites.add(new Bullet(ship.pos[0]))
+		playTune(bullet)
 	})
 
 	function handleCollision(...ss: [Sprite, Sprite]) {
@@ -702,11 +834,13 @@ export default async (api: WebEngineAPI) => {
 			sprites.add(new Explosion(b.pos))
 			sprites.add(new SmallEnemy(b.pos, b.velocity))
 			score += 200
+			playTune(randomExplode())
 		} else if (a instanceof Bullet && b instanceof SmallEnemy) {
 			sprites.delete(a)
 			sprites.delete(b)
 			sprites.add(new Explosion(b.pos))
 			score += 100
+			playTune(randomExplode())
 		} else if (
 			(a instanceof Enemy && b instanceof Ship) ||
 			(a instanceof Ship && b instanceof SmallEnemy)
@@ -716,6 +850,7 @@ export default async (api: WebEngineAPI) => {
 			sprites.delete(b)
 			sprites.add(new Explosion(b.pos))
 			gameState = "over"
+			playTune(randomExplode())
 		} else if (
 			a instanceof SmallEnemy &&
 			b instanceof SmallEnemy &&
@@ -727,6 +862,7 @@ export default async (api: WebEngineAPI) => {
 			sprites.add(new Explosion(a.pos))
 			sprites.delete(b)
 			sprites.add(new Explosion(b.pos))
+			playTune(randomExplode())
 		} else if (
 			a instanceof Enemy &&
 			b instanceof SmallEnemy &&
@@ -737,6 +873,7 @@ export default async (api: WebEngineAPI) => {
 			if (stage >= 4) return
 			sprites.delete(b)
 			sprites.add(new Explosion(b.pos))
+			playTune(randomExplode())
 		} else if (a instanceof Enemy && b instanceof Enemy) {
 			sprites.delete(a)
 			sprites.delete(b)
@@ -786,6 +923,8 @@ export default async (api: WebEngineAPI) => {
 		setMap(screen.join(""))
 	}
 
+	let tune: PlayTuneRes | null = null
+
 	function render() {
 		if (Date.now() - lastFrame < 1000 / 30) {
 			// should we render? nah can't be botherd yet
@@ -800,8 +939,11 @@ export default async (api: WebEngineAPI) => {
 		if (gameState === "menu") {
 			drawSprite(new Intro())
 			paint()
+			tune = playTune(music, 99)
 			return
 		}
+		tune?.end()
+		tune = null
 
 		// starfields
 		for (const field in starcolours) {
