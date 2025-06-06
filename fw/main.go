@@ -3,8 +3,8 @@ package main
 import (
 	"image/color"
 	"machine"
-	"time"
 
+	"tinygo.org/x/drivers"
 	"tinygo.org/x/drivers/st7735"
 )
 
@@ -16,6 +16,9 @@ const (
 	cs  = machine.GP20
 	dc  = machine.GP22
 	rst = machine.GP26
+
+	width = 160
+	height = 128
 )
 
 func main() {
@@ -28,37 +31,39 @@ func main() {
 	})
 
 	d := st7735.New(machine.SPI0, rst, dc, cs, machine.GP17)
-	d.Configure(st7735.Config{})
+	d.Configure(st7735.Config{
+		Rotation: drivers.Rotation270, // better coordinates
+	})
+	d.FillScreen(color.RGBA{0x00, 0x00, 0x00, 0xff})
 
 	// init left led (GP28, PWM6 channel A)
 	ledLeft := machine.PWM6
 	ledLeft.Configure(machine.PWMConfig{})
-	lch, err := ledLeft.Channel(machine.GP28)
-	if err != nil {
-		panic(err) // where do the errors even go?
+	lch, _ := ledLeft.Channel(machine.GP28)
+	setLeft := func(value uint32) {
+		ledLeft.Set(lch, value)
 	}
 
 	// init right led (GP4, PWM2 channel A)
 	ledRight := machine.PWM2
 	ledRight.Configure(machine.PWMConfig{})
-	rch, err := ledRight.Channel(machine.GP4)
-	if err != nil {
-		panic(err)
+	rch, _ := ledRight.Channel(machine.GP4)
+	setRight := func(value uint32) {
+		ledRight.Set(rch, value)
 	}
 
-	for range 3 {
-		d.FillScreen(color.RGBA{0xff, 0x00, 0x00, 0xff})
-		ledLeft.Set(lch, 65535/32)
-		ledRight.Set(rch, 0)
-		time.Sleep(200 * time.Millisecond)
-
-		d.FillScreen(color.RGBA{0x00, 0x00, 0x00, 0xff})
-		ledLeft.Set(lch, 0)
-		ledRight.Set(rch, 65535/32)
-		time.Sleep(200 * time.Millisecond)
+	for x := int16(0); x < width; x++ {
+		d.SetPixel(x, 0, color.RGBA{0xff, 0x00, 0x00, 0xff})
+		d.SetPixel(x, height-1, color.RGBA{0xff, 0x00, 0x00, 0xff})
 	}
 
-	ledLeft.Set(lch, 0)
-	ledRight.Set(rch, 0)
-	d.FillScreen(color.RGBA{0x00, 0x00, 0x00, 0xff})
+	for y := int16(0); y < height; y++ {
+		d.SetPixel(0, y, color.RGBA{0xff, 0x00, 0x00, 0xff}) // red
+		d.SetPixel(width-1, y, color.RGBA{0xff, 0x00, 0x00, 0xff}) // red
+	}
+
+	setLeft(0)
+	setRight(0)
+	// d.FillScreen(color.RGBA{0x00, 0x00, 0x00, 0xff})
+	// d.EnableBacklight(false)
 }
