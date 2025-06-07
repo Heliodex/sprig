@@ -10,7 +10,7 @@ import (
 
 // Dex Display time!!!!!!
 //
-//go:embed font/*
+//go:embed font
 var fontdir embed.FS
 
 var brightnessMap = map[byte]uint8{
@@ -24,44 +24,54 @@ var brightnessMap = map[byte]uint8{
 const TextHeight = 20
 
 type Char struct {
-	width   uint8
-	content [20][]uint8
+	width, height uint8
+	content       [][]uint8
 }
 
 var chars [256]Char
 
+
+func loadChar(i uint8, charset [256]Char) {
+	hexbyte := hex.EncodeToString([]byte{i})
+	data, err := fontdir.ReadFile("font/" + hexbyte)
+	if err != nil {
+		return
+	}
+
+	lines := strings.Split(string(data), "\n")
+	lines = lines[:TextHeight]
+
+	if len(lines) > TextHeight {
+		return // invalid character data
+	}
+
+	chars[i].width = uint8(len(lines[0]))
+
+	for y, line := range lines {
+		if y >= TextHeight {
+			continue // too tall
+		}
+
+		chars[i].height++
+
+		content := make([]uint8, len(line))
+		chars[i].content = append(chars[i].content, content)
+
+		for x, char := range []byte(line) {
+			b, ok := brightnessMap[char]
+			if !ok {
+				continue // invalid brightness character
+			}
+
+			content[x] = b
+		}
+	}
+}
+
 func init() {
 	// load all characters
 	for i := range uint8(255) {
-		hexbyte := hex.EncodeToString([]byte{i})
-		data, err := fontdir.ReadFile("font/" + hexbyte)
-		if err != nil {
-			continue
-		}
-
-		lines := strings.Split(string(data), "\n")
-		lines = lines[:TextHeight]
-
-		if len(lines) > TextHeight {
-			continue // invalid character data
-		}
-
-		chars[i].width = uint8(len(lines[0]))
-
-		for y, line := range lines {
-			if y >= TextHeight {
-				continue // too tall
-			}
-
-			for _, char := range []byte(line) {
-				b, ok := brightnessMap[char]
-				if !ok {
-					continue // invalid brightness character
-				}
-
-				chars[i].content[y] = append(chars[i].content[y], b)
-			}
-		}
+		loadChar(i, chars)
 	}
 }
 

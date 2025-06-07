@@ -8,19 +8,19 @@ import (
 	"strings"
 )
 
-const (
-	charsDir = "./chars"
-	height   = 24
-	fifth    = 0xffff / 5
-)
+func dexDisplay() {
+	const (
+		height = 24
+		fifth  = 0xffff / 5
+		charsDir = "./dex"
+	)
 
-func main() {
 	dir, err := os.ReadDir(charsDir)
 	if err != nil {
 		panic(err)
 	}
 
-	err = os.MkdirAll("out", 0o755)
+	err = os.MkdirAll("out/dex", 0o755)
 	if err != nil {
 		panic(err)
 	}
@@ -73,9 +73,69 @@ func main() {
 
 		nhex := hex.EncodeToString([]byte(n))
 
-		err = os.WriteFile("out/"+nhex, []byte(p.String()), 0o644)
+		err = os.WriteFile("out/dex/"+nhex, []byte(p.String()), 0o644)
 		if err != nil {
 			panic(err)
 		}
 	}
+}
+
+func unifont() {
+	file, err := os.Open("./uni.png")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	err = os.MkdirAll("out/unifont", 0o755)
+	if err != nil {
+		panic(err)
+	}
+
+	img, err := png.Decode(file)
+	if err != nil {
+		panic(err)
+	}
+
+	const (
+		startx, starty = 52, 39
+		width, height  = 16, 16
+	)
+	bounds := img.Bounds()
+	dx, dy := bounds.Dx(), bounds.Dy()
+
+	var i uint8
+	for x := startx; x < dx; x += width * 2 {
+		for y := starty; y < dy; y += height * 2 {
+
+			var p strings.Builder
+
+			for py := range height {
+				for px := range width {
+					c := img.At(x+px, y+py)
+					r, _, _, _ := c.RGBA()
+
+					if r > 0x8000 {
+						p.WriteByte(' ')
+						continue
+					}
+					p.WriteByte('@')
+				}
+				p.WriteByte('\n')
+			}
+
+			nhex := hex.EncodeToString([]byte{i})
+			err = os.WriteFile("out/unifont/"+nhex, []byte(p.String()), 0o644)
+			if err != nil {
+				panic(err)
+			}
+
+			i++
+		}
+	}
+}
+
+func main() {
+	dexDisplay()
+	unifont()
 }
