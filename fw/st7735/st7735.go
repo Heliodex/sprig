@@ -13,32 +13,21 @@ import (
 	"tinygo.org/x/drivers/pixel"
 )
 
-// Pixel formats supported by the st7735 driver.
-type Color interface {
-	pixel.RGB444BE | pixel.RGB565BE
-
-	pixel.BaseColor
-}
-
 const (
 	Width       = 128
 	Height      = 160
-	BatchLength = max(Width, Height)
+	BatchLength = Height
 )
 
 var errOutOfBounds = errors.New("rectangle coordinates outside display area")
 
 // Device wraps an SPI connection.
 type Device struct {
-	bus          drivers.SPI
-	dcPin        machine.Pin
-	resetPin     machine.Pin
-	csPin        machine.Pin
-	blPin        machine.Pin
-	columnOffset int16
-	rowOffset    int16
-	rotation     drivers.Rotation
-	batchData    pixel.Image[pixel.RGB565BE] // "image" with width, height of (batchLength, 1)
+	bus                           drivers.SPI
+	dcPin, resetPin, csPin, blPin machine.Pin
+	columnOffset, rowOffset       int16
+	rotation                      drivers.Rotation
+	batchData                     pixel.Image[pixel.RGB565BE] // "image" with width, height of (batchLength, 1)
 }
 
 // Configure initializes the display with default configuration
@@ -185,23 +174,13 @@ func (d *Device) SetScrollArea(topFixedArea, bottomFixedArea int16) {
 		false)
 }
 
-// SetScroll sets the vertical scroll address of the display.
-func (d *Device) SetScroll(line int16) {
-	d.Command(VSCRSADD)
-	d.Tx([]uint8{uint8(line >> 8), uint8(line)}, false)
-}
-
-// StopScroll returns the display to its normal state
-func (d *Device) StopScroll() {
-	d.Command(NORON)
-}
-
 // FillRectangle fills a rectangle at a given coordinates with a color
 func (d *Device) FillRectangle(x, y, width, height int16, c color.RGBA) error {
-	k, i := d.Size()
+	k, i := int16(Height), int16(Width)
+
 	if x < 0 || y < 0 || width <= 0 || height <= 0 ||
 		x >= k || (x+height) > k || y >= i || (y+width) > i {
-		return errors.New("rectangle coordinates outside display area")
+		return errOutOfBounds
 	}
 	d.setWindow(x, y, width, height)
 
@@ -220,35 +199,37 @@ func (d *Device) FillRectangle(x, y, width, height int16, c color.RGBA) error {
 
 // SetPixel sets a pixel in the screen
 func (d *Device) SetPixel(x int16, y int16, c color.RGBA) {
-	w, h := d.Size()
-	if x < 0 || y < 0 || x >= w || y >= h {
+	if x < 0 || y < 0 || x >= Height || y >= Width {
 		return
 	}
-	d.FillRectangle(x, y, 1, 1, c)
+	d.setWindow(x, y, 1, 1)
+
+	colour := pixel.NewColor[pixel.RGB565BE](c.R, c.G, c.B)
+	d.Tx([]byte{byte(colour), byte(colour >> 8)}, false) // little endian
 }
 
 // DrawBitmap copies the bitmap to the internal buffer on the screen at the
 // given coordinates. It returns once the image data has been sent completely.
 func (d *Device) DrawBitmap(x, y int16, bitmap pixel.Image[pixel.RGB565BE]) error {
 	width, height := bitmap.Size()
-	h, w := int16(width), int16(height)
+	w, h := int16(width), int16(height)
 
-	k, i := d.Size()
-	if x < 0 || y < 0 || h <= 0 || w <= 0 ||
-		x >= k || (x+h) > k || y >= i || (y+w) > i {
+	if x < 0 || y < 0 || w <= 0 || h <= 0 ||
+		x >= Height || (x+w) > Height || y >= Width || (y+h) > Width {
 		return errOutOfBounds
 	}
-	d.setWindow(x, y, w, h)
+	d.setWindow(x, y, h, w) // probably, yes
 	d.Tx(bitmap.RawBuffer(), false)
 	return nil
 }
 
 // FillRectangle fills a rectangle at a given coordinates with a buffer
 func (d *Device) FillRectangleWithBuffer(x, y, width, height int16, buffer []color.RGBA) error {
-	k, l := d.Size()
+	k, l := int16(Height), int16(Width)
+
 	if x < 0 || y < 0 || width <= 0 || height <= 0 ||
 		x >= k || (x+height) > k || y >= l || (y+width) > l {
-		return errors.New("rectangle coordinates outside display area")
+		return errOutOfBounds
 	}
 	k = width * height
 	l = int16(len(buffer))
@@ -258,7 +239,7 @@ func (d *Device) FillRectangleWithBuffer(x, y, width, height int16, buffer []col
 
 	d.setWindow(x, y, width, height)
 
-	offset := int16(0)
+	var offset int16
 	for k > 0 {
 		for i := int16(0); i < BatchLength; i++ {
 			if offset+i < l {
@@ -295,7 +276,16 @@ func (d *Device) DrawFastHLine(x0, x1, y int16, c color.RGBA) {
 
 // FillScreen fills the screen with a given color
 func (d *Device) FillScreen(c color.RGBA) {
-	d.FillRectangle(0, 0, Width, Height, c)
+	d.setWindow(0, 0, Width, Height)
+
+	d.batchData.FillSolidColor(pixel.NewColor[pixel.RGB565BE](c.R, c.G, c.B))
+	for i := Width * Height; i > 0; i -= BatchLength {
+		if i >= BatchLength {
+			d.Tx(d.batchData.RawBuffer(), false)
+		} else {
+			d.Tx(d.batchData.Rescale(int(Width), 1).RawBuffer(), false)
+		}
+	}
 }
 
 // SetRotation changes the rotation of the device (clock-wise)
@@ -320,11 +310,6 @@ func (d *Device) Tx(data []byte, isCommand bool) {
 	d.bus.Tx(data, nil)
 }
 
-// Size returns the current size of the display.
-func (d *Device) Size() (w, h int16) {
-	return Height, Width
-}
-
 // Backlight enables or disables the backlight
 func (d *Device) Backlight(on bool) {
 	d.blPin.Set(on)
@@ -333,7 +318,7 @@ func (d *Device) Backlight(on bool) {
 // Set the sleep mode for this LCD panel. When sleeping, the panel uses a lot
 // less power. The LCD won't display an image anymore, but the memory contents
 // will be kept.
-func (d *Device) Sleep(sleepEnabled bool) error {
+func (d *Device) Sleep(sleepEnabled bool) {
 	if sleepEnabled {
 		// Shut down LCD panel.
 		d.Command(SLPIN)
@@ -345,7 +330,6 @@ func (d *Device) Sleep(sleepEnabled bool) error {
 		// sending another command.
 		time.Sleep(120 * time.Millisecond)
 	}
-	return nil
 }
 
 // Invert inverts the colors of the screen (pretty instant!)

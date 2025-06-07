@@ -77,9 +77,11 @@ func main() {
 		for i := range n {
 			drawText(txt, 0, uint8(i), RGB{uint8(i*0xff/n), 0x00, 0x00})
 		}
+		d.FillScreen(white)
 		for i := range n {
 			drawText(txt, 0, uint8(i), RGB{0x00, 0xff - uint8(i*0xff/n), 0x00})
 		}
+		d.FillScreen(black)
 	}
 
 	setLeft(0)
