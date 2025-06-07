@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	width  = 160
-	height = 128
+	width  = st7735.Height // yes, really
+	height = st7735.Width
 )
 
 // nothing cares about the opacity anyway
