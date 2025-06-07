@@ -23,6 +23,7 @@ type Color interface {
 const (
 	Width  = 128
 	Height = 160
+	BatchLength = max(Width, Height)
 )
 
 var errOutOfBounds = errors.New("rectangle coordinates outside display area")
@@ -37,7 +38,6 @@ type Device struct {
 	columnOffset int16
 	rowOffset    int16
 	rotation     drivers.Rotation
-	batchLength  int16
 	batchData    pixel.Image[pixel.RGB565BE] // "image" with width, height of (batchLength, 1)
 }
 
@@ -58,17 +58,15 @@ func New(bus drivers.SPI, resetPin, dcPin, csPin, blPin machine.Pin) Device {
 
 // Configure initializes the display with default configuration
 func (d *Device) Configure() {
-	d.batchLength = Height
-	d.batchLength += d.batchLength & 1
-	d.batchData = pixel.NewImage[pixel.RGB565BE](int(d.batchLength), 1)
+	d.batchData = pixel.NewImage[pixel.RGB565BE](BatchLength, 1)
 
 	// reset the device
 	d.resetPin.High()
 	time.Sleep(5 * time.Millisecond)
 	d.resetPin.Low()
-	time.Sleep(20 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	d.resetPin.High()
-	time.Sleep(150 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	// Common initialization
 	d.Command(SWRESET)
@@ -84,12 +82,11 @@ func (d *Device) Configure() {
 	d.Data(0x2C)
 	d.Data(0x2D)
 	d.Command(FRMCTR3)
-	d.Data(0x01)
-	d.Data(0x2C)
-	d.Data(0x2D)
-	d.Data(0x01)
-	d.Data(0x2C)
-	d.Data(0x2D)
+	for range 2 {
+		d.Data(0x01)
+		d.Data(0x2C)
+		d.Data(0x2D)
+	}
 	d.Command(INVCTR)
 	d.Data(0x07)
 	d.Command(PWCTR1)
@@ -110,17 +107,12 @@ func (d *Device) Configure() {
 	d.Command(VMCTR1)
 	d.Data(0x0E)
 
+	d.Inverted(false)
+	d.SetRotation()
+
 	// Set the color format depending on the generic type.
 	d.Command(COLMOD)
-	var zeroColor pixel.RGB565BE
-	switch any(zeroColor).(type) {
-	case pixel.RGB444BE:
-		d.Data(0x03) // 12 bits per pixel
-	default:
-		d.Data(0x05) // 16 bits per pixel
-	}
-
-	d.InvertColors(false)
+	d.Data(0x05) // 16 bits per pixel
 
 	// common color adjustment
 	d.Command(GMCTRP1)
@@ -161,9 +153,7 @@ func (d *Device) Configure() {
 	d.Command(NORON)
 	time.Sleep(10 * time.Millisecond)
 	d.Command(DISPON)
-	time.Sleep(500 * time.Millisecond)
-
-	d.SetRotation()
+	time.Sleep(100 * time.Millisecond)
 
 	d.blPin.High()
 }
@@ -225,12 +215,12 @@ func (d *Device) FillRectangle(x, y, width, height int16, c color.RGBA) error {
 	d.batchData.FillSolidColor(pixel.NewColor[pixel.RGB565BE](c.R, c.G, c.B))
 	i = width * height
 	for i > 0 {
-		if i >= d.batchLength {
+		if i >= BatchLength {
 			d.Tx(d.batchData.RawBuffer(), false)
 		} else {
 			d.Tx(d.batchData.Rescale(int(i), 1).RawBuffer(), false)
 		}
-		i -= d.batchLength
+		i -= BatchLength
 	}
 	return nil
 }
@@ -273,19 +263,19 @@ func (d *Device) FillRectangleWithBuffer(x, y, width, height int16, buffer []col
 
 	offset := int16(0)
 	for k > 0 {
-		for i := int16(0); i < d.batchLength; i++ {
+		for i := int16(0); i < BatchLength; i++ {
 			if offset+i < l {
 				c := buffer[offset+i]
 				d.batchData.Set(int(i), 0, pixel.NewColor[pixel.RGB565BE](c.R, c.G, c.B))
 			}
 		}
-		if k >= d.batchLength {
+		if k >= BatchLength {
 			d.Tx(d.batchData.RawBuffer(), false)
 		} else {
 			d.Tx(d.batchData.Rescale(int(k), 1).RawBuffer(), false)
 		}
-		k -= d.batchLength
-		offset += d.batchLength
+		k -= BatchLength
+		offset += BatchLength
 	}
 	return nil
 }
@@ -314,7 +304,7 @@ func (d *Device) FillScreen(c color.RGBA) {
 // SetRotation changes the rotation of the device (clock-wise)
 func (d *Device) SetRotation() {
 	d.Command(MADCTL)
-	d.Data(MADCTL_MX | MADCTL_MV)
+	d.Data(MADCTL_MX | MADCTL_MV) // we like it this way
 }
 
 // Command sends a command to the display
@@ -366,7 +356,7 @@ func (d *Device) Sleep(sleepEnabled bool) error {
 }
 
 // InverColors inverts the colors of the screen (pretty instant!)
-func (d *Device) InvertColors(invert bool) {
+func (d *Device) Inverted(invert bool) {
 	if invert {
 		d.Command(INVON)
 	} else {
