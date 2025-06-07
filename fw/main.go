@@ -75,10 +75,10 @@ func main() {
 		const n = 60
 
 		for i := range n {
-			drawText(txt, 0, uint8(i), Greyscale(uint8(i*0xff/n)))
+			drawText(txt, 0, uint8(i), RGB{uint8(i*0xff/n), 0x00, 0x00})
 		}
 		for i := range n {
-			drawText(txt, 0, uint8(i), Greyscale(0xff-uint8(i*0xff/n)))
+			drawText(txt, 0, uint8(i), RGB{0x00, 0xff - uint8(i*0xff/n), 0x00})
 		}
 	}
 

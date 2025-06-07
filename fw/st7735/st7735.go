@@ -13,13 +13,6 @@ import (
 	"tinygo.org/x/drivers/pixel"
 )
 
-type Model uint8
-
-// Rotation controls the rotation used by the display.
-//
-// Deprecated: use drivers.Rotation instead.
-type Rotation = drivers.Rotation
-
 // Pixel formats supported by the st7735 driver.
 type Color interface {
 	pixel.RGB444BE | pixel.RGB565BE
@@ -45,18 +38,7 @@ type Device struct {
 	rowOffset    int16
 	rotation     drivers.Rotation
 	batchLength  int16
-	model        Model
 	batchData    pixel.Image[pixel.RGB565BE] // "image" with width, height of (batchLength, 1)
-}
-
-// Config is the configuration for the display
-type Config struct {
-	Width        int16
-	Height       int16
-	Rotation     drivers.Rotation
-	Model        Model
-	RowOffset    int16
-	ColumnOffset int16
 }
 
 // New creates a new ST7735 connection. The SPI wire must already be configured.
@@ -75,12 +57,7 @@ func New(bus drivers.SPI, resetPin, dcPin, csPin, blPin machine.Pin) Device {
 }
 
 // Configure initializes the display with default configuration
-func (d *Device) Configure(cfg Config) {
-	d.model = cfg.Model
-	d.rotation = cfg.Rotation
-	d.rowOffset = cfg.RowOffset
-	d.columnOffset = cfg.ColumnOffset
-
+func (d *Device) Configure() {
 	d.batchLength = Height
 	d.batchLength += d.batchLength & 1
 	d.batchData = pixel.NewImage[pixel.RGB565BE](int(d.batchLength), 1)
@@ -186,14 +163,9 @@ func (d *Device) Configure(cfg Config) {
 	d.Command(DISPON)
 	time.Sleep(500 * time.Millisecond)
 
-	d.SetRotation(d.rotation)
+	d.SetRotation()
 
 	d.blPin.High()
-}
-
-// Display does nothing, there's no buffer as it might be too big for some boards
-func (d *Device) Display() error {
-	return nil
 }
 
 // SetPixel sets a pixel in the screen
@@ -207,13 +179,9 @@ func (d *Device) SetPixel(x int16, y int16, c color.RGBA) {
 
 // setWindow prepares the screen to be modified at a given rectangle
 func (d *Device) setWindow(x, y, w, h int16) {
-	if d.rotation == drivers.Rotation0 || d.rotation == drivers.Rotation180 {
-		x += d.columnOffset
-		y += d.rowOffset
-	} else {
-		x += d.rowOffset
-		y += d.columnOffset
-	}
+	x += d.rowOffset
+	y += d.columnOffset
+
 	d.Tx([]uint8{CASET}, true)
 	d.Tx([]uint8{uint8(x >> 8), uint8(x), uint8((x + w - 1) >> 8), uint8(x + w - 1)}, false)
 	d.Tx([]uint8{RASET}, true)
@@ -340,35 +308,13 @@ func (d *Device) DrawFastHLine(x0, x1, y int16, c color.RGBA) {
 
 // FillScreen fills the screen with a given color
 func (d *Device) FillScreen(c color.RGBA) {
-	if d.rotation == drivers.Rotation0 || d.rotation == drivers.Rotation180 {
-		d.FillRectangle(0, 0, Width, Height, c)
-	} else {
-		d.FillRectangle(0, 0, Height, Width, c)
-	}
-}
-
-// Rotation returns the currently configured rotation.
-func (d *Device) Rotation() drivers.Rotation {
-	return d.rotation
+	d.FillRectangle(0, 0, Height, Width, c)
 }
 
 // SetRotation changes the rotation of the device (clock-wise)
-func (d *Device) SetRotation(rotation drivers.Rotation) error {
-	d.rotation = rotation
-	madctl := uint8(0)
-	switch rotation % 4 {
-	case drivers.Rotation0:
-		madctl = MADCTL_MX | MADCTL_MY
-	case drivers.Rotation90:
-		madctl = MADCTL_MY | MADCTL_MV
-	case drivers.Rotation180:
-		// nothing to do
-	case drivers.Rotation270:
-		madctl = MADCTL_MX | MADCTL_MV
-	}
+func (d *Device) SetRotation() {
 	d.Command(MADCTL)
-	d.Data(madctl)
-	return nil
+	d.Data(MADCTL_MX | MADCTL_MV)
 }
 
 // Command sends a command to the display
@@ -389,9 +335,6 @@ func (d *Device) Tx(data []byte, isCommand bool) {
 
 // Size returns the current size of the display.
 func (d *Device) Size() (w, h int16) {
-	if d.rotation == drivers.Rotation0 || d.rotation == drivers.Rotation180 {
-		return Width, Height
-	}
 	return Height, Width
 }
 

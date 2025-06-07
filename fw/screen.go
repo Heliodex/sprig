@@ -4,7 +4,6 @@ import (
 	"image/color"
 	"machine"
 
-	"tinygo.org/x/drivers"
 	"fw/st7735"
 )
 
@@ -45,7 +44,7 @@ var (
 type ScreenBuffer [width][height]RGB
 
 type Display struct {
-	d                  st7735.Device
+	d st7735.Device
 	// buffer, nextBuffer *ScreenBuffer
 }
 
@@ -69,9 +68,7 @@ func NewDisplay() *Display {
 	})
 
 	d := st7735.New(machine.SPI0, rst, dc, cs, machine.GP17)
-	d.Configure(st7735.Config{
-		Rotation: drivers.Rotation270, // better coordinates
-	})
+	d.Configure()
 
 	return &Display{
 		d: d,

@@ -51,9 +51,6 @@ const (
 	VSCRDEF    = 0x33
 	VSCRSADD   = 0x37
 
-	GREENTAB   Model = 0
-	MINI80x160 Model = 1
-
 	NO_ROTATION  = drivers.Rotation0
 	ROTATION_90  = drivers.Rotation90 // 90 degrees clock-wise rotation
 	ROTATION_180 = drivers.Rotation180
