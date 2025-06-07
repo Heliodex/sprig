@@ -17,7 +17,7 @@ const (
 	dc  = machine.GP22
 	rst = machine.GP26
 
-	width = 160
+	width  = 160
 	height = 128
 )
 
@@ -52,15 +52,38 @@ func main() {
 		ledRight.Set(rch, value)
 	}
 
-	for x := int16(0); x < width; x++ {
-		d.SetPixel(x, 0, color.RGBA{0xff, 0x00, 0x00, 0xff})
-		d.SetPixel(x, height-1, color.RGBA{0xff, 0x00, 0x00, 0xff})
+	draw := func(x, y uint8, c color.RGBA) {
+		if x >= width || y >= height {
+			return // out of bounds
+		}
+		d.SetPixel(int16(x), int16(y), c)
 	}
 
-	for y := int16(0); y < height; y++ {
-		d.SetPixel(0, y, color.RGBA{0xff, 0x00, 0x00, 0xff}) // red
-		d.SetPixel(width-1, y, color.RGBA{0xff, 0x00, 0x00, 0xff}) // red
+	drawText := func(text string, xPos, yPos uint8) {
+		chars := textToChars(text)
+
+		for _, char := range chars {
+			if char.width == 0 {
+				xPos += 4
+				continue // skip empty characters
+			}
+
+			for y, row := range char.content {
+				for x, b := range row {
+					draw(xPos+uint8(x), yPos+uint8(y), color.RGBA{
+						R: b,
+						G: b,
+						B: b,
+						A: 0xff,
+					})
+				}
+			}
+
+			xPos += char.width
+		}
 	}
+
+	drawText("Hello, Sprig!", 2, 2)
 
 	setLeft(0)
 	setRight(0)
