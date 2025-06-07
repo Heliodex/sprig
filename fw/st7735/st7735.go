@@ -21,8 +21,8 @@ type Color interface {
 }
 
 const (
-	Width  = 128
-	Height = 160
+	Width       = 128
+	Height      = 160
 	BatchLength = max(Width, Height)
 )
 
@@ -158,24 +158,15 @@ func (d *Device) Configure() {
 	d.blPin.High()
 }
 
-// SetPixel sets a pixel in the screen
-func (d *Device) SetPixel(x int16, y int16, c color.RGBA) {
-	w, h := d.Size()
-	if x < 0 || y < 0 || x >= w || y >= h {
-		return
-	}
-	d.FillRectangle(x, y, 1, 1, c)
-}
-
 // setWindow prepares the screen to be modified at a given rectangle
 func (d *Device) setWindow(x, y, w, h int16) {
 	x += d.rowOffset
 	y += d.columnOffset
 
 	d.Tx([]uint8{CASET}, true)
-	d.Tx([]uint8{uint8(x >> 8), uint8(x), uint8((x + w - 1) >> 8), uint8(x + w - 1)}, false)
+	d.Tx([]uint8{uint8(x >> 8), uint8(x), uint8((x + h - 1) >> 8), uint8(x + h - 1)}, false)
 	d.Tx([]uint8{RASET}, true)
-	d.Tx([]uint8{uint8(y >> 8), uint8(y), uint8((y + h - 1) >> 8), uint8(y + h - 1)}, false)
+	d.Tx([]uint8{uint8(y >> 8), uint8(y), uint8((y + w - 1) >> 8), uint8(y + w - 1)}, false)
 	d.Command(RAMWR)
 }
 
@@ -207,7 +198,7 @@ func (d *Device) StopScroll() {
 func (d *Device) FillRectangle(x, y, width, height int16, c color.RGBA) error {
 	k, i := d.Size()
 	if x < 0 || y < 0 || width <= 0 || height <= 0 ||
-		x >= k || (x+width) > k || y >= i || (y+height) > i {
+		x >= k || (x+height) > k || y >= i || (y+width) > i {
 		return errors.New("rectangle coordinates outside display area")
 	}
 	d.setWindow(x, y, width, height)
@@ -225,32 +216,36 @@ func (d *Device) FillRectangle(x, y, width, height int16, c color.RGBA) error {
 	return nil
 }
 
-// DrawRGBBitmap8 copies an RGB bitmap to the internal buffer at given coordinates
-//
-// Deprecated: use DrawBitmap instead.
-func (d *Device) DrawRGBBitmap8(x, y int16, data []uint8, w, h int16) error {
-	k, i := d.Size()
-	if x < 0 || y < 0 || w <= 0 || h <= 0 ||
-		x >= k || (x+w) > k || y >= i || (y+h) > i {
-		return errOutOfBounds
+// SetPixel sets a pixel in the screen
+func (d *Device) SetPixel(x int16, y int16, c color.RGBA) {
+	w, h := d.Size()
+	if x < 0 || y < 0 || x >= w || y >= h {
+		return
 	}
-	d.setWindow(x, y, w, h)
-	d.Tx(data, false)
-	return nil
+	d.FillRectangle(x, y, 1, 1, c)
 }
 
 // DrawBitmap copies the bitmap to the internal buffer on the screen at the
 // given coordinates. It returns once the image data has been sent completely.
 func (d *Device) DrawBitmap(x, y int16, bitmap pixel.Image[pixel.RGB565BE]) error {
 	width, height := bitmap.Size()
-	return d.DrawRGBBitmap8(x, y, bitmap.RawBuffer(), int16(width), int16(height))
+	h, w := int16(width), int16(height)
+
+	k, i := d.Size()
+	if x < 0 || y < 0 || h <= 0 || w <= 0 ||
+		x >= k || (x+h) > k || y >= i || (y+w) > i {
+		return errOutOfBounds
+	}
+	d.setWindow(x, y, w, h)
+	d.Tx(bitmap.RawBuffer(), false)
+	return nil
 }
 
 // FillRectangle fills a rectangle at a given coordinates with a buffer
 func (d *Device) FillRectangleWithBuffer(x, y, width, height int16, buffer []color.RGBA) error {
 	k, l := d.Size()
 	if x < 0 || y < 0 || width <= 0 || height <= 0 ||
-		x >= k || (x+width) > k || y >= l || (y+height) > l {
+		x >= k || (x+height) > k || y >= l || (y+width) > l {
 		return errors.New("rectangle coordinates outside display area")
 	}
 	k = width * height
@@ -285,7 +280,7 @@ func (d *Device) DrawFastVLine(x, y0, y1 int16, c color.RGBA) {
 	if y0 > y1 {
 		y0, y1 = y1, y0
 	}
-	d.FillRectangle(x, y0, 1, y1-y0+1, c)
+	d.FillRectangle(x, y0, y1-y0+1, 1, c)
 }
 
 // DrawFastHLine draws a horizontal line faster than using SetPixel
@@ -293,12 +288,12 @@ func (d *Device) DrawFastHLine(x0, x1, y int16, c color.RGBA) {
 	if x0 > x1 {
 		x0, x1 = x1, x0
 	}
-	d.FillRectangle(x0, y, x1-x0+1, 1, c)
+	d.FillRectangle(x0, y, 1, x1-x0+1, c)
 }
 
 // FillScreen fills the screen with a given color
 func (d *Device) FillScreen(c color.RGBA) {
-	d.FillRectangle(0, 0, Height, Width, c)
+	d.FillRectangle(0, 0, Width, Height, c)
 }
 
 // SetRotation changes the rotation of the device (clock-wise)

@@ -1,7 +1,5 @@
 package st7735
 
-import "tinygo.org/x/drivers"
-
 // Registers
 const (
 	NOP        = 0x00
@@ -50,9 +48,4 @@ const (
 	GMCTRN1    = 0xE1
 	VSCRDEF    = 0x33
 	VSCRSADD   = 0x37
-
-	NO_ROTATION  = drivers.Rotation0
-	ROTATION_90  = drivers.Rotation90 // 90 degrees clock-wise rotation
-	ROTATION_180 = drivers.Rotation180
-	ROTATION_270 = drivers.Rotation270
 )
