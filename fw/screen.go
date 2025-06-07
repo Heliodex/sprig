@@ -68,7 +68,6 @@ func NewDisplay() *Display {
 	})
 
 	d := st7735.New(machine.SPI0, rst, dc, cs, machine.GP17)
-	d.Configure()
 
 	return &Display{
 		d: d,

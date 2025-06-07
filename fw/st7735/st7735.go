@@ -41,21 +41,6 @@ type Device struct {
 	batchData    pixel.Image[pixel.RGB565BE] // "image" with width, height of (batchLength, 1)
 }
 
-// New creates a new ST7735 connection. The SPI wire must already be configured.
-func New(bus drivers.SPI, resetPin, dcPin, csPin, blPin machine.Pin) Device {
-	dcPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	resetPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	csPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	blPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	return Device{
-		bus:      bus,
-		dcPin:    dcPin,
-		resetPin: resetPin,
-		csPin:    csPin,
-		blPin:    blPin,
-	}
-}
-
 // Configure initializes the display with default configuration
 func (d *Device) Configure() {
 	d.batchData = pixel.NewImage[pixel.RGB565BE](BatchLength, 1)
@@ -107,7 +92,7 @@ func (d *Device) Configure() {
 	d.Command(VMCTR1)
 	d.Data(0x0E)
 
-	d.Inverted(false)
+	d.Invert(false)
 	d.SetRotation()
 
 	// Set the color format depending on the generic type.
@@ -158,14 +143,31 @@ func (d *Device) Configure() {
 	d.blPin.High()
 }
 
+// New creates a new ST7735 connection. The SPI wire must already be configured.
+func New(bus drivers.SPI, resetPin, dcPin, csPin, blPin machine.Pin) (d Device) {
+	dcPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
+	resetPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
+	csPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
+	blPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
+	d = Device{
+		bus:      bus,
+		dcPin:    dcPin,
+		resetPin: resetPin,
+		csPin:    csPin,
+		blPin:    blPin,
+	}
+	d.Configure()
+	return
+}
+
 // setWindow prepares the screen to be modified at a given rectangle
 func (d *Device) setWindow(x, y, w, h int16) {
 	x += d.rowOffset
 	y += d.columnOffset
 
-	d.Tx([]uint8{CASET}, true)
+	d.Command(CASET)
 	d.Tx([]uint8{uint8(x >> 8), uint8(x), uint8((x + h - 1) >> 8), uint8(x + h - 1)}, false)
-	d.Tx([]uint8{RASET}, true)
+	d.Command(RASET)
 	d.Tx([]uint8{uint8(y >> 8), uint8(y), uint8((y + w - 1) >> 8), uint8(y + w - 1)}, false)
 	d.Command(RAMWR)
 }
@@ -189,7 +191,7 @@ func (d *Device) SetScroll(line int16) {
 	d.Tx([]uint8{uint8(line >> 8), uint8(line)}, false)
 }
 
-// SpotScroll returns the display to its normal state
+// StopScroll returns the display to its normal state
 func (d *Device) StopScroll() {
 	d.Command(NORON)
 }
@@ -323,13 +325,9 @@ func (d *Device) Size() (w, h int16) {
 	return Height, Width
 }
 
-// EnableBacklight enables or disables the backlight
-func (d *Device) EnableBacklight(enable bool) {
-	if enable {
-		d.blPin.High()
-	} else {
-		d.blPin.Low()
-	}
+// Backlight enables or disables the backlight
+func (d *Device) Backlight(on bool) {
+	d.blPin.Set(on)
 }
 
 // Set the sleep mode for this LCD panel. When sleeping, the panel uses a lot
@@ -350,8 +348,8 @@ func (d *Device) Sleep(sleepEnabled bool) error {
 	return nil
 }
 
-// InverColors inverts the colors of the screen (pretty instant!)
-func (d *Device) Inverted(invert bool) {
+// Invert inverts the colors of the screen (pretty instant!)
+func (d *Device) Invert(invert bool) {
 	if invert {
 		d.Command(INVON)
 	} else {
