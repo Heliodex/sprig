@@ -8,10 +8,11 @@ import (
 
 // we're doing ascii for now for shits n giggles
 
-// Dex Display time!!!!!!
-//
-//go:embed font
-var fontdir embed.FS
+//go:embed dex
+var dirDex embed.FS
+
+//go:embed unifont
+var dirUnifont embed.FS
 
 var brightnessMap = map[byte]uint8{
 	' ': 0,
@@ -21,41 +22,63 @@ var brightnessMap = map[byte]uint8{
 	'@': 255,
 }
 
-const TextHeight = 20
+// var byteMap = map[uint8]byte{
+// 	0:   ' ',
+// 	64:  '-',
+// 	128: '=',
+// 	192: '#',
+// 	255: '@',
+// }
 
 type Char struct {
-	width, height uint8
-	content       [][]uint8
+	width   uint8
+	content [][]uint8
 }
 
-var chars [256]Char
+type Font struct {
+	name    string
+	dir     embed.FS
+	height  uint8
+	charset [256]Char
+}
 
+// var fonts = map[string]*Font{
+// 	"dex": {
+// 		name: "dex",
+// 		dir:  dirDex,
+// 	},
+// 	"unifont": {
+// 		name: "unifont",
+// 		dir:  dirUnifont,
+// 	},
+// }
 
-func loadChar(i uint8, charset [256]Char) {
+var fontDex = &Font{
+	name:   "dex",
+	dir:    dirDex,
+}
+
+var fontUnifont = &Font{
+	name:   "unifont",
+	dir:    dirUnifont,
+}
+
+func loadChar(font *Font, i uint8, dir embed.FS) {
 	hexbyte := hex.EncodeToString([]byte{i})
-	data, err := fontdir.ReadFile("font/" + hexbyte)
+	data, err := dir.ReadFile(font.name + "/" + hexbyte)
 	if err != nil {
 		return
 	}
 
 	lines := strings.Split(string(data), "\n")
-	lines = lines[:TextHeight]
+	lines = lines[:len(lines)-1] // remove last empty line
 
-	if len(lines) > TextHeight {
-		return // invalid character data
-	}
+	font.charset[i].width = uint8(len(lines[0]))
+	font.height = uint8(len(lines))
 
-	chars[i].width = uint8(len(lines[0]))
-
-	for y, line := range lines {
-		if y >= TextHeight {
-			continue // too tall
-		}
-
-		chars[i].height++
-
+	for _, line := range lines {
 		content := make([]uint8, len(line))
-		chars[i].content = append(chars[i].content, content)
+		font.charset[i].content = append(font.charset[i].content, content)
 
 		for x, char := range []byte(line) {
 			b, ok := brightnessMap[char]
@@ -71,24 +94,25 @@ func loadChar(i uint8, charset [256]Char) {
 func init() {
 	// load all characters
 	for i := range uint8(255) {
-		loadChar(i, chars)
+		loadChar(fontDex, i, dirDex)
+		loadChar(fontUnifont, i, dirUnifont)
 	}
 }
 
-func textToChars(text string) []Char {
+func textToChars(font *Font, text string) (chars []Char) {
 	bt := []byte(text)
 
-	result := make([]Char, 0, len(bt))
-	for _, b := range bt {
-		result = append(result, chars[b])
+	chars = make([]Char, len(bt))
+	for i, b := range bt {
+		chars[i] = font.charset[b]
 	}
 
-	return result
+	return
 }
 
 // func main() {
 // 	text := "Hello, world!"
-// 	characters := textToChars(text)
+// 	characters := textToChars("unifont", text)
 
 // 	for _, char := range characters {
 // 		for _, row := range char.content {

@@ -3,6 +3,8 @@ package main
 import (
 	"machine"
 	"strconv"
+
+	"tinygo.org/x/drivers/pixel"
 )
 
 const (
@@ -37,60 +39,52 @@ func main() {
 		ledRight.Set(rch, value)
 	}
 
-	draw := func(x, y uint8, c RGB) {
-		if x >= width || y >= height {
-			return // out of bounds
-		}
-		d.SetPixel(int16(x), int16(y), c)
-	}
+	// draw := func(x, y uint8, c RGB) {
+	// 	if x >= width || y >= height {
+	// 		return // out of bounds
+	// 	}
+	// 	d.SetPixel(int16(x), int16(y), c)
+	// }
 
-	drawText := func(text string, xPos, yPos uint8, colour RGB) {
-		chars := textToChars(text)
+	drawText := func(font *Font, text string, xPos, yPos uint8, colour RGB) {
+		chars := textToChars(font, text)
 
 		for _, char := range chars {
-			if char.width == 0 {
-				xPos += 4
-				continue // skip empty characters
-			}
-
-			for y, row := range char.content {
-				for x, b := range row {
-					if b == 0 {
-						continue // skip empty pixels
-					}
-
-					colour := colour.RGBA()
-					colour.A = b
-
-					draw(xPos+uint8(x), yPos+uint8(y), FromRGBA(colour))
-				}
-			}
-
-			// image := pixel.NewImage[pixel.RGB565BE](int(char.width), TextHeight)
 			// for y, row := range char.content {
 			// 	for x, b := range row {
 			// 		if b == 0 {
 			// 			continue // skip empty pixels
 			// 		}
 
-			// 		px := pixel.NewRGB565BE(colour.R, colour.G, colour.B)
-			// 		image.Set(x, y, px)
+			// 		colour := colour.RGBA()
+			// 		colour.A = b
+
+			// 		draw(xPos+uint8(x), yPos+uint8(y), FromRGBA(colour))
 			// 	}
 			// }
 
-			// d.d.DrawBitmap(int16(xPos), int16(yPos), image)
+			image := pixel.NewImage[pixel.RGB565BE](int(char.width), int(font.height))
+			for y, row := range char.content {
+				for x, b := range row {
+					if b == 0 {
+						continue // skip empty pixels
+					}
 
-			xPos += char.width
+					image.Set(x, y, pixel.NewRGB565BE(colour.R, colour.G, colour.B))
+				}
+			}
+
+			d.d.DrawBitmap(int16(xPos), int16(yPos), image)
+
+			xPos += char.width - 8 // unicrushed
 		}
 	}
 
-	const txt = "Yo"
+	const txt = "Hello, world!"
+	drawText(fontUnifont, txt, 2, 2, red)
 
-	drawText(txt, 2, 2, red)
-
-	// freq := machine.CPUFrequency()
-
-	drawText(strconv.Itoa(int(20)), 2, 24, green)
+	freq := machine.CPUFrequency()
+	drawText(fontUnifont, strconv.Itoa(int(freq)), 2, 24, green)
 
 	// for {
 	// 	const n = 60
