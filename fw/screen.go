@@ -5,7 +5,7 @@ import (
 	"machine"
 
 	"tinygo.org/x/drivers"
-	"tinygo.org/x/drivers/st7735"
+	"fw/st7735"
 )
 
 const (
