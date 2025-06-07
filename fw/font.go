@@ -21,7 +21,7 @@ var brightnessMap = map[byte]uint8{
 	'@': 255,
 }
 
-const textHeight = 20
+const TextHeight = 20
 
 type Char struct {
 	width   uint8
@@ -40,16 +40,16 @@ func init() {
 		}
 
 		lines := strings.Split(string(data), "\n")
-		lines = lines[:textHeight]
+		lines = lines[:TextHeight]
 
-		if len(lines) > textHeight {
+		if len(lines) > TextHeight {
 			continue // invalid character data
 		}
 
 		chars[i].width = uint8(len(lines[0]))
 
 		for y, line := range lines {
-			if y >= textHeight {
+			if y >= TextHeight {
 				continue // too tall
 			}
 

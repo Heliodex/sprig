@@ -25,7 +25,6 @@ var errOutOfBounds = errors.New("rectangle coordinates outside display area")
 type Device struct {
 	bus                           drivers.SPI
 	dcPin, resetPin, csPin, blPin machine.Pin
-	columnOffset, rowOffset       int16
 	rotation                      drivers.Rotation
 	batchData                     pixel.Image[pixel.RGB565BE] // "image" with width, height of (batchLength, 1)
 }
@@ -151,27 +150,11 @@ func New(bus drivers.SPI, resetPin, dcPin, csPin, blPin machine.Pin) (d Device) 
 
 // setWindow prepares the screen to be modified at a given rectangle
 func (d *Device) setWindow(x, y, w, h int16) {
-	x += d.rowOffset
-	y += d.columnOffset
-
 	d.Command(CASET)
-	d.Tx([]uint8{uint8(x >> 8), uint8(x), uint8((x + h - 1) >> 8), uint8(x + h - 1)}, false)
+	d.Tx([]byte{byte(x >> 8), byte(x), byte((x + h - 1) >> 8), byte(x + h - 1)}, false)
 	d.Command(RASET)
-	d.Tx([]uint8{uint8(y >> 8), uint8(y), uint8((y + w - 1) >> 8), uint8(y + w - 1)}, false)
+	d.Tx([]byte{byte(y >> 8), byte(y), byte((y + w - 1) >> 8), byte(y + w - 1)}, false)
 	d.Command(RAMWR)
-}
-
-// SetScrollWindow sets an area to scroll with fixed top and bottom parts of the display
-func (d *Device) SetScrollArea(topFixedArea, bottomFixedArea int16) {
-	// TODO: this code is broken, see the st7789 and ili9341 implementations for
-	// how to do this correctly.
-	d.Command(VSCRDEF)
-	d.Tx([]uint8{
-		uint8(topFixedArea >> 8), uint8(topFixedArea),
-		uint8(Height - topFixedArea - bottomFixedArea>>8), uint8(Height - topFixedArea - bottomFixedArea),
-		uint8(bottomFixedArea >> 8), uint8(bottomFixedArea),
-	},
-		false)
 }
 
 // FillRectangle fills a rectangle at a given coordinates with a color

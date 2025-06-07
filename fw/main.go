@@ -2,6 +2,8 @@ package main
 
 import (
 	"machine"
+
+	"tinygo.org/x/drivers/pixel"
 )
 
 const (
@@ -36,12 +38,12 @@ func main() {
 		ledRight.Set(rch, value)
 	}
 
-	draw := func(x, y uint8, c RGB) {
-		if x >= width || y >= height {
-			return // out of bounds
-		}
-		d.SetPixel(int16(x), int16(y), c)
-	}
+	// draw := func(x, y uint8, c RGB) {
+	// 	if x >= width || y >= height {
+	// 		return // out of bounds
+	// 	}
+	// 	d.SetPixel(int16(x), int16(y), c)
+	// }
 
 	drawText := func(text string, xPos, yPos uint8, colour RGB) {
 		chars := textToChars(text)
@@ -52,18 +54,32 @@ func main() {
 				continue // skip empty characters
 			}
 
+			// for y, row := range char.content {
+			// 	for x, b := range row {
+			// 		if b == 0 {
+			// 			continue // skip empty pixels
+			// 		}
+
+			// 		colour := colour.RGBA()
+			// 		colour.A = b
+
+			// 		draw(xPos+uint8(x), yPos+uint8(y), FromRGBA(colour))
+			// 	}
+			// }
+
+			image := pixel.NewImage[pixel.RGB565BE](int(char.width), TextHeight)
 			for y, row := range char.content {
 				for x, b := range row {
 					if b == 0 {
 						continue // skip empty pixels
 					}
 
-					colour := colour.RGBA()
-					colour.A = b
-
-					draw(xPos+uint8(x), yPos+uint8(y), FromRGBA(colour))
+					px := pixel.NewRGB565BE(colour.R, colour.G, colour.B)
+					image.Set(x, y, px)
 				}
 			}
+
+			d.d.DrawBitmap(int16(xPos), int16(yPos), image)
 
 			xPos += char.width
 		}
@@ -75,7 +91,7 @@ func main() {
 		const n = 60
 
 		for i := range n {
-			drawText(txt, 0, uint8(i), RGB{uint8(i*0xff/n), 0x00, 0x00})
+			drawText(txt, 0, uint8(i), RGB{uint8(i * 0xff / n), 0x00, 0x00})
 		}
 		d.FillScreen(white)
 		for i := range n {
