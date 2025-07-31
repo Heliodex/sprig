@@ -167,7 +167,7 @@ func (d *Device) FillRectangle(x, y, width, height int16, c color.RGBA) error {
 	}
 	d.setWindow(x, y, width, height)
 
-	d.batchData.FillSolidColor(pixel.NewColor[pixel.RGB565BE](c.R, c.G, c.B))
+	d.batchData.FillSolidColor(pixel.NewRGB565BE(c.R, c.G, c.B))
 	i = width * height
 	for i > 0 {
 		if i >= BatchLength {
@@ -187,7 +187,7 @@ func (d *Device) SetPixel(x int16, y int16, c color.RGBA) {
 	}
 	d.setWindow(x, y, 1, 1)
 
-	colour := pixel.NewColor[pixel.RGB565BE](c.R, c.G, c.B)
+	colour := pixel.NewRGB565BE(c.R, c.G, c.B)
 	d.Tx([]byte{byte(colour), byte(colour >> 8)}, false) // little endian
 }
 
@@ -204,6 +204,33 @@ func (d *Device) DrawBitmap(x, y int16, bitmap pixel.Image[pixel.RGB565BE]) erro
 	d.setWindow(x, y, h, w) // probably, yes
 	d.Tx(bitmap.RawBuffer(), false)
 	return nil
+}
+
+func (d *Device) FillBitmap(bitmap pixel.Image[pixel.RGB565BE]) {
+	width, height := bitmap.Size()
+	w, h := int16(width), int16(height)
+
+	d.setWindow(0, 0, h, w) // probably, yes
+	d.Tx(bitmap.RawBuffer(), false)
+}
+
+func (d *Device) FillBuffermap(rawBuffer *[Width * Height * 2]uint8) {
+	d.setWindow(0, 0, Width, Height) 
+
+	// d.Tx(rawBuffer, false)
+	d.batchData = pixel.NewImageFromBytes[pixel.RGB565BE](Width, Height, (*rawBuffer)[:])
+	for i := Width * Height; i > 0; i -= BatchLength {
+		if i >= BatchLength {
+			d.Tx(d.batchData.RawBuffer(), false)
+		} else {
+			d.Tx(d.batchData.Rescale(int(Width), 1).RawBuffer(), false)
+		}
+	}
+	// b := BatchLength
+	// for i := 0; i < len(rawBuffer); i += b {
+	// 	sb := rawBuffer[i:min(b, len(rawBuffer))]
+	// 	d.Tx(sb, false)
+	// }
 }
 
 // FillRectangle fills a rectangle at a given coordinates with a buffer
@@ -227,7 +254,7 @@ func (d *Device) FillRectangleWithBuffer(x, y, width, height int16, buffer []col
 		for i := int16(0); i < BatchLength; i++ {
 			if offset+i < l {
 				c := buffer[offset+i]
-				d.batchData.Set(int(i), 0, pixel.NewColor[pixel.RGB565BE](c.R, c.G, c.B))
+				d.batchData.Set(int(i), 0, pixel.NewRGB565BE(c.R, c.G, c.B))
 			}
 		}
 		if k >= BatchLength {
@@ -261,7 +288,7 @@ func (d *Device) DrawFastHLine(x0, x1, y int16, c color.RGBA) {
 func (d *Device) FillScreen(c color.RGBA) {
 	d.setWindow(0, 0, Width, Height)
 
-	d.batchData.FillSolidColor(pixel.NewColor[pixel.RGB565BE](c.R, c.G, c.B))
+	d.batchData.FillSolidColor(pixel.NewRGB565BE(c.R, c.G, c.B))
 	for i := Width * Height; i > 0; i -= BatchLength {
 		if i >= BatchLength {
 			d.Tx(d.batchData.RawBuffer(), false)

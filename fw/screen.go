@@ -5,6 +5,8 @@ import (
 	"machine"
 
 	"fw/st7735"
+
+	"tinygo.org/x/drivers/pixel"
 )
 
 const (
@@ -41,11 +43,13 @@ var (
 	blue  = RGB{0x00, 0x00, 0xff}
 )
 
-type ScreenBuffer [width][height]RGB
+type (
+	ScreenBuffer  [height][width]pixel.RGB565BE
+	ScreenBuffer2 = [height * width * 2]byte
+)
 
 type Display struct {
 	d st7735.Device
-	// buffer, nextBuffer *ScreenBuffer
 }
 
 func (d *Display) SetPixel(x, y int16, c RGB) {
@@ -57,6 +61,25 @@ func (d *Display) SetPixel(x, y int16, c RGB) {
 
 func (d *Display) FillScreen(c RGB) {
 	d.d.FillScreen(c.RGBA())
+}
+
+func (d *Display) Render(buf *ScreenBuffer2) {
+	// buf := *d.buffer
+	// nbuf := make([]byte, height*width*2)
+
+	// for h, v := range buf {
+	// 	for w, c := range v {
+	// 		c2 := pixel.NewRGB565BE(c.R, c.G, c.B)
+	// 		// nbuf[i+j] =
+	// 		// binary.BigEndian.PutUint16(nbuf[h*width+w:], uint16(c2))
+	// 		pos := h*width + w
+	// 		nbuf[pos], nbuf[pos+1] = byte(c2>>8), byte(c2)
+	// 	}
+	// }
+
+	d.d.FillBuffermap(buf)
+	// d.buffer = &ScreenBuffer{}
+	// d.FillScreen(RGB{0, 0, 0})
 }
 
 func NewDisplay() *Display {

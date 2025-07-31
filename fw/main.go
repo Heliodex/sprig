@@ -7,6 +7,8 @@ import (
 	"tinygo.org/x/drivers/pixel"
 )
 
+// 270MHz
+
 const (
 	rx  = machine.GP16
 	sck = machine.GP18
@@ -17,10 +19,37 @@ const (
 	rst = machine.GP26
 )
 
+// type MegaBuffer struct {
+// 	bs [][]byte
+// }
+
+// func NewMegaBuffer() MegaBuffer {
+// 	return MegaBuffer{
+// 		bs: [][]byte{{}},
+// 	}
+// }
+
+// func (mb *MegaBuffer) append(b byte) {
+// 	lb := len(mb.bs)-1
+// 	if len(mb.bs[lb]) < 512 {
+// 		mb.bs[lb] = append(mb.bs[lb], b)
+// 	} else {
+// 		mb.bs = append(mb.bs, []byte{b})
+// 	}
+// }
+
+// func (mb *MegaBuffer) len() (l int) {
+// 	for _, b := range mb.bs {
+// 		l += len(b)
+// 	}
+// 	return
+// }
+
+var mem =  &ScreenBuffer2{}
+
 func main() {
 	// display things
 	d := NewDisplay()
-
 	d.FillScreen(black)
 
 	// init left led (GP28, PWM6 channel A)
@@ -39,30 +68,10 @@ func main() {
 		ledRight.Set(rch, value)
 	}
 
-	// draw := func(x, y uint8, c RGB) {
-	// 	if x >= width || y >= height {
-	// 		return // out of bounds
-	// 	}
-	// 	d.SetPixel(int16(x), int16(y), c)
-	// }
-
 	drawText := func(font *Font, text string, xPos, yPos uint8, colour RGB) {
 		chars := textToChars(font, text)
 
 		for _, char := range chars {
-			// for y, row := range char.content {
-			// 	for x, b := range row {
-			// 		if b == 0 {
-			// 			continue // skip empty pixels
-			// 		}
-
-			// 		colour := colour.RGBA()
-			// 		colour.A = b
-
-			// 		draw(xPos+uint8(x), yPos+uint8(y), FromRGBA(colour))
-			// 	}
-			// }
-
 			image := pixel.NewImage[pixel.RGB565BE](int(char.width), int(font.height))
 			for y, row := range char.content {
 				for x, b := range row {
@@ -80,11 +89,19 @@ func main() {
 		}
 	}
 
-	const txt = "Hello, world!"
-	drawText(fontUnifont, txt, 2, 2, red)
+	// const txt = "Hello, worl!"
 
-	freq := machine.CPUFrequency()
-	drawText(fontUnifont, strconv.Itoa(int(freq)), 2, 24, green)
+	for {
+		drawText(fontUnifont, strconv.Itoa(len(mem)), 2, 2, red)
+		d.d.FillBuffermap(mem)
+	}
+
+	// drawText(fontUnifont, "build 6", 2, 24, green)
+
+	// size := unsafe.Sizeof(buf)
+	// drawText(fontUnifont, strconv.Itoa(int(size)), 2, 2, green)
+
+	// drawText(fontUnifont, "success", 2, 46, green)
 
 	// for {
 	// 	const n = 60
