@@ -99,7 +99,7 @@ func main() {
 							continue // skip empty pixels
 						}
 
-						buf[(int(yPos)+y)*width+xp+x] = colour
+						buf[int(yPos)+y][xp+x] = colour
 					}
 				}
 

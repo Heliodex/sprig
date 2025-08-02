@@ -4,8 +4,6 @@
 package st7735 // import "tinygo.org/x/drivers/st7735"
 
 import (
-	"errors"
-	"image/color"
 	"machine"
 	"time"
 	"unsafe"
@@ -15,12 +13,11 @@ import (
 )
 
 const (
+	// remember these fuckers are reversed from what you think they are
 	Width       = 128
 	Height      = 160
 	BatchLength = Height
 )
-
-var errOutOfBounds = errors.New("rectangle coordinates outside display area")
 
 // Device wraps an SPI connection.
 type Device struct {
@@ -158,161 +155,16 @@ func (d *Device) setWindow(x, y, w, h int16) {
 	d.Command(RAMWR)
 }
 
-// FillRectangle fills a rectangle at a given coordinates with a color
-func (d *Device) FillRectangle(x, y, width, height int16, c color.RGBA) error {
-	k, i := int16(Height), int16(Width)
-
-	if x < 0 || y < 0 || width <= 0 || height <= 0 ||
-		x >= k || (x+height) > k || y >= i || (y+width) > i {
-		return errOutOfBounds
-	}
-	d.setWindow(x, y, width, height)
-
-	d.batchData.FillSolidColor(pixel.NewRGB565BE(c.R, c.G, c.B))
-	i = width * height
-	for i > 0 {
-		if i >= BatchLength {
-			d.Tx(d.batchData.RawBuffer(), false)
-		} else {
-			d.Tx(d.batchData.Rescale(int(i), 1).RawBuffer(), false)
-		}
-		i -= BatchLength
-	}
-	return nil
-}
-
-type ScreenBuffer [Width * Height]pixel.RGB565BE
+type ScreenBuffer [Width][Height]pixel.RGB565BE
 
 const bpp = 2
 
-// func (sb ScreenBuffer) RawBuffer(offset, length int) []uint8 {
-// 	// Each color starts at a whole byte offset.
-
-// 	p := unsafe.Pointer(&sb[offset])
-// 	return unsafe.Slice((*byte)(p), length)
-// }
-
-// SetPixel sets a pixel in the screen
-func (d *Device) SetPixel(x int16, y int16, c color.RGBA) {
-	if x < 0 || y < 0 || x >= Height || y >= Width {
-		return
-	}
-	d.setWindow(x, y, 1, 1)
-
-	colour := pixel.NewRGB565BE(c.R, c.G, c.B)
-	d.Tx([]byte{byte(colour), byte(colour >> 8)}, false) // little endian
-}
-
 func (d *Device) SetPixelLel(buf *ScreenBuffer, i int16) {
-	const num = 160
-	d.setWindow(0, i, 1, num)
+	d.setWindow(0, i, 1, Height)
 
-	bs := unsafe.Slice((*byte)(unsafe.Pointer(&buf[i*Height])), num*2)
+	bs := unsafe.Slice((*byte)(unsafe.Pointer(&buf[i])), Height*2)
 
 	d.Tx(bs, false) // little endian
-}
-
-// DrawBitmap copies the bitmap to the internal buffer on the screen at the
-// given coordinates. It returns once the image data has been sent completely.
-func (d *Device) DrawBitmap(x, y int16, bitmap pixel.Image[pixel.RGB565BE]) error {
-	width, height := bitmap.Size()
-	w, h := int16(width), int16(height)
-
-	if x < 0 || y < 0 || w <= 0 || h <= 0 ||
-		x >= Height || (x+w) > Height || y >= Width || (y+h) > Width {
-		return errOutOfBounds
-	}
-	d.setWindow(x, y, h, w) // probably, yes
-	d.Tx(bitmap.RawBuffer(), false)
-	return nil
-}
-
-func (d *Device) FillBitmap(bitmap pixel.Image[pixel.RGB565BE]) {
-	width, height := bitmap.Size()
-	w, h := int16(width), int16(height)
-
-	d.setWindow(0, 0, h, w) // probably, yes
-	d.Tx(bitmap.RawBuffer(), false)
-}
-
-func (d *Device) FillRawBuffer(bitmap []uint8) {
-	// w, h := int16(Width), int16(Height)
-
-	// d.setWindow(0, 0, h, w) // probably, yes
-	// d.Tx(bitmap, false)
-
-	d.setWindow(0, 0, 20, 20)
-	d.Tx(bitmap, false)
-}
-
-func (d *Device) FillBuffermap(rawBuffer *[Width * Height * 2]uint8) {
-	d.setWindow(0, 0, Width, Height)
-
-	// d.Tx(rawBuffer, false)
-	d.batchData = pixel.NewImageFromBytes[pixel.RGB565BE](Width, Height, (*rawBuffer)[:])
-	for i := Width * Height; i > 0; i -= BatchLength {
-		if i >= BatchLength {
-			d.Tx(d.batchData.RawBuffer(), false)
-		} else {
-			d.Tx(d.batchData.Rescale(int(Width), 1).RawBuffer(), false)
-		}
-	}
-	// b := BatchLength
-	// for i := 0; i < len(rawBuffer); i += b {
-	// 	sb := rawBuffer[i:min(b, len(rawBuffer))]
-	// 	d.Tx(sb, false)
-	// }
-}
-
-// FillRectangle fills a rectangle at a given coordinates with a buffer
-func (d *Device) FillRectangleWithBuffer(x, y, width, height int16, buffer []color.RGBA) error {
-	k, l := int16(Height), int16(Width)
-
-	if x < 0 || y < 0 || width <= 0 || height <= 0 ||
-		x >= k || (x+height) > k || y >= l || (y+width) > l {
-		return errOutOfBounds
-	}
-	k = width * height
-	l = int16(len(buffer))
-	if k != l {
-		return errors.New("buffer length does not match with rectangle size")
-	}
-
-	d.setWindow(x, y, width, height)
-
-	var offset int16
-	for k > 0 {
-		for i := int16(0); i < BatchLength; i++ {
-			if offset+i < l {
-				c := buffer[offset+i]
-				d.batchData.Set(int(i), 0, pixel.NewRGB565BE(c.R, c.G, c.B))
-			}
-		}
-		if k >= BatchLength {
-			d.Tx(d.batchData.RawBuffer(), false)
-		} else {
-			d.Tx(d.batchData.Rescale(int(k), 1).RawBuffer(), false)
-		}
-		k -= BatchLength
-		offset += BatchLength
-	}
-	return nil
-}
-
-// DrawFastVLine draws a vertical line faster than using SetPixel
-func (d *Device) DrawFastVLine(x, y0, y1 int16, c color.RGBA) {
-	if y0 > y1 {
-		y0, y1 = y1, y0
-	}
-	d.FillRectangle(x, y0, y1-y0+1, 1, c)
-}
-
-// DrawFastHLine draws a horizontal line faster than using SetPixel
-func (d *Device) DrawFastHLine(x0, x1, y int16, c color.RGBA) {
-	if x0 > x1 {
-		x0, x1 = x1, x0
-	}
-	d.FillRectangle(x0, y, 1, x1-x0+1, c)
 }
 
 // FillScreen fills the screen with a given color

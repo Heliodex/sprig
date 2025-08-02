@@ -49,13 +49,6 @@ type Display struct {
 	d st7735.Device
 }
 
-func (d *Display) SetPixel(x, y int16, c RGB) {
-	if x < 0 || x >= int16(width) || y < 0 || y >= int16(height) {
-		return // out of bounds
-	}
-	d.d.SetPixel(x, y, c.RGBA())
-}
-
 // idky
 const interlaced = false
 
