@@ -316,16 +316,11 @@ func (d *Device) DrawFastHLine(x0, x1, y int16, c color.RGBA) {
 }
 
 // FillScreen fills the screen with a given color
-func (d *Device) FillScreen(c color.RGBA) {
+func (d *Device) ClearScreen() {
 	d.setWindow(0, 0, Width, Height)
 
-	d.batchData.FillSolidColor(pixel.NewRGB565BE(c.R, c.G, c.B))
-	for i := Width * Height; i > 0; i -= BatchLength {
-		if i >= BatchLength {
-			d.Tx(d.batchData.RawBuffer(), false)
-		} else {
-			d.Tx(d.batchData.Rescale(int(Width), 1).RawBuffer(), false)
-		}
+	for range Width {
+		d.Tx(make([]byte, Height*bpp), false) // fill with 0s
 	}
 }
 

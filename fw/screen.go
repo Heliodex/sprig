@@ -5,6 +5,8 @@ import (
 	"machine"
 
 	"fw/st7735"
+
+	"tinygo.org/x/drivers/pixel"
 )
 
 const (
@@ -34,11 +36,11 @@ func FromRGBA(c color.RGBA) RGB {
 }
 
 var (
-	black = RGB{0x00, 0x00, 0x00}
-	white = RGB{0xff, 0xff, 0xff}
-	red   = RGB{0xff, 0x00, 0x00}
-	green = RGB{0x00, 0xff, 0x00}
-	blue  = RGB{0x00, 0x00, 0xff}
+	black = pixel.NewRGB565BE(0x00, 0x00, 0x00)
+	white = pixel.NewRGB565BE(0xff, 0xff, 0xff)
+	red   = pixel.NewRGB565BE(0xff, 0x00, 0x00)
+	green = pixel.NewRGB565BE(0x00, 0xff, 0x00)
+	blue  = pixel.NewRGB565BE(0x00, 0x00, 0xff)
 )
 
 const bpp = 2
@@ -54,13 +56,21 @@ func (d *Display) SetPixel(x, y int16, c RGB) {
 	d.d.SetPixel(x, y, c.RGBA())
 }
 
-func (d *Display) FillScreen(c RGB) {
-	d.d.FillScreen(c.RGBA())
-}
+// idky
+const interlaced = false
 
 func (d *Display) Render(buf *st7735.ScreenBuffer) {
-	for i := range int16(height) {
-		d.d.SetPixelLel(buf, i)
+	if interlaced {
+		for i := int16(0); i < height; i+=2 {
+			d.d.SetPixelLel(buf, i)
+		}
+		for i := int16(1); i < height; i+=2 {
+			d.d.SetPixelLel(buf, i)
+		}
+	} else {
+		for i := range int16(height) {
+			d.d.SetPixelLel(buf, i)
+		}
 	}
 }
 

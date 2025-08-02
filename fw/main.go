@@ -2,6 +2,7 @@ package main
 
 import (
 	"machine"
+	"time"
 
 	"fw/st7735"
 
@@ -22,16 +23,49 @@ const (
 
 var screenmem = &st7735.ScreenBuffer{}
 
-func drawColours(buf *st7735.ScreenBuffer, px pixel.RGB565BE) {
-	for i := range width * height / 2 {
-		buf[i] = px
-	}
+type Button struct {
+	pin   machine.Pin
+	prev  bool
+	event func(bool)
+}
+
+type UIElement struct {
+	xPos, yPos uint8
+	visible    bool
+	drawTo     func(buf *st7735.ScreenBuffer)
+}
+
+// func (e UIElement) drawTo(buf *st7735.ScreenBuffer) {
+// 	// buf[10000+int(e.xPos)+int(e.yPos)] = pixel.NewRGB565BE(0xff, 0x00, 0x00) // just a test
+
+// 	// for y := range e.height {
+// 	for y := range uint8(len(e.content)) {
+// 		// for x := range e.width {
+// 		for x := range uint8(len(e.content[y])) {
+// 			pp := int(e.yPos+y)*st7735.Width + int(e.xPos+x)
+// 			if pp < len(buf) {
+// 				buf[pp] = e.content[y][x]
+// 			}
+// 		}
+// 	}
+// }
+
+var buttons = map[byte]*Button{
+	'W': {pin: machine.GPIO5},
+	'A': {pin: machine.GPIO6},
+	'S': {pin: machine.GPIO7},
+	'D': {pin: machine.GPIO8},
+
+	'I': {pin: machine.GPIO12},
+	'J': {pin: machine.GPIO13},
+	'K': {pin: machine.GPIO14},
+	'L': {pin: machine.GPIO14},
 }
 
 func main() {
 	// display things
 	d := NewDisplay()
-	d.FillScreen(black)
+	d.d.ClearScreen()
 
 	// init left led (GP28, PWM6 channel A)
 	ledLeft := machine.PWM6
@@ -49,70 +83,79 @@ func main() {
 		ledRight.Set(rch, value)
 	}
 
-	// drawText := func(font *Font, text string, xPos, yPos uint8, colour RGB) {
-	// 	chars := textToChars(font, text)
-
-	// 	for _, char := range chars {
-	// 		image := pixel.NewImage[pixel.RGB565BE](int(char.width), int(font.height))
-	// 		for y, row := range char.content {
-	// 			for x, b := range row {
-	// 				if b == 0 {
-	// 					continue // skip empty pixels
-	// 				}
-
-	// 				image.Set(x, y, pixel.NewRGB565BE(colour.R, colour.G, colour.B))
-	// 			}
-	// 		}
-
-	// 		// d.d.DrawBitmap(int16(xPos), int16(yPos), image)
-
-	// 		xPos += char.width - 8 // unicrushed
-	// 	}
-	// }
-
-	// const txt = "Hello, worl!"
-
-	for {
-		for range 60 {
-			drawColours(screenmem, pixel.NewRGB565BE(0xff, 0xff, 0xff))
-			d.Render(screenmem)
-			drawColours(screenmem, pixel.NewRGB565BE(0, 0, 0))
-			d.Render(screenmem)
-		}
-		setLeft(0xffffffff)
-		setRight(0)
-
-		for range 60 {
-			drawColours(screenmem, pixel.NewRGB565BE(0xff, 0xff, 0xff))
-			d.Render(screenmem)
-			drawColours(screenmem, pixel.NewRGB565BE(0, 0, 0))
-			d.Render(screenmem)
-		}
-		setLeft(0)
-		setRight(0xffffffff)
+	for _, button := range buttons {
+		button.pin.Configure(machine.PinConfig{Mode: machine.PinInputPullup})
 	}
-	// drawText(fontUnifont, strconv.Itoa(len(mem)), 2, 2, red)
 
-	// drawText(fontUnifont, "build 6", 2, 24, green)
+	Text := func(font *Font, text string, xPos, yPos uint8, colour pixel.RGB565BE) *UIElement {
+		drawTo := func(buf *st7735.ScreenBuffer) {
+			xp := int(xPos)
 
-	// size := unsafe.Sizeof(buf)
-	// drawText(fontUnifont, strconv.Itoa(int(size)), 2, 2, green)
+			chars := textToChars(font, text)
+			for _, char := range chars {
+				for y, row := range char.content {
+					for x, b := range row {
+						if b == 0 {
+							continue // skip empty pixels
+						}
 
-	// drawText(fontUnifont, "success", 2, 46, green)
+						buf[(int(yPos)+y)*width+xp+x] = colour
+					}
+				}
 
-	// for {
-	// 	const n = 60
+				xp += int(char.width) - 8 // unicrushed
+			}
+		}
 
-	// 	for i := range n {
-	// 		drawText(txt, 0, uint8(i), RGB{uint8(i * 0xff / n), 0x00, 0x00})
-	// 	}
-	// 	d.FillScreen(white)
-	// 	for i := range n {
-	// 		drawText(txt, 0, uint8(i), RGB{0x00, 0xff - uint8(i*0xff/n), 0x00})
-	// 	}
-	// 	d.FillScreen(black)
-	// }
+		return &UIElement{
+			xPos:   xPos,
+			yPos:   yPos,
+			drawTo: drawTo,
+		}
+	}
 
-	// d.FillScreen(black)
-	// d.EnableBacklight(false)
+	buildText := Text(fontUnifont, "build 7", 2, 24, green)
+	buildText.visible = true
+
+	successText := Text(fontUnifont, "success", 2, 46, green)
+
+	ui := []*UIElement{buildText, successText}
+
+	buttons['W'].event = func(state bool) {
+		if state {
+			setLeft(0)
+			setRight(0xffffffff)
+		} else {
+			setLeft(0xffffffff)
+			setRight(0)
+		}
+
+		successText.visible = state
+	}
+
+	// event loop i guess
+	for {
+		// read button states
+		for _, button := range buttons {
+			if button.event == nil {
+				continue
+			}
+			state := !button.pin.Get() // inverted, so false = not pressed, true = pressed
+			if state == button.prev {
+				continue
+			}
+			button.prev = state
+			button.event(state)
+		}
+
+		for _, e := range ui {
+			if e.visible {
+				e.drawTo(screenmem)
+			}
+		}
+
+		d.Render(screenmem)
+		clear(screenmem[:])
+		time.Sleep(time.Millisecond * 100)
+	}
 }
