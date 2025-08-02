@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"machine"
 	"time"
+	"unsafe"
 
 	"tinygo.org/x/drivers"
 	"tinygo.org/x/drivers/pixel"
@@ -180,6 +181,17 @@ func (d *Device) FillRectangle(x, y, width, height int16, c color.RGBA) error {
 	return nil
 }
 
+type ScreenBuffer [Width * Height]pixel.RGB565BE
+
+const bpp = 2
+
+// func (sb ScreenBuffer) RawBuffer(offset, length int) []uint8 {
+// 	// Each color starts at a whole byte offset.
+
+// 	p := unsafe.Pointer(&sb[offset])
+// 	return unsafe.Slice((*byte)(p), length)
+// }
+
 // SetPixel sets a pixel in the screen
 func (d *Device) SetPixel(x int16, y int16, c color.RGBA) {
 	if x < 0 || y < 0 || x >= Height || y >= Width {
@@ -189,6 +201,15 @@ func (d *Device) SetPixel(x int16, y int16, c color.RGBA) {
 
 	colour := pixel.NewRGB565BE(c.R, c.G, c.B)
 	d.Tx([]byte{byte(colour), byte(colour >> 8)}, false) // little endian
+}
+
+func (d *Device) SetPixelLel(buf *ScreenBuffer, i int16) {
+	const num = 160
+	d.setWindow(0, i, 1, num)
+
+	bs := unsafe.Slice((*byte)(unsafe.Pointer(&buf[i*Height])), num*2)
+
+	d.Tx(bs, false) // little endian
 }
 
 // DrawBitmap copies the bitmap to the internal buffer on the screen at the
@@ -214,8 +235,18 @@ func (d *Device) FillBitmap(bitmap pixel.Image[pixel.RGB565BE]) {
 	d.Tx(bitmap.RawBuffer(), false)
 }
 
+func (d *Device) FillRawBuffer(bitmap []uint8) {
+	// w, h := int16(Width), int16(Height)
+
+	// d.setWindow(0, 0, h, w) // probably, yes
+	// d.Tx(bitmap, false)
+
+	d.setWindow(0, 0, 20, 20)
+	d.Tx(bitmap, false)
+}
+
 func (d *Device) FillBuffermap(rawBuffer *[Width * Height * 2]uint8) {
-	d.setWindow(0, 0, Width, Height) 
+	d.setWindow(0, 0, Width, Height)
 
 	// d.Tx(rawBuffer, false)
 	d.batchData = pixel.NewImageFromBytes[pixel.RGB565BE](Width, Height, (*rawBuffer)[:])

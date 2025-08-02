@@ -2,7 +2,8 @@ package main
 
 import (
 	"machine"
-	"strconv"
+
+	"fw/st7735"
 
 	"tinygo.org/x/drivers/pixel"
 )
@@ -19,33 +20,13 @@ const (
 	rst = machine.GP26
 )
 
-// type MegaBuffer struct {
-// 	bs [][]byte
-// }
+var screenmem = &st7735.ScreenBuffer{}
 
-// func NewMegaBuffer() MegaBuffer {
-// 	return MegaBuffer{
-// 		bs: [][]byte{{}},
-// 	}
-// }
-
-// func (mb *MegaBuffer) append(b byte) {
-// 	lb := len(mb.bs)-1
-// 	if len(mb.bs[lb]) < 512 {
-// 		mb.bs[lb] = append(mb.bs[lb], b)
-// 	} else {
-// 		mb.bs = append(mb.bs, []byte{b})
-// 	}
-// }
-
-// func (mb *MegaBuffer) len() (l int) {
-// 	for _, b := range mb.bs {
-// 		l += len(b)
-// 	}
-// 	return
-// }
-
-var mem =  &ScreenBuffer2{}
+func drawColours(buf *st7735.ScreenBuffer, px pixel.RGB565BE) {
+	for i := range width * height / 2 {
+		buf[i] = px
+	}
+}
 
 func main() {
 	// display things
@@ -68,33 +49,49 @@ func main() {
 		ledRight.Set(rch, value)
 	}
 
-	drawText := func(font *Font, text string, xPos, yPos uint8, colour RGB) {
-		chars := textToChars(font, text)
+	// drawText := func(font *Font, text string, xPos, yPos uint8, colour RGB) {
+	// 	chars := textToChars(font, text)
 
-		for _, char := range chars {
-			image := pixel.NewImage[pixel.RGB565BE](int(char.width), int(font.height))
-			for y, row := range char.content {
-				for x, b := range row {
-					if b == 0 {
-						continue // skip empty pixels
-					}
+	// 	for _, char := range chars {
+	// 		image := pixel.NewImage[pixel.RGB565BE](int(char.width), int(font.height))
+	// 		for y, row := range char.content {
+	// 			for x, b := range row {
+	// 				if b == 0 {
+	// 					continue // skip empty pixels
+	// 				}
 
-					image.Set(x, y, pixel.NewRGB565BE(colour.R, colour.G, colour.B))
-				}
-			}
+	// 				image.Set(x, y, pixel.NewRGB565BE(colour.R, colour.G, colour.B))
+	// 			}
+	// 		}
 
-			d.d.DrawBitmap(int16(xPos), int16(yPos), image)
+	// 		// d.d.DrawBitmap(int16(xPos), int16(yPos), image)
 
-			xPos += char.width - 8 // unicrushed
-		}
-	}
+	// 		xPos += char.width - 8 // unicrushed
+	// 	}
+	// }
 
 	// const txt = "Hello, worl!"
 
 	for {
-		drawText(fontUnifont, strconv.Itoa(len(mem)), 2, 2, red)
-		d.d.FillBuffermap(mem)
+		for range 60 {
+			drawColours(screenmem, pixel.NewRGB565BE(0xff, 0xff, 0xff))
+			d.Render(screenmem)
+			drawColours(screenmem, pixel.NewRGB565BE(0, 0, 0))
+			d.Render(screenmem)
+		}
+		setLeft(0xffffffff)
+		setRight(0)
+
+		for range 60 {
+			drawColours(screenmem, pixel.NewRGB565BE(0xff, 0xff, 0xff))
+			d.Render(screenmem)
+			drawColours(screenmem, pixel.NewRGB565BE(0, 0, 0))
+			d.Render(screenmem)
+		}
+		setLeft(0)
+		setRight(0xffffffff)
 	}
+	// drawText(fontUnifont, strconv.Itoa(len(mem)), 2, 2, red)
 
 	// drawText(fontUnifont, "build 6", 2, 24, green)
 
@@ -116,8 +113,6 @@ func main() {
 	// 	d.FillScreen(black)
 	// }
 
-	setLeft(0)
-	setRight(0)
 	// d.FillScreen(black)
 	// d.EnableBacklight(false)
 }
