@@ -36,10 +36,10 @@ type Char struct {
 }
 
 type Font struct {
-	name    string
-	dir     embed.FS
-	height  uint8
-	charset [256]Char
+	name          string
+	dir           embed.FS
+	crush, height uint8
+	charset       [256]Char
 }
 
 // var fonts = map[string]*Font{
@@ -54,13 +54,14 @@ type Font struct {
 // }
 
 var fontDex = &Font{
-	name:   "dex",
-	dir:    dirDex,
+	name: "dex",
+	dir:  dirDex,
 }
 
 var fontUnifont = &Font{
-	name:   "unifont",
-	dir:    dirUnifont,
+	name:  "unifont",
+	dir:   dirUnifont,
+	crush: 8,
 }
 
 func loadChar(font *Font, i uint8, dir embed.FS) {

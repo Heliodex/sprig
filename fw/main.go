@@ -2,7 +2,6 @@ package main
 
 import (
 	"machine"
-	"time"
 
 	"fw/st7735"
 
@@ -29,26 +28,45 @@ type Button struct {
 	event func(bool)
 }
 
-type UIElement struct {
-	xPos, yPos uint8
-	visible    bool
-	drawTo     func(buf *st7735.ScreenBuffer)
+type UIElement interface {
+	drawTo(buf *st7735.ScreenBuffer)
 }
 
-// func (e UIElement) drawTo(buf *st7735.ScreenBuffer) {
-// 	// buf[10000+int(e.xPos)+int(e.yPos)] = pixel.NewRGB565BE(0xff, 0x00, 0x00) // just a test
+type Text struct {
+	font       *Font
+	text       string
+	xPos, yPos int
+	colour     pixel.RGB565BE
+	visible    bool
+}
 
-// 	// for y := range e.height {
-// 	for y := range uint8(len(e.content)) {
-// 		// for x := range e.width {
-// 		for x := range uint8(len(e.content[y])) {
-// 			pp := int(e.yPos+y)*st7735.Width + int(e.xPos+x)
-// 			if pp < len(buf) {
-// 				buf[pp] = e.content[y][x]
-// 			}
-// 		}
-// 	}
-// }
+func (t *Text) drawTo(buf *st7735.ScreenBuffer) {
+	if !t.visible {
+		return
+	}
+
+	xp := t.xPos
+
+	chars := textToChars(t.font, t.text)
+	for _, char := range chars {
+		for y, row := range char.content {
+			for x, b := range row {
+				if b == 0 {
+					continue // skip empty pixels
+				}
+
+				yl := t.yPos + y
+				// r := buf[yl]
+
+				xl := xp + x
+
+				buf[yl][xl] = t.colour
+			}
+		}
+
+		xp += int(char.width) - int(t.font.crush)
+	}
+}
 
 var buttons = map[byte]*Button{
 	'W': {pin: machine.GPIO5},
@@ -59,7 +77,7 @@ var buttons = map[byte]*Button{
 	'I': {pin: machine.GPIO12},
 	'J': {pin: machine.GPIO13},
 	'K': {pin: machine.GPIO14},
-	'L': {pin: machine.GPIO14},
+	'L': {pin: machine.GPIO15},
 }
 
 func main() {
@@ -87,50 +105,46 @@ func main() {
 		button.pin.Configure(machine.PinConfig{Mode: machine.PinInputPullup})
 	}
 
-	Text := func(font *Font, text string, xPos, yPos uint8, colour pixel.RGB565BE) *UIElement {
-		drawTo := func(buf *st7735.ScreenBuffer) {
-			xp := int(xPos)
+	buildText := &Text{fontUnifont, "build 9", 2, 2, blue, true}
+	// successText := &Text{fontUnifont, "success", 2, 46, green, false}
 
-			chars := textToChars(font, text)
-			for _, char := range chars {
-				for y, row := range char.content {
-					for x, b := range row {
-						if b == 0 {
-							continue // skip empty pixels
-						}
-
-						buf[int(yPos)+y][xp+x] = colour
-					}
-				}
-
-				xp += int(char.width) - 8 // unicrushed
-			}
-		}
-
-		return &UIElement{
-			xPos:   xPos,
-			yPos:   yPos,
-			drawTo: drawTo,
-		}
+	buttonTextsL := map[byte]*Text{
+		'W': {fontDex, "W", 2 + 20 - 1, 24, red, true},
+		'A': {fontDex, "A", 2, 48, red, true},
+		'S': {fontDex, "S", 2 + 20, 72, red, true},
+		'D': {fontDex, "D", 2 + 40, 48, red, true},
+	}
+	buttonTextsR := map[byte]*Text{
+		'I': {fontDex, "I", width/2 + 2 + 20 + 1, 24, red, true},
+		'J': {fontDex, "J", width/2 + 2, 48, red, true},
+		'K': {fontDex, "K", width/2 + 2 + 20, 72, red, true},
+		'L': {fontDex, "L", width/2 + 2 + 40, 48, red, true},
 	}
 
-	buildText := Text(fontUnifont, "build 7", 2, 24, green)
-	buildText.visible = true
-
-	successText := Text(fontUnifont, "success", 2, 46, green)
-
-	ui := []*UIElement{buildText, successText}
-
-	buttons['W'].event = func(state bool) {
-		if state {
-			setLeft(0)
-			setRight(0xffffffff)
-		} else {
-			setLeft(0xffffffff)
-			setRight(0)
+	ui := []UIElement{buildText}
+	for k, text := range buttonTextsL {
+		buttons[k].event = func(state bool) {
+			if state {
+				text.colour = green
+				setLeft(0xffffffff)
+			} else {
+				text.colour = red
+				setLeft(0)
+			}
 		}
-
-		successText.visible = state
+		ui = append(ui, text)
+	}
+	for k, text := range buttonTextsR {
+		buttons[k].event = func(state bool) {
+			if state {
+				text.colour = green
+				setRight(0xffffffff)
+			} else {
+				text.colour = red
+				setRight(0)
+			}
+		}
+		ui = append(ui, text)
 	}
 
 	// event loop i guess
@@ -149,13 +163,10 @@ func main() {
 		}
 
 		for _, e := range ui {
-			if e.visible {
-				e.drawTo(screenmem)
-			}
+			e.drawTo(screenmem)
 		}
 
 		d.Render(screenmem)
 		clear(screenmem[:])
-		time.Sleep(time.Millisecond * 100)
 	}
 }
