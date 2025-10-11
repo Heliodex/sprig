@@ -19,7 +19,6 @@ const (
 )
 
 // MUST be declared as top-level (why? nobody knows)
-var screenmem = &st7735.ScreenBuffer{}
 
 type Button struct {
 	pin   machine.Pin
@@ -31,10 +30,24 @@ func (b *Button) Pressed() bool {
 	return !b.pin.Get()
 }
 
-const ButtonsCount = 8
+type buttonId uint8
+
+const (
+	W buttonId = iota
+	A
+	S
+	D
+	I
+	J
+	K
+	L
+	ButtonsCount
+)
 
 // WASD IJKL
 type Buttons [ButtonsCount]Button
+
+var screenmem = &st7735.ScreenBuffer{}
 
 type Engine struct {
 	display           *Display

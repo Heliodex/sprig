@@ -1,13 +1,16 @@
 package main
 
 import (
+	"machine"
+	"strconv"
+
 	"fw/st7735"
 
 	"tinygo.org/x/drivers/pixel"
 )
 
 type UIElement interface {
-	drawTo(buf *st7735.ScreenBuffer)
+	drawTo(*st7735.ScreenBuffer)
 }
 
 type Text struct {
@@ -25,20 +28,13 @@ func (t *Text) drawTo(buf *st7735.ScreenBuffer) {
 
 	xp := t.xPos
 
-	chars := textToChars(t.font, t.text)
-	for _, char := range chars {
+	for _, char := range textToChars(t.font, t.text) {
 		for y, row := range char.content {
 			for x, b := range row {
-				if b == 0 {
-					continue // skip empty pixels
+				if b != 0 {
+					// skip empty pixels
+					buf.Set(xp+x, t.yPos+y, t.colour)
 				}
-
-				yl := t.yPos + y
-				// r := buf[yl]
-
-				xl := xp + x
-
-				buf[yl][xl] = t.colour
 			}
 		}
 
@@ -50,8 +46,8 @@ func main() {
 	// display things
 	engine := NewEngine()
 
-	buildText := &Text{fontUnifont, "build 17", 2, 2, blue, true}
-	successText := &Text{fontUnifont, "success", 2, 46, green, false}
+	buildText := &Text{fontUnifont, "build 18", 2, 2, blue, true}
+	freqText := &Text{fontUnifont, strconv.Itoa(int(machine.NumCores())), 2, 22, green, true}
 
 	Texts := [ButtonsCount]*Text{
 		{fontDex, "W", 2 + 20 - 1, 24, red, true},
@@ -64,10 +60,11 @@ func main() {
 		{fontDex, "L", width/2 + 2 + 40, 48, red, true},
 	}
 
-	ui := []UIElement{buildText, successText}
+	ui := []UIElement{buildText}
 	for _, t := range Texts {
 		ui = append(ui, t)
 	}
+	ui = append(ui, freqText)
 
 	// event loop i guess
 	for {
@@ -80,10 +77,26 @@ func main() {
 			}
 		}
 
+		if engine.Buttons[W].Pressed() {
+			buildText.yPos--
+		}
+
+		if engine.Buttons[S].Pressed() {
+			buildText.yPos++
+		}
+
+		if engine.Buttons[A].Pressed() {
+			buildText.xPos--
+		}
+
+		if engine.Buttons[D].Pressed() {
+			buildText.xPos++
+		}
+
 		for _, e := range ui {
 			e.drawTo(engine.screenmem)
 		}
 
-		engine.display.Render(engine.screenmem)
+		engine.Render()
 	}
 }

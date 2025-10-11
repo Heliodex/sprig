@@ -157,6 +157,13 @@ func (d *Device) setWindow(x, y, w, h int16) {
 
 type ScreenBuffer [Width][Height]pixel.RGB565BE
 
+func (sb *ScreenBuffer) Set(x, y int, px pixel.RGB565BE) {
+	if x < 0 || x >= Height || y < 0 || y >= Width {
+		return
+	}
+	(*sb)[y][x] = px
+}
+
 const bpp = 2
 
 func (d *Device) SetPixelLel(buf *ScreenBuffer, i int16) {
