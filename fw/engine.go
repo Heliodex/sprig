@@ -4,7 +4,6 @@ import (
 	"machine"
 
 	"fw/st7735"
-	// "tinygo.org/x/drivers/pixel"
 )
 
 // 270MHz
@@ -19,7 +18,7 @@ const (
 	rst = machine.GP26
 )
 
-// MUST be declared as top-level
+// MUST be declared as top-level (why? nobody knows)
 var screenmem = &st7735.ScreenBuffer{}
 
 type Button struct {
@@ -32,11 +31,16 @@ func (b *Button) Pressed() bool {
 	return !b.pin.Get()
 }
 
+const ButtonsCount = 8
+
+// WASD IJKL
+type Buttons [ButtonsCount]Button
+
 type Engine struct {
 	display           *Display
 	screenmem         *st7735.ScreenBuffer
-	setLeft, setRight func(uint32)
-	W, A, S, D, I, J, K, L Button
+	SetLeft, SetRight func(uint32)
+	Buttons           Buttons
 }
 
 func NewEngine() *Engine {
@@ -58,29 +62,23 @@ func NewEngine() *Engine {
 		ledRight.Set(rch, value)
 	}
 
-	e := &Engine{
-		display:   display,
-		screenmem: screenmem,
-		setLeft:   setLeft,
-		setRight:  setRight,
-		W:         Button{pin: machine.GPIO5},
-		A:         Button{pin: machine.GPIO6},
-		S:         Button{pin: machine.GPIO7},
-		D:         Button{pin: machine.GPIO8},
-		I:         Button{pin: machine.GPIO12},
-		J:         Button{pin: machine.GPIO13},
-		K:         Button{pin: machine.GPIO14},
-		L:         Button{pin: machine.GPIO15},
-	}
+	buttons := Buttons{{pin: machine.GP5}, {pin: machine.GP6}, {pin: machine.GP7}, {pin: machine.GP8}, {pin: machine.GP12}, {pin: machine.GP13}, {pin: machine.GP14}, {pin: machine.GP15}}
 
-	buttons := []Button{e.W, e.A, e.S, e.D, e.I, e.J, e.K, e.L}
 	for _, b := range buttons {
 		b.pin.Configure(machine.PinConfig{Mode: machine.PinInputPullup})
 	}
 
-	return e
+	// and fire up the engine
+	return &Engine{
+		display:   display,
+		screenmem: screenmem,
+		SetLeft:   setLeft,
+		SetRight:  setRight,
+		Buttons:   buttons,
+	}
 }
 
 func (e *Engine) Render() {
 	e.display.Render(e.screenmem)
+	clear(e.screenmem[:])
 }
