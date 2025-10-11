@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"machine"
@@ -18,7 +18,6 @@ const (
 	rst = machine.GP26
 )
 
-// MUST be declared as top-level (why? nobody knows)
 
 type Button struct {
 	pin   machine.Pin
@@ -47,16 +46,19 @@ const (
 // WASD IJKL
 type Buttons [ButtonsCount]Button
 
-var screenmem = &st7735.ScreenBuffer{}
+type ScreenBuffer = st7735.ScreenBuffer
+
+// MUST be declared as top-level (why? nobody knows)
+var sb = &ScreenBuffer{}
 
 type Engine struct {
-	display           *Display
-	screenmem         *st7735.ScreenBuffer
+	display *Display
+	*ScreenBuffer
 	SetLeft, SetRight func(uint32)
-	Buttons           Buttons
+	Buttons
 }
 
-func NewEngine() *Engine {
+func New() *Engine {
 	display := NewDisplay()
 
 	// init left led (GP28, PWM6 channel A)
@@ -84,7 +86,7 @@ func NewEngine() *Engine {
 	// and fire up the engine
 	return &Engine{
 		display:   display,
-		screenmem: screenmem,
+		ScreenBuffer: sb,
 		SetLeft:   setLeft,
 		SetRight:  setRight,
 		Buttons:   buttons,
@@ -92,6 +94,6 @@ func NewEngine() *Engine {
 }
 
 func (e *Engine) Render() {
-	e.display.Render(e.screenmem)
-	clear(e.screenmem[:])
+	e.display.Render(e.ScreenBuffer)
+	clear(e.ScreenBuffer[:])
 }

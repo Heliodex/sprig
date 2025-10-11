@@ -1,27 +1,25 @@
 package main
 
 import (
-	"machine"
 	"strconv"
+	"time"
 
-	"fw/st7735"
-
-	"tinygo.org/x/drivers/pixel"
+	"fw/engine"
 )
 
 type UIElement interface {
-	drawTo(*st7735.ScreenBuffer)
+	drawTo(*engine.ScreenBuffer)
 }
 
 type Text struct {
 	font       *Font
 	text       string
 	xPos, yPos int
-	colour     pixel.RGB565BE
+	colour     engine.Pixel
 	visible    bool
 }
 
-func (t *Text) drawTo(buf *st7735.ScreenBuffer) {
+func (t *Text) drawTo(buf *engine.ScreenBuffer) {
 	if !t.visible {
 		return
 	}
@@ -44,32 +42,34 @@ func (t *Text) drawTo(buf *st7735.ScreenBuffer) {
 
 func main() {
 	// display things
-	engine := NewEngine()
+	en := engine.New()
 
-	buildText := &Text{fontUnifont, "build 18", 2, 2, blue, true}
-	freqText := &Text{fontUnifont, strconv.Itoa(int(machine.NumCores())), 2, 22, green, true}
+	buildText := &Text{FontUnifont, "build 19", 2, 2, blue, true}
+	fps := &Text{FontUnifont, "0", 2, 22, green, true}
 
-	Texts := [ButtonsCount]*Text{
-		{fontDex, "W", 2 + 20 - 1, 24, red, true},
-		{fontDex, "A", 2, 48, red, true},
-		{fontDex, "S", 2 + 20, 72, red, true},
-		{fontDex, "D", 2 + 40, 48, red, true},
-		{fontDex, "I", width/2 + 2 + 20 + 1, 24, red, true},
-		{fontDex, "J", width/2 + 2, 48, red, true},
-		{fontDex, "K", width/2 + 2 + 20, 72, red, true},
-		{fontDex, "L", width/2 + 2 + 40, 48, red, true},
+	Texts := [engine.ButtonsCount]*Text{
+		{FontDex, "W", 2 + 20 - 1, 24, red, true},
+		{FontDex, "A", 2, 48, red, true},
+		{FontDex, "S", 2 + 20, 72, red, true},
+		{FontDex, "D", 2 + 40, 48, red, true},
+		{FontDex, "I", engine.Width/2 + 2 + 20 + 1, 24, red, true},
+		{FontDex, "J", engine.Width/2 + 2, 48, red, true},
+		{FontDex, "K", engine.Width/2 + 2 + 20, 72, red, true},
+		{FontDex, "L", engine.Width/2 + 2 + 40, 48, red, true},
 	}
 
 	ui := []UIElement{buildText}
 	for _, t := range Texts {
 		ui = append(ui, t)
 	}
-	ui = append(ui, freqText)
+	ui = append(ui, fps)
 
 	// event loop i guess
+	lastDifferences := []int{}
+	lastTime := time.Now()
 	for {
 		// read button states
-		for i, b := range engine.Buttons {
+		for i, b := range en.Buttons {
 			if b.Pressed() {
 				Texts[i].colour = green
 			} else {
@@ -77,26 +77,43 @@ func main() {
 			}
 		}
 
-		if engine.Buttons[W].Pressed() {
+		if en.Buttons[engine.W].Pressed() {
 			buildText.yPos--
 		}
 
-		if engine.Buttons[S].Pressed() {
+		if en.Buttons[engine.S].Pressed() {
 			buildText.yPos++
 		}
 
-		if engine.Buttons[A].Pressed() {
+		if en.Buttons[engine.A].Pressed() {
 			buildText.xPos--
 		}
 
-		if engine.Buttons[D].Pressed() {
+		if en.Buttons[engine.D].Pressed() {
 			buildText.xPos++
 		}
 
 		for _, e := range ui {
-			e.drawTo(engine.screenmem)
+			e.drawTo(en.ScreenBuffer)
 		}
 
-		engine.Render()
+		lastDifferences = append(lastDifferences, int(time.Since(lastTime).Milliseconds()))
+		if len(lastDifferences) > 10 {
+			lastDifferences = lastDifferences[1:]
+		}
+		
+		total := 0
+		for _, v := range lastDifferences {
+			total += v
+		}
+		avg := float64(total) / float64(len(lastDifferences))
+		if avg == 0 {
+			avg = 1
+		}
+		fps.text = strconv.Itoa(int(1000.0 / avg))
+		
+		lastTime = time.Now()
+
+		en.Render()
 	}
 }

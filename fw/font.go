@@ -42,23 +42,12 @@ type Font struct {
 	charset       [256]Char
 }
 
-// var fonts = map[string]*Font{
-// 	"dex": {
-// 		name: "dex",
-// 		dir:  dirDex,
-// 	},
-// 	"unifont": {
-// 		name: "unifont",
-// 		dir:  dirUnifont,
-// 	},
-// }
-
-var fontDex = &Font{
+var FontDex = &Font{
 	name: "dex",
 	dir:  dirDex,
 }
 
-var fontUnifont = &Font{
+var FontUnifont = &Font{
 	name:  "unifont",
 	dir:   dirUnifont,
 	crush: 8,
@@ -95,8 +84,8 @@ func loadChar(font *Font, i uint8, dir embed.FS) {
 func init() {
 	// load all characters
 	for i := range uint8(255) {
-		loadChar(fontDex, i, dirDex)
-		loadChar(fontUnifont, i, dirUnifont)
+		loadChar(FontDex, i, dirDex)
+		loadChar(FontUnifont, i, dirUnifont)
 	}
 }
 

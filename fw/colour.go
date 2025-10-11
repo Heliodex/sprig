@@ -1,0 +1,11 @@
+package main
+
+import "tinygo.org/x/drivers/pixel"
+
+var (
+	black = pixel.NewRGB565BE(0x00, 0x00, 0x00)
+	white = pixel.NewRGB565BE(0xff, 0xff, 0xff)
+	red   = pixel.NewRGB565BE(0xff, 0x00, 0x00)
+	green = pixel.NewRGB565BE(0x00, 0xff, 0x00)
+	blue  = pixel.NewRGB565BE(0x00, 0x00, 0xff)
+)

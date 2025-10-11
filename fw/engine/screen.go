@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"image/color"
@@ -10,9 +10,11 @@ import (
 )
 
 const (
-	width  = st7735.Height // yes, really
-	height = st7735.Width
+	Width  = st7735.Height // yes, really
+	Height = st7735.Width
 )
+
+type Pixel = pixel.RGB565BE
 
 // nothing cares about the opacity anyway
 type RGB struct {
@@ -35,14 +37,6 @@ func FromRGBA(c color.RGBA) RGB {
 	}
 }
 
-var (
-	black = pixel.NewRGB565BE(0x00, 0x00, 0x00)
-	white = pixel.NewRGB565BE(0xff, 0xff, 0xff)
-	red   = pixel.NewRGB565BE(0xff, 0x00, 0x00)
-	green = pixel.NewRGB565BE(0x00, 0xff, 0x00)
-	blue  = pixel.NewRGB565BE(0x00, 0x00, 0xff)
-)
-
 const bpp = 2
 
 type Display struct {
@@ -54,14 +48,14 @@ const interlaced = false
 
 func (d *Display) Render(buf *st7735.ScreenBuffer) {
 	if interlaced {
-		for i := int16(0); i < height; i+=2 {
+		for i := int16(0); i < Height; i += 2 {
 			d.d.SetPixelLel(buf, i)
 		}
-		for i := int16(1); i < height; i+=2 {
+		for i := int16(1); i < Height; i += 2 {
 			d.d.SetPixelLel(buf, i)
 		}
 	} else {
-		for i := range int16(height) {
+		for i := range int16(Height) {
 			d.d.SetPixelLel(buf, i)
 		}
 	}
