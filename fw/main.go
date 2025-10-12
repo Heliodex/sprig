@@ -2,7 +2,6 @@ package main
 
 import (
 	"strconv"
-	"time"
 
 	"fw/engine"
 )
@@ -44,8 +43,12 @@ func main() {
 	// display things
 	en := engine.New()
 
+	var xPos, yPos int
+
 	buildText := &Text{FontUnifont, "build 19", 2, 2, blue, true}
-	fps := &Text{FontUnifont, "0", 2, 22, green, true}
+
+	x := &Text{FontUnifont, "0", 2, 22, green, true}
+	y := &Text{FontUnifont, "0", 2, 42, green, true}
 
 	Texts := [engine.ButtonsCount]*Text{
 		{FontDex, "W", 2 + 20 - 1, 24, red, true},
@@ -58,15 +61,12 @@ func main() {
 		{FontDex, "L", engine.Width/2 + 2 + 40, 48, red, true},
 	}
 
-	ui := []UIElement{buildText}
+	ui := []UIElement{buildText, x, y}
 	for _, t := range Texts {
 		ui = append(ui, t)
 	}
-	ui = append(ui, fps)
 
 	// event loop i guess
-	lastDifferences := []int{}
-	lastTime := time.Now()
 	for {
 		// read button states
 		for i, b := range en.Buttons {
@@ -78,41 +78,27 @@ func main() {
 		}
 
 		if en.Buttons[engine.W].Pressed() {
-			buildText.yPos--
+			yPos--
 		}
 
 		if en.Buttons[engine.S].Pressed() {
-			buildText.yPos++
+			yPos++
 		}
 
 		if en.Buttons[engine.A].Pressed() {
-			buildText.xPos--
+			xPos--
 		}
 
 		if en.Buttons[engine.D].Pressed() {
-			buildText.xPos++
+			xPos++
 		}
+
+		x.text = strconv.Itoa(xPos)
+		y.text = strconv.Itoa(yPos)
 
 		for _, e := range ui {
 			e.drawTo(en.ScreenBuffer)
 		}
-
-		lastDifferences = append(lastDifferences, int(time.Since(lastTime).Milliseconds()))
-		if len(lastDifferences) > 10 {
-			lastDifferences = lastDifferences[1:]
-		}
-		
-		total := 0
-		for _, v := range lastDifferences {
-			total += v
-		}
-		avg := float64(total) / float64(len(lastDifferences))
-		if avg == 0 {
-			avg = 1
-		}
-		fps.text = strconv.Itoa(int(1000.0 / avg))
-		
-		lastTime = time.Now()
 
 		en.Render()
 	}
