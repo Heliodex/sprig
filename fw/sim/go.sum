@@ -1,0 +1,16 @@
+dmitri.shuralyov.com/gpu/mtl v0.0.0-20221208032759-85de2813cf6b h1:a26Bdkl2B9PmYN6vGXnnfB2UGKjz0Moif1aEg+xTd7M=
+dmitri.shuralyov.com/gpu/mtl v0.0.0-20221208032759-85de2813cf6b/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20250301202403-da16c1255728 h1:RkGhqHxEVAvPM0/R+8g7XRwQnHatO0KAuVcwHo8q9W8=
+github.com/go-gl/glfw/v3.3/glfw v0.0.0-20250301202403-da16c1255728/go.mod h1:SyRD8YfuKk+ZXlDqYiqe1qMSqjNgtHzBTG810KUagMc=
+github.com/jezek/xgb v1.1.1 h1:bE/r8ZZtSv7l9gk6nU0mYx51aXrvnyb44892TwSaqS4=
+github.com/jezek/xgb v1.1.1/go.mod h1:nrhwO0FX/enq75I7Y7G8iN1ubpSGZEiA3v9e9GyRFlk=
+golang.org/x/exp/shiny v0.0.0-20251009144603-d2f985daa21b h1:lv/t6E0k4z4dh3SBdRosNoyh0NzLB33QXTz9yrszOks=
+golang.org/x/exp/shiny v0.0.0-20251009144603-d2f985daa21b/go.mod h1:QMAAUorQ8fzCK0C6mr4X4XV9BEp7Al6+jlejJvfYKw4=
+golang.org/x/image v0.32.0 h1:6lZQWq75h7L5IWNk0r+SCpUJ6tUVd3v4ZHnbRKLkUDQ=
+golang.org/x/image v0.32.0/go.mod h1:/R37rrQmKXtO6tYXAjtDLwQgFLHmhW+V6ayXlxzP2Pc=
+golang.org/x/mobile v0.0.0-20251009145931-8baca8bf4eeb h1:6lzmAebw71+I8PM7W9A/VomU3XWEwZkkwp9Jh4XJX7c=
+golang.org/x/mobile v0.0.0-20251009145931-8baca8bf4eeb/go.mod h1:3QSlP0AtP6HPTLbsxfgfefGN76jpIB9yBsMqB8UY37I=
+golang.org/x/sys v0.37.0 h1:fdNQudmxPjkdUTPnLn5mdQv7Zwvbvpaxqs831goi9kQ=
+golang.org/x/sys v0.37.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
+tinygo.org/x/drivers v0.31.0 h1:Q2RpvTRMtdmjHD2Xyn4e8WXsJZKpIny3Lg4hzG1dLu4=
+tinygo.org/x/drivers v0.31.0/go.mod h1:ZdErNrApSABdVXjA1RejD67R8SNRI6RKVfYgQDZtKtk=
