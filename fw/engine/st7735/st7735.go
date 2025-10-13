@@ -8,25 +8,17 @@ import (
 	"time"
 	"unsafe"
 
+	"fw/util"
+
 	"tinygo.org/x/drivers"
-	"tinygo.org/x/drivers/pixel"
 )
 
 const (
-	// remember these fuckers are reversed from what you think they are
-	Width       = 128
-	Height      = 160
+	// yes, rly
+	Width       = util.Height
+	Height      = util.Width
 	BatchLength = Height
 )
-
-type ScreenBuffer [Width][Height]pixel.RGB565BE
-
-func (sb *ScreenBuffer) Set(x, y int, px pixel.RGB565BE) {
-	if x < 0 || x >= Height || y < 0 || y >= Width {
-		return
-	}
-	(*sb)[y][x] = px
-}
 
 // Device wraps an SPI connection.
 type Device struct {
@@ -145,7 +137,7 @@ func (d *Device) setWindow(y, h int16) {
 
 const bpp = 2
 
-func (d *Device) SetPixelLel(buf *ScreenBuffer, i int16) {
+func (d *Device) SetScreen(buf *util.ScreenBuffer, i int16) {
 	d.setWindow(i, Height)
 
 	bs := unsafe.Slice((*byte)(unsafe.Pointer(&buf[i])), Height*2)

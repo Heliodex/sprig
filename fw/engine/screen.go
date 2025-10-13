@@ -4,14 +4,10 @@ import (
 	"image/color"
 	"machine"
 
-	"fw/st7735"
+	"fw/engine/st7735"
+	"fw/util"
 
 	"tinygo.org/x/drivers/pixel"
-)
-
-const (
-	Width  = st7735.Height // yes, really
-	Height = st7735.Width
 )
 
 type Pixel = pixel.RGB565BE
@@ -40,23 +36,23 @@ func FromRGBA(c color.RGBA) RGB {
 const bpp = 2
 
 type Display struct {
-	d st7735.Device
+	d util.DisplayDevice
 }
 
 // idky
 const interlaced = false
 
-func (d *Display) Render(buf *st7735.ScreenBuffer) {
+func (d *Display) Render(buf *util.ScreenBuffer) {
 	if interlaced {
-		for i := int16(0); i < Height; i += 2 {
-			d.d.SetPixelLel(buf, i)
+		for i := int16(0); i < util.Height; i += 2 {
+			d.d.SetScreen(buf, i)
 		}
-		for i := int16(1); i < Height; i += 2 {
-			d.d.SetPixelLel(buf, i)
+		for i := int16(1); i < util.Height; i += 2 {
+			d.d.SetScreen(buf, i)
 		}
 	} else {
-		for i := range int16(Height) {
-			d.d.SetPixelLel(buf, i)
+		for i := range int16(util.Height) {
+			d.d.SetScreen(buf, i)
 		}
 	}
 }
@@ -70,9 +66,8 @@ func NewDisplay() *Display {
 	})
 
 	d := st7735.New(machine.SPI0, rst, dc, cs, machine.GP17)
-	// d.ClearScreen()
 
 	return &Display{
-		d: d,
+		d: &d,
 	}
 }

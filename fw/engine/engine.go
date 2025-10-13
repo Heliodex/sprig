@@ -3,7 +3,7 @@ package engine
 import (
 	"machine"
 
-	"fw/st7735"
+	"fw/util"
 )
 
 // 270MHz
@@ -45,14 +45,12 @@ const (
 // WASD IJKL
 type Buttons [ButtonsCount]Button
 
-type ScreenBuffer = st7735.ScreenBuffer
-
 // MUST be declared as top-level (why? nobody knows)
-var sb = &ScreenBuffer{}
+var sb = &util.ScreenBuffer{}
 
 type Engine struct {
 	display *Display
-	*ScreenBuffer
+	*util.ScreenBuffer
 	SetLeft, SetRight func(uint32)
 	Buttons
 }
