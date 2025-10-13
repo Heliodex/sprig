@@ -19,12 +19,43 @@ const (
 	BatchLength = Height
 )
 
+type ScreenBuffer [Width][Height]pixel.RGB565BE
+
+func (sb *ScreenBuffer) Set(x, y int, px pixel.RGB565BE) {
+	if x < 0 || x >= Height || y < 0 || y >= Width {
+		return
+	}
+	(*sb)[y][x] = px
+}
+
 // Device wraps an SPI connection.
 type Device struct {
 	bus                           drivers.SPI
 	dcPin, resetPin, csPin, blPin machine.Pin
 	rotation                      drivers.Rotation
 	batchData                     pixel.Image[pixel.RGB565BE] // "image" with width, height of (batchLength, 1)
+}
+
+// Tx sends data to the display
+func (d *Device) Tx(data []byte, isCommand bool) {
+	d.dcPin.Set(!isCommand)
+	d.bus.Tx(data, nil)
+}
+
+// Command sends a command to the display
+func (d *Device) Command(command uint8) {
+	d.Tx([]byte{command}, true)
+}
+
+// Command sends a data to the display
+func (d *Device) Data(data ...byte) {
+	d.Tx(data, false)
+}
+
+// SetRotation changes the rotation of the device (clock-wise)
+func (d *Device) SetRotation() {
+	d.Command(MADCTL)
+	d.Data(MADCTL_MX | MADCTL_MV) // we like it this way
 }
 
 // Configure initializes the display with default configuration
@@ -45,36 +76,25 @@ func (d *Device) Configure() {
 	d.Command(SLPOUT)
 	time.Sleep(500 * time.Millisecond)
 	d.Command(FRMCTR1)
-	d.Data(0x01)
-	d.Data(0x2C)
-	d.Data(0x2D)
+	d.Data(0x01, 0x2C, 0x2D)
 	d.Command(FRMCTR2)
-	d.Data(0x01)
-	d.Data(0x2C)
-	d.Data(0x2D)
+	d.Data(0x01, 0x2C, 0x2D)
 	d.Command(FRMCTR3)
 	for range 2 {
-		d.Data(0x01)
-		d.Data(0x2C)
-		d.Data(0x2D)
+		d.Data(0x01, 0x2C, 0x2D)
 	}
 	d.Command(INVCTR)
 	d.Data(0x07)
 	d.Command(PWCTR1)
-	d.Data(0xA2)
-	d.Data(0x02)
-	d.Data(0x84)
+	d.Data(0xA2, 0x02, 0x84)
 	d.Command(PWCTR2)
 	d.Data(0xC5)
 	d.Command(PWCTR3)
-	d.Data(0x0A)
-	d.Data(0x00)
+	d.Data(0x0A, 0x00)
 	d.Command(PWCTR4)
-	d.Data(0x8A)
-	d.Data(0x2A)
+	d.Data(0x8A, 0x2A)
 	d.Command(PWCTR5)
-	d.Data(0x8A)
-	d.Data(0xEE)
+	d.Data(0x8A, 0xEE)
 	d.Command(VMCTR1)
 	d.Data(0x0E)
 
@@ -87,40 +107,9 @@ func (d *Device) Configure() {
 
 	// common color adjustment
 	d.Command(GMCTRP1)
-	d.Data(0x02)
-	d.Data(0x1C)
-	d.Data(0x07)
-	d.Data(0x12)
-	d.Data(0x37)
-	d.Data(0x32)
-	d.Data(0x29)
-	d.Data(0x2D)
-	d.Data(0x29)
-	d.Data(0x25)
-	d.Data(0x2B)
-	d.Data(0x39)
-	d.Data(0x00)
-	d.Data(0x01)
-	d.Data(0x03)
-	d.Data(0x10)
+	d.Data(0x02, 0x1C, 0x07, 0x12, 0x37, 0x32, 0x29, 0x2D, 0x29, 0x25, 0x2B, 0x39, 0x00, 0x01, 0x03, 0x10)
 	d.Command(GMCTRN1)
-	d.Data(0x03)
-	d.Data(0x1D)
-	d.Data(0x07)
-	d.Data(0x06)
-	d.Data(0x2E)
-	d.Data(0x2C)
-	d.Data(0x29)
-	d.Data(0x2D)
-	d.Data(0x2E)
-	d.Data(0x2E)
-	d.Data(0x37)
-	d.Data(0x3F)
-	d.Data(0x00)
-	d.Data(0x00)
-	d.Data(0x02)
-	d.Data(0x10)
-
+	d.Data(0x03, 0x1D, 0x07, 0x06, 0x2E, 0x2C, 0x29, 0x2D, 0x2E, 0x2E, 0x37, 0x3F, 0x00, 0x00, 0x02, 0x10)
 	d.Command(NORON)
 	time.Sleep(10 * time.Millisecond)
 	d.Command(DISPON)
@@ -149,19 +138,10 @@ func New(bus drivers.SPI, resetPin, dcPin, csPin, blPin machine.Pin) (d Device) 
 // setWindow prepares the screen to be modified at a given rectangle
 func (d *Device) setWindow(x, y, w, h int16) {
 	d.Command(CASET)
-	d.Tx([]byte{byte(x >> 8), byte(x), byte((x + h - 1) >> 8), byte(x + h - 1)}, false)
+	d.Data(byte(x>>8), byte(x), byte((x+h-1)>>8), byte(x+h-1))
 	d.Command(RASET)
-	d.Tx([]byte{byte(y >> 8), byte(y), byte((y + w - 1) >> 8), byte(y + w - 1)}, false)
+	d.Data(byte(y>>8), byte(y), byte((y+w-1)>>8), byte(y+w-1))
 	d.Command(RAMWR)
-}
-
-type ScreenBuffer [Width][Height]pixel.RGB565BE
-
-func (sb *ScreenBuffer) Set(x, y int, px pixel.RGB565BE) {
-	if x < 0 || x >= Height || y < 0 || y >= Width {
-		return
-	}
-	(*sb)[y][x] = px
 }
 
 const bpp = 2
@@ -171,7 +151,7 @@ func (d *Device) SetPixelLel(buf *ScreenBuffer, i int16) {
 
 	bs := unsafe.Slice((*byte)(unsafe.Pointer(&buf[i])), Height*2)
 
-	d.Tx(bs, false) // little endian
+	d.Data(bs...) // little endian
 }
 
 // FillScreen fills the screen with a given color
@@ -179,30 +159,8 @@ func (d *Device) ClearScreen() {
 	d.setWindow(0, 0, Width, Height)
 
 	for range Width {
-		d.Tx(make([]byte, Height*bpp), false) // fill with 0s
+		d.Data(make([]byte, Height*bpp)...) // fill with 0s
 	}
-}
-
-// SetRotation changes the rotation of the device (clock-wise)
-func (d *Device) SetRotation() {
-	d.Command(MADCTL)
-	d.Data(MADCTL_MX | MADCTL_MV) // we like it this way
-}
-
-// Command sends a command to the display
-func (d *Device) Command(command uint8) {
-	d.Tx([]byte{command}, true)
-}
-
-// Command sends a data to the display
-func (d *Device) Data(data uint8) {
-	d.Tx([]byte{data}, false)
-}
-
-// Tx sends data to the display
-func (d *Device) Tx(data []byte, isCommand bool) {
-	d.dcPin.Set(!isCommand)
-	d.bus.Tx(data, nil)
 }
 
 // Backlight enables or disables the backlight

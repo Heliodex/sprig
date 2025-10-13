@@ -70,7 +70,7 @@ func NewDisplay() *Display {
 	})
 
 	d := st7735.New(machine.SPI0, rst, dc, cs, machine.GP17)
-	d.ClearScreen()
+	// d.ClearScreen()
 
 	return &Display{
 		d: d,

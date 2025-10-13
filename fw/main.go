@@ -1,7 +1,9 @@
 package main
 
 import (
+	"machine"
 	"strconv"
+	"time"
 
 	"fw/engine"
 )
@@ -39,35 +41,57 @@ func (t *Text) drawTo(buf *engine.ScreenBuffer) {
 	}
 }
 
+func splash(en *engine.Engine) {
+	freq := machine.CPUFrequency()
+
+	engineText := &Text{FontDex, "Grips Engine", 25, 5, red, true} // I'm calling it this because it's an anagram of Sprig
+	buildText := &Text{FontUnifont, "build 20", 5, 35, blue, true}
+	freqText := &Text{FontUnifont, strconv.Itoa(int(freq/1_000_000)) + "MHz", 5, 50, green, true}
+
+	ui := []UIElement{engineText, buildText, freqText}
+	if freq >= 270_000_000 {
+		ui = append(ui, &Text{FontUnifont, "OVERCLOCKED!", 5, 65, red, true})
+	} else {
+		ui = append(ui, &Text{FontUnifont, "(could be better)", 5, 65, white, true})
+	}
+
+	for _, e := range ui {
+		e.drawTo(en.ScreenBuffer)
+	}
+	en.Render()
+
+	time.Sleep(time.Second)
+}
+
 func main() {
 	// display things
 	en := engine.New()
 
+	splash(en)
+
 	var xPos, yPos int
-
-	buildText := &Text{FontUnifont, "build 19", 2, 2, blue, true}
-
-	x := &Text{FontUnifont, "0", 2, 22, green, true}
-	y := &Text{FontUnifont, "0", 2, 42, green, true}
-
-	Texts := [engine.ButtonsCount]*Text{
-		{FontDex, "W", 2 + 20 - 1, 24, red, true},
-		{FontDex, "A", 2, 48, red, true},
-		{FontDex, "S", 2 + 20, 72, red, true},
-		{FontDex, "D", 2 + 40, 48, red, true},
-		{FontDex, "I", engine.Width/2 + 2 + 20 + 1, 24, red, true},
-		{FontDex, "J", engine.Width/2 + 2, 48, red, true},
-		{FontDex, "K", engine.Width/2 + 2 + 20, 72, red, true},
-		{FontDex, "L", engine.Width/2 + 2 + 40, 48, red, true},
-	}
-
-	ui := []UIElement{buildText, x, y}
-	for _, t := range Texts {
-		ui = append(ui, t)
-	}
 
 	// event loop i guess
 	for {
+		x := &Text{FontUnifont, "0", 2, 2, green, true}
+		y := &Text{FontUnifont, "0", 2, 22, green, true}
+
+		Texts := [engine.ButtonsCount]*Text{
+			{FontDex, "W", 2 + 20 - 1, 24, red, true},
+			{FontDex, "A", 2, 48, red, true},
+			{FontDex, "S", 2 + 20, 72, red, true},
+			{FontDex, "D", 2 + 40, 48, red, true},
+			{FontDex, "I", engine.Width/2 + 2 + 20 + 1, 24, red, true},
+			{FontDex, "J", engine.Width/2 + 2, 48, red, true},
+			{FontDex, "K", engine.Width/2 + 2 + 20, 72, red, true},
+			{FontDex, "L", engine.Width/2 + 2 + 40, 48, red, true},
+		}
+
+		ui := []UIElement{x, y}
+		for _, t := range Texts {
+			ui = append(ui, t)
+		}
+
 		// read button states
 		for i, b := range en.Buttons {
 			if b.Pressed() {
