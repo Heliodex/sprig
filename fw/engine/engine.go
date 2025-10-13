@@ -28,10 +28,10 @@ func (b *Button) Pressed() bool {
 var sb = &util.ScreenBuffer{}
 
 type Engine struct {
-	display           *Display
 	buffer            *util.ScreenBuffer
-	SetLeft, SetRight func(uint32)
 	buttons           util.Buttons
+	display           *Display
+	SetLeft, SetRight func(uint32)
 }
 
 func New() *Engine {
@@ -75,16 +75,20 @@ func New() *Engine {
 
 	// and fire up the engine
 	return &Engine{
-		display:  display,
 		buffer:   sb,
+		buttons:  buttons,
+		display:  display,
 		SetLeft:  setLeft,
 		SetRight: setRight,
-		buttons:  buttons,
 	}
 }
 
 func (e *Engine) Buttons() util.Buttons {
 	return e.buttons
+}
+
+func (e *Engine) CPUFrequency() uint32 {
+	return machine.CPUFrequency()
 }
 
 func (e *Engine) Render() {

@@ -6,11 +6,7 @@ import (
 
 	"fw/engine/st7735"
 	"fw/util"
-
-	"tinygo.org/x/drivers/pixel"
 )
-
-type Pixel = pixel.RGB565BE
 
 // nothing cares about the opacity anyway
 type RGB struct {

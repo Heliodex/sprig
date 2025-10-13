@@ -7,7 +7,9 @@ const (
 	Height = 128
 )
 
-type ScreenBuffer [Height][Width]pixel.RGB565BE
+type Pixel = pixel.RGB565BE
+
+type ScreenBuffer [Height][Width]Pixel
 
 func (sb *ScreenBuffer) Set(x, y int, px pixel.RGB565BE) {
 	if x < 0 || x >= Width || y < 0 || y >= Height {
@@ -57,6 +59,7 @@ type Buttons [ButtonsCount]Button
 
 type Engine interface {
 	Buttons() Buttons
+	CPUFrequency() uint32
 	Render()
 	ScreenBuffer() *ScreenBuffer
 }

@@ -7,10 +7,12 @@ import (
 	"golang.org/x/exp/shiny/screen"
 	"golang.org/x/mobile/event/lifecycle"
 
+	"fw/game"
+	"fw/sim/engine"
 	"fw/util"
 )
 
-func bufferToImg(buf util.ScreenBuffer, scale int) []uint8 {
+func bufferToImg(buf *util.ScreenBuffer, scale int) []uint8 {
 	final := make([]uint8, util.Width*scale*util.Height*scale*4)
 	for y := range util.Height {
 		for x := range util.Width {
@@ -31,33 +33,22 @@ func bufferToImg(buf util.ScreenBuffer, scale int) []uint8 {
 }
 
 func startUI(s screen.Screen) {
-	const scale = 4
+	en := engine.New(s)
+	game.Splash(en)
 
-	w, err := s.NewWindow(&screen.NewWindowOptions{
-		Width:  util.Width * scale,
-		Height: util.Height * scale,
-	})
+	buf, err := s.NewBuffer(image.Point{util.Width * engine.Scale, util.Height * engine.Scale})
 	if err != nil {
 		panic(err)
 	}
-	defer w.Release()
 
-	var screenBuffer util.ScreenBuffer
-
-	screenBuffer.Set(5, 5, util.Red)
+	img := buf.RGBA()
+	copy(img.Pix, bufferToImg(en.ScreenBuffer(), engine.Scale))
 
 	for {
-		buf, err := s.NewBuffer(image.Point{util.Width * scale, util.Height * scale})
-		if err != nil {
-			panic(err)
-		}
 
-		img := buf.RGBA()
-		copy(img.Pix, bufferToImg(screenBuffer, scale))
+		en.Window.Upload(image.Point{0, 0}, buf, img.Bounds())
 
-		w.Upload(image.Point{0, 0}, buf, img.Bounds())
-
-		switch e := w.NextEvent().(type) {
+		switch e := en.Window.NextEvent().(type) {
 		case lifecycle.Event:
 			if e.To == lifecycle.StageDead {
 				return

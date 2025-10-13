@@ -1,12 +1,10 @@
 package game
 
 import (
-	"machine"
 	"math"
 	"strconv"
 	"time"
 
-	"fw/engine"
 	"fw/util"
 )
 
@@ -23,7 +21,7 @@ type Text struct {
 	text string
 	// xPos, yPos int
 	pos    Vector2
-	colour engine.Pixel
+	colour util.Pixel
 }
 
 func (t *Text) drawTo(buf *util.ScreenBuffer) {
@@ -44,7 +42,7 @@ func (t *Text) drawTo(buf *util.ScreenBuffer) {
 }
 
 type Grid struct {
-	colour1, colour2            engine.Pixel
+	colour1, colour2            util.Pixel
 	pos, offset, size, cellSize Vector2
 }
 
@@ -71,7 +69,7 @@ func (g *Grid) drawTo(buf *util.ScreenBuffer) {
 }
 
 type SineWave struct {
-	colour                       engine.Pixel
+	colour                       util.Pixel
 	pos                          Vector2
 	amplitude, wavelength, phase int
 }
@@ -85,7 +83,7 @@ func (s *SineWave) drawTo(buf *util.ScreenBuffer) {
 
 // intro to show, in the event that something else is loading or to show information
 func Splash(en util.Engine) {
-	freq := machine.CPUFrequency()
+	freq := en.CPUFrequency()
 
 	engineText := &Text{FontDex, "Grips Engine", Vector2{25, 5}, util.Red} // I'm calling it this because it's an anagram of Sprig
 	buildText := &Text{FontUnifont, "build 21", Vector2{5, 35}, util.Blue}
