@@ -30,10 +30,9 @@ func (sb *ScreenBuffer) Set(x, y int, px pixel.RGB565BE) {
 
 // Device wraps an SPI connection.
 type Device struct {
-	bus                           drivers.SPI
-	dcPin, resetPin, csPin, blPin machine.Pin
-	rotation                      drivers.Rotation
-	batchData                     pixel.Image[pixel.RGB565BE] // "image" with width, height of (batchLength, 1)
+	bus                                drivers.SPI
+	dcPin, resetPin /*csPin, */, blPin machine.Pin
+	rotation                           drivers.Rotation
 }
 
 // Tx sends data to the display
@@ -60,8 +59,6 @@ func (d *Device) SetRotation() {
 
 // Configure initializes the display with default configuration
 func (d *Device) Configure() {
-	d.batchData = pixel.NewImage[pixel.RGB565BE](BatchLength, 1)
-
 	// reset the device
 	d.resetPin.High()
 	time.Sleep(5 * time.Millisecond)
@@ -119,48 +116,41 @@ func (d *Device) Configure() {
 }
 
 // New creates a new ST7735 connection. The SPI wire must already be configured.
-func New(bus drivers.SPI, resetPin, dcPin, csPin, blPin machine.Pin) (d Device) {
-	dcPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	resetPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	csPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	blPin.Configure(machine.PinConfig{Mode: machine.PinOutput})
-	d = Device{
+func New(bus drivers.SPI, resetPin, dcPin, csPin, blPin machine.Pin) Device {
+	pc := machine.PinConfig{Mode: machine.PinOutput}
+	dcPin.Configure(pc)
+	resetPin.Configure(pc)
+	csPin.Configure(pc)
+	blPin.Configure(pc)
+
+	d := Device{
 		bus:      bus,
 		dcPin:    dcPin,
 		resetPin: resetPin,
-		csPin:    csPin,
-		blPin:    blPin,
+		// csPin:    csPin,
+		blPin: blPin,
 	}
 	d.Configure()
-	return
+	return d
 }
 
 // setWindow prepares the screen to be modified at a given rectangle
-func (d *Device) setWindow(x, y, w, h int16) {
+func (d *Device) setWindow(y, h int16) {
 	d.Command(CASET)
-	d.Data(byte(x>>8), byte(x), byte((x+h-1)>>8), byte(x+h-1))
+	d.Data(0, 0, byte((h-1)>>8), byte(h-1))
 	d.Command(RASET)
-	d.Data(byte(y>>8), byte(y), byte((y+w-1)>>8), byte(y+w-1))
+	d.Data(byte(y>>8), byte(y), byte((y)>>8), byte(y))
 	d.Command(RAMWR)
 }
 
 const bpp = 2
 
 func (d *Device) SetPixelLel(buf *ScreenBuffer, i int16) {
-	d.setWindow(0, i, 1, Height)
+	d.setWindow(i, Height)
 
 	bs := unsafe.Slice((*byte)(unsafe.Pointer(&buf[i])), Height*2)
 
 	d.Data(bs...) // little endian
-}
-
-// FillScreen fills the screen with a given color
-func (d *Device) ClearScreen() {
-	d.setWindow(0, 0, Width, Height)
-
-	for range Width {
-		d.Data(make([]byte, Height*bpp)...) // fill with 0s
-	}
 }
 
 // Backlight enables or disables the backlight
@@ -168,11 +158,9 @@ func (d *Device) Backlight(on bool) {
 	d.blPin.Set(on)
 }
 
-// Set the sleep mode for this LCD panel. When sleeping, the panel uses a lot
-// less power. The LCD won't display an image anymore, but the memory contents
-// will be kept.
-func (d *Device) Sleep(sleepEnabled bool) {
-	if sleepEnabled {
+// Set the sleep mode for this LCD panel. When sleeping, the panel uses a lot less power. The LCD won't display an image anymore, but the memory contents will be kept.
+func (d *Device) Sleep(enable bool) {
+	if enable {
 		// Shut down LCD panel.
 		d.Command(SLPIN)
 		time.Sleep(5 * time.Millisecond) // 5ms required by the datasheet

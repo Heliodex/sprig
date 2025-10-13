@@ -18,7 +18,6 @@ const (
 	rst = machine.GP26
 )
 
-
 type Button struct {
 	pin   machine.Pin
 	prev  bool
@@ -85,11 +84,11 @@ func New() *Engine {
 
 	// and fire up the engine
 	return &Engine{
-		display:   display,
+		display:      display,
 		ScreenBuffer: sb,
-		SetLeft:   setLeft,
-		SetRight:  setRight,
-		Buttons:   buttons,
+		SetLeft:      setLeft,
+		SetRight:     setRight,
+		Buttons:      buttons,
 	}
 }
 
@@ -97,3 +96,7 @@ func (e *Engine) Render() {
 	e.display.Render(e.ScreenBuffer)
 	clear(e.ScreenBuffer[:])
 }
+
+// func (e *Engine) Backlight(on bool) {
+// 	e.display.d.Backlight(on)
+// }
