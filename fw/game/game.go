@@ -84,22 +84,22 @@ func (s *SineWave) drawTo(buf *util.ScreenBuffer) {
 }
 
 // intro to show, in the event that something else is loading or to show information
-func Splash(en *engine.Engine) {
+func Splash(en util.Engine) {
 	freq := machine.CPUFrequency()
 
-	engineText := &Text{FontDex, "Grips Engine", Vector2{25, 5}, red} // I'm calling it this because it's an anagram of Sprig
-	buildText := &Text{FontUnifont, "build 21", Vector2{5, 35}, blue}
-	freqText := &Text{FontUnifont, strconv.Itoa(int(freq/1_000_000)) + "MHz", Vector2{5, 50}, green}
+	engineText := &Text{FontDex, "Grips Engine", Vector2{25, 5}, util.Red} // I'm calling it this because it's an anagram of Sprig
+	buildText := &Text{FontUnifont, "build 21", Vector2{5, 35}, util.Blue}
+	freqText := &Text{FontUnifont, strconv.Itoa(int(freq/1_000_000)) + "MHz", Vector2{5, 50}, util.Green}
 
 	ui := []UIElement{engineText, buildText, freqText}
 	if freq >= 270_000_000 {
-		ui = append(ui, &Text{FontUnifont, "OVERCLOCKED!", Vector2{5, 65}, red})
+		ui = append(ui, &Text{FontUnifont, "OVERCLOCKED!", Vector2{5, 65}, util.Red})
 	} else {
-		ui = append(ui, &Text{FontUnifont, "(could be better)", Vector2{5, 65}, white})
+		ui = append(ui, &Text{FontUnifont, "(could be better)", Vector2{5, 65}, util.White})
 	}
 
 	for _, e := range ui {
-		e.drawTo(en.ScreenBuffer)
+		e.drawTo(en.ScreenBuffer())
 	}
 	en.Render()
 
@@ -112,49 +112,51 @@ type State struct {
 }
 
 // ran every frame (or, more like this is what makes the frames)
-func (s *State) Update(en *engine.Engine) {
-	if en.Buttons[engine.W].Pressed() {
+func (s *State) Update(en util.Engine) {
+	btns := en.Buttons()
+
+	if btns[util.W].Pressed() {
 		s.pos.Y--
 	}
 
-	if en.Buttons[engine.S].Pressed() {
+	if btns[util.S].Pressed() {
 		s.pos.Y++
 	}
 
-	if en.Buttons[engine.A].Pressed() {
+	if btns[util.A].Pressed() {
 		s.pos.X--
 	}
 
-	if en.Buttons[engine.D].Pressed() {
+	if btns[util.D].Pressed() {
 		s.pos.X++
 	}
 
-	x := &Text{FontUnifont, strconv.Itoa(s.pos.X), Vector2{2, 2}, green}
-	y := &Text{FontUnifont, strconv.Itoa(s.pos.Y), Vector2{2, 22}, green}
+	x := &Text{FontUnifont, strconv.Itoa(s.pos.X), Vector2{2, 2}, util.Green}
+	y := &Text{FontUnifont, strconv.Itoa(s.pos.Y), Vector2{2, 22}, util.Green}
 
-	Texts := [engine.ButtonsCount]*Text{
-		{FontDex, "W", Vector2{2 + 20 - 2, 2}, red},
-		{FontDex, "A", Vector2{2, 26}, red},
-		{FontDex, "S", Vector2{2 + 20, 50}, red},
-		{FontDex, "D", Vector2{2 + 40, 26}, red},
-		{FontDex, "I", Vector2{109 + 20 + 1, 2}, red},
-		{FontDex, "J", Vector2{109, 26}, red},
-		{FontDex, "K", Vector2{109 + 20, 50}, red},
-		{FontDex, "L", Vector2{109 + 40, 26}, red},
+	Texts := [util.ButtonsCount]*Text{
+		{FontDex, "W", Vector2{2 + 20 - 2, 2}, util.Red},
+		{FontDex, "A", Vector2{2, 26}, util.Red},
+		{FontDex, "S", Vector2{2 + 20, 50}, util.Red},
+		{FontDex, "D", Vector2{2 + 40, 26}, util.Red},
+		{FontDex, "I", Vector2{109 + 20 + 1, 2}, util.Red},
+		{FontDex, "J", Vector2{109, 26}, util.Red},
+		{FontDex, "K", Vector2{109 + 20, 50}, util.Red},
+		{FontDex, "L", Vector2{109 + 40, 26}, util.Red},
 	}
 
 	// read button states
-	for i, b := range en.Buttons {
+	for i, b := range btns {
 		if b.Pressed() {
-			Texts[i].colour = green
+			Texts[i].colour = util.Green
 		} else {
-			Texts[i].colour = red
+			Texts[i].colour = util.Red
 		}
 	}
 
 	grid := &Grid{
-		colour1:  grey1,
-		colour2:  grey2,
+		colour1:  util.Grey1,
+		colour2:  util.Grey2,
 		pos:      Vector2{0, 70},
 		offset:   s.pos,
 		size:     Vector2{util.Width, util.Height - 70},
@@ -163,7 +165,7 @@ func (s *State) Update(en *engine.Engine) {
 
 	// sine wave
 	sine := &SineWave{
-		colour:     cyan,
+		colour:     util.Cyan,
 		pos:        Vector2{0, util.Height * 0.75},
 		amplitude:  8,
 		wavelength: 40,
@@ -177,7 +179,7 @@ func (s *State) Update(en *engine.Engine) {
 	ui = append(ui, sine)
 
 	for _, e := range ui {
-		e.drawTo(en.ScreenBuffer)
+		e.drawTo(en.ScreenBuffer())
 	}
 
 	en.Render()

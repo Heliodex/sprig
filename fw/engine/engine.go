@@ -18,41 +18,20 @@ const (
 	rst = machine.GP26
 )
 
-type Button struct {
-	pin   machine.Pin
-	prev  bool
-	event func(bool)
-}
+type Button struct{ machine.Pin }
 
 func (b *Button) Pressed() bool {
-	return !b.pin.Get()
+	return !b.Get()
 }
-
-type buttonId uint8
-
-const (
-	W buttonId = iota
-	A
-	S
-	D
-	I
-	J
-	K
-	L
-	ButtonsCount
-)
-
-// WASD IJKL
-type Buttons [ButtonsCount]Button
 
 // MUST be declared as top-level (why? nobody knows)
 var sb = &util.ScreenBuffer{}
 
 type Engine struct {
-	display *Display
-	*util.ScreenBuffer
+	display           *Display
+	buffer            *util.ScreenBuffer
 	SetLeft, SetRight func(uint32)
-	Buttons
+	buttons           util.Buttons
 }
 
 func New() *Engine {
@@ -74,25 +53,47 @@ func New() *Engine {
 		ledRight.Set(rch, value)
 	}
 
-	buttons := Buttons{{pin: machine.GP5}, {pin: machine.GP6}, {pin: machine.GP7}, {pin: machine.GP8}, {pin: machine.GP12}, {pin: machine.GP13}, {pin: machine.GP14}, {pin: machine.GP15}}
+	realButtons := []Button{
+		Button{machine.GP5},
+		Button{machine.GP6},
+		Button{machine.GP7},
+		Button{machine.GP8},
+		Button{machine.GP12},
+		Button{machine.GP13},
+		Button{machine.GP14},
+		Button{machine.GP15},
+	}
 
-	for _, b := range buttons {
-		b.pin.Configure(machine.PinConfig{Mode: machine.PinInputPullup})
+	for _, b := range realButtons {
+		b.Configure(machine.PinConfig{Mode: machine.PinInputPullup})
+	}
+
+	var buttons util.Buttons
+	for i := range buttons {
+		buttons[i] = &realButtons[i]
 	}
 
 	// and fire up the engine
 	return &Engine{
-		display:      display,
-		ScreenBuffer: sb,
-		SetLeft:      setLeft,
-		SetRight:     setRight,
-		Buttons:      buttons,
+		display:  display,
+		buffer:   sb,
+		SetLeft:  setLeft,
+		SetRight: setRight,
+		buttons:  buttons,
 	}
 }
 
+func (e *Engine) Buttons() util.Buttons {
+	return e.buttons
+}
+
 func (e *Engine) Render() {
-	e.display.Render(e.ScreenBuffer)
-	clear(e.ScreenBuffer[:])
+	e.display.Render(e.buffer)
+	clear(e.buffer[:])
+}
+
+func (e *Engine) ScreenBuffer() *util.ScreenBuffer {
+	return e.buffer
 }
 
 // func (e *Engine) Backlight(on bool) {
