@@ -82,11 +82,12 @@ func (s *SineWave) drawTo(buf *engine.ScreenBuffer) {
 	}
 }
 
+// intro to show, in the event that something else is loading or to show information
 func splash(en *engine.Engine) {
 	freq := machine.CPUFrequency()
 
 	engineText := &Text{FontDex, "Grips Engine", Vector2{25, 5}, red} // I'm calling it this because it's an anagram of Sprig
-	buildText := &Text{FontUnifont, "build 20", Vector2{5, 35}, blue}
+	buildText := &Text{FontUnifont, "build 21", Vector2{5, 35}, blue}
 	freqText := &Text{FontUnifont, strconv.Itoa(int(freq/1_000_000)) + "MHz", Vector2{5, 50}, green}
 
 	ui := []UIElement{engineText, buildText, freqText}
@@ -104,83 +105,89 @@ func splash(en *engine.Engine) {
 	time.Sleep(time.Second)
 }
 
+type State struct {
+	f   int
+	pos Vector2
+}
+
+// ran every frame (or, more like this is what makes the frames)
+func (s *State) Update(en *engine.Engine) {
+	if en.Buttons[engine.W].Pressed() {
+		s.pos.Y--
+	}
+
+	if en.Buttons[engine.S].Pressed() {
+		s.pos.Y++
+	}
+
+	if en.Buttons[engine.A].Pressed() {
+		s.pos.X--
+	}
+
+	if en.Buttons[engine.D].Pressed() {
+		s.pos.X++
+	}
+
+	x := &Text{FontUnifont, strconv.Itoa(s.pos.X), Vector2{2, 2}, green}
+	y := &Text{FontUnifont, strconv.Itoa(s.pos.Y), Vector2{2, 22}, green}
+
+	Texts := [engine.ButtonsCount]*Text{
+		{FontDex, "W", Vector2{2 + 20 - 2, 2}, red},
+		{FontDex, "A", Vector2{2, 26}, red},
+		{FontDex, "S", Vector2{2 + 20, 50}, red},
+		{FontDex, "D", Vector2{2 + 40, 26}, red},
+		{FontDex, "I", Vector2{109 + 20 + 1, 2}, red},
+		{FontDex, "J", Vector2{109, 26}, red},
+		{FontDex, "K", Vector2{109 + 20, 50}, red},
+		{FontDex, "L", Vector2{109 + 40, 26}, red},
+	}
+
+	// read button states
+	for i, b := range en.Buttons {
+		if b.Pressed() {
+			Texts[i].colour = green
+		} else {
+			Texts[i].colour = red
+		}
+	}
+
+	grid := &Grid{
+		colour1:  grey1,
+		colour2:  grey2,
+		pos:      Vector2{0, 70},
+		offset:   s.pos,
+		size:     Vector2{engine.Width, engine.Height - 70},
+		cellSize: Vector2{10, 10},
+	}
+
+	// sine wave
+	sine := &SineWave{
+		colour:     cyan,
+		pos:        Vector2{0, engine.Height * 0.75},
+		amplitude:  8,
+		wavelength: 40,
+		phase:      s.f,
+	}
+
+	ui := []UIElement{grid, x, y}
+	for _, t := range Texts {
+		ui = append(ui, t)
+	}
+	ui = append(ui, sine)
+
+	for _, e := range ui {
+		e.drawTo(en.ScreenBuffer)
+	}
+
+	en.Render()
+	s.f++
+}
+
 func main() {
-	// display things
 	en := engine.New()
+	splash(en)
 
-	// splash(en)
-
-	var xPos, yPos int
-
-	// event loop i guess
-	for f := 0; ; f++ {
-		if en.Buttons[engine.W].Pressed() {
-			yPos--
-		}
-
-		if en.Buttons[engine.S].Pressed() {
-			yPos++
-		}
-
-		if en.Buttons[engine.A].Pressed() {
-			xPos--
-		}
-
-		if en.Buttons[engine.D].Pressed() {
-			xPos++
-		}
-
-		x := &Text{FontUnifont, strconv.Itoa(xPos), Vector2{2, 2}, green}
-		y := &Text{FontUnifont, strconv.Itoa(yPos), Vector2{2, 22}, green}
-
-		Texts := [engine.ButtonsCount]*Text{
-			{FontDex, "W", Vector2{2 + 20 - 2, 2}, red},
-			{FontDex, "A", Vector2{2, 26}, red},
-			{FontDex, "S", Vector2{2 + 20, 50}, red},
-			{FontDex, "D", Vector2{2 + 40, 26}, red},
-			{FontDex, "I", Vector2{109 + 20 + 1, 2}, red},
-			{FontDex, "J", Vector2{109, 26}, red},
-			{FontDex, "K", Vector2{109 + 20, 50}, red},
-			{FontDex, "L", Vector2{109 + 40, 26}, red},
-		}
-
-		// read button states
-		for i, b := range en.Buttons {
-			if b.Pressed() {
-				Texts[i].colour = green
-			} else {
-				Texts[i].colour = red
-			}
-		}
-
-		grid := &Grid{
-			colour1:  grey1,
-			colour2:  grey2,
-			pos:      Vector2{0, 70},
-			offset:   Vector2{xPos, yPos},
-			size:     Vector2{engine.Width, engine.Height - 70},
-			cellSize: Vector2{10, 10},
-		}
-
-		// sine wave
-		sine := &SineWave{
-			colour:     cyan,
-			pos:        Vector2{0, engine.Height * 0.75},
-			amplitude:  8,
-			wavelength: 40,
-			phase:      f,
-		}
-
-		ui := []UIElement{grid, x, y}
-		for _, t := range Texts {
-			ui = append(ui, t)
-		}
-		ui = append(ui, sine)
-
-		for _, e := range ui {
-			e.drawTo(en.ScreenBuffer)
-		}
-
-		en.Render()
+	for state := (&State{}); ; {
+		state.Update(en)
 	}
 }
