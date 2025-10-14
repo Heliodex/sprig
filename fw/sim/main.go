@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"time"
 
 	"golang.org/x/exp/shiny/driver"
 	"golang.org/x/exp/shiny/screen"
@@ -51,10 +52,11 @@ func startUI(s screen.Screen) {
 
 	game.Splash(en)
 
-	// for state := (&game.State{}); ; {
-	// 	state.Update(en)
-	// }
-	select {}
+	for state := (&game.State{}); ; {
+		state.Update(en)
+		// wait 1 frame
+		time.Sleep(40 * time.Millisecond) // ~25fps, which is how fast my console actually runs, ymmv
+	}
 }
 
 func main() {

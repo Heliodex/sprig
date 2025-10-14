@@ -28,7 +28,6 @@ func bufferToImg(buf *util.ScreenBuffer, scale int) []uint8 {
 					final[i+0] = c.R
 					final[i+1] = c.G
 					final[i+2] = c.B
-					final[i+3] = c.A
 				}
 			}
 		}
@@ -140,6 +139,7 @@ func (e *Engine) Render() {
 	copy(img.Pix, bufferToImg(e.buffer, Scale))
 
 	e.Window.Upload(image.Point{util.Width * Scale * 0.25, 0}, e.windowBuffer, img.Bounds())
+	clear(e.buffer[:])
 }
 
 func (e *Engine) ScreenBuffer() *util.ScreenBuffer {

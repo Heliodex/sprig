@@ -125,8 +125,8 @@ func (s *State) Update(en util.Engine) {
 		s.pos.X++
 	}
 
-	x := &Text{FontUnifont, strconv.Itoa(s.pos.X), util.Vector2{X: 2, Y: 2}, util.Green}
-	y := &Text{FontUnifont, strconv.Itoa(s.pos.Y), util.Vector2{X: 2, Y: 22}, util.Green}
+	x := &Text{FontUnifont, strconv.Itoa(s.pos.X), util.Vector2{X: 70, Y: 2}, util.Green}
+	y := &Text{FontUnifont, strconv.Itoa(s.pos.Y), util.Vector2{X: 70, Y: 22}, util.Green}
 
 	Texts := [util.ButtonsCount]*Text{
 		{FontDex, "W", util.Vector2{X: 2 + 20 - 2, Y: 2}, util.Red},
