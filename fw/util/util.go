@@ -63,3 +63,7 @@ type Engine interface {
 	Render()
 	ScreenBuffer() *ScreenBuffer
 }
+
+type Vector2 struct {
+	X, Y int
+}

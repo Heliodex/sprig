@@ -8,10 +8,6 @@ import (
 	"fw/util"
 )
 
-type Vector2 struct {
-	X, Y int
-}
-
 type UIElement interface {
 	drawTo(*util.ScreenBuffer)
 }
@@ -20,7 +16,7 @@ type Text struct {
 	font *Font
 	text string
 	// xPos, yPos int
-	pos    Vector2
+	pos    util.Vector2
 	colour util.Pixel
 }
 
@@ -43,7 +39,7 @@ func (t *Text) drawTo(buf *util.ScreenBuffer) {
 
 type Grid struct {
 	colour1, colour2            util.Pixel
-	pos, offset, size, cellSize Vector2
+	pos, offset, size, cellSize util.Vector2
 }
 
 func (g *Grid) drawTo(buf *util.ScreenBuffer) {
@@ -70,7 +66,7 @@ func (g *Grid) drawTo(buf *util.ScreenBuffer) {
 
 type SineWave struct {
 	colour                       util.Pixel
-	pos                          Vector2
+	pos                          util.Vector2
 	amplitude, wavelength, phase int
 }
 
@@ -85,15 +81,15 @@ func (s *SineWave) drawTo(buf *util.ScreenBuffer) {
 func Splash(en util.Engine) {
 	freq := en.CPUFrequency()
 
-	engineText := &Text{FontDex, "Grips Engine", Vector2{25, 5}, util.Red} // I'm calling it this because it's an anagram of Sprig
-	buildText := &Text{FontUnifont, "build 21", Vector2{5, 35}, util.Blue}
-	freqText := &Text{FontUnifont, strconv.Itoa(int(freq/1_000_000)) + "MHz", Vector2{5, 50}, util.Green}
+	engineText := &Text{FontDex, "Grips Engine", util.Vector2{X: 25, Y: 5}, util.Red} // I'm calling it this because it's an anagram of Sprig
+	buildText := &Text{FontUnifont, "build 21", util.Vector2{X: 5, Y: 35}, util.Blue}
+	freqText := &Text{FontUnifont, strconv.Itoa(int(freq/1_000_000)) + "MHz", util.Vector2{X: 5, Y: 50}, util.Green}
 
 	ui := []UIElement{engineText, buildText, freqText}
 	if freq >= 270_000_000 {
-		ui = append(ui, &Text{FontUnifont, "OVERCLOCKED!", Vector2{5, 65}, util.Red})
+		ui = append(ui, &Text{FontUnifont, "OVERCLOCKED!", util.Vector2{X: 5, Y: 65}, util.Red})
 	} else {
-		ui = append(ui, &Text{FontUnifont, "(could be better)", Vector2{5, 65}, util.White})
+		ui = append(ui, &Text{FontUnifont, "(could be better)", util.Vector2{X: 5, Y: 65}, util.White})
 	}
 
 	for _, e := range ui {
@@ -106,7 +102,7 @@ func Splash(en util.Engine) {
 
 type State struct {
 	f   int
-	pos Vector2
+	pos util.Vector2
 }
 
 // ran every frame (or, more like this is what makes the frames)
@@ -129,18 +125,18 @@ func (s *State) Update(en util.Engine) {
 		s.pos.X++
 	}
 
-	x := &Text{FontUnifont, strconv.Itoa(s.pos.X), Vector2{2, 2}, util.Green}
-	y := &Text{FontUnifont, strconv.Itoa(s.pos.Y), Vector2{2, 22}, util.Green}
+	x := &Text{FontUnifont, strconv.Itoa(s.pos.X), util.Vector2{X: 2, Y: 2}, util.Green}
+	y := &Text{FontUnifont, strconv.Itoa(s.pos.Y), util.Vector2{X: 2, Y: 22}, util.Green}
 
 	Texts := [util.ButtonsCount]*Text{
-		{FontDex, "W", Vector2{2 + 20 - 2, 2}, util.Red},
-		{FontDex, "A", Vector2{2, 26}, util.Red},
-		{FontDex, "S", Vector2{2 + 20, 50}, util.Red},
-		{FontDex, "D", Vector2{2 + 40, 26}, util.Red},
-		{FontDex, "I", Vector2{109 + 20 + 1, 2}, util.Red},
-		{FontDex, "J", Vector2{109, 26}, util.Red},
-		{FontDex, "K", Vector2{109 + 20, 50}, util.Red},
-		{FontDex, "L", Vector2{109 + 40, 26}, util.Red},
+		{FontDex, "W", util.Vector2{X: 2 + 20 - 2, Y: 2}, util.Red},
+		{FontDex, "A", util.Vector2{X: 2, Y: 26}, util.Red},
+		{FontDex, "S", util.Vector2{X: 2 + 20, Y: 50}, util.Red},
+		{FontDex, "D", util.Vector2{X: 2 + 40, Y: 26}, util.Red},
+		{FontDex, "I", util.Vector2{X: 109 + 20 + 1, Y: 2}, util.Red},
+		{FontDex, "J", util.Vector2{X: 109, Y: 26}, util.Red},
+		{FontDex, "K", util.Vector2{X: 109 + 20, Y: 50}, util.Red},
+		{FontDex, "L", util.Vector2{X: 109 + 40, Y: 26}, util.Red},
 	}
 
 	// read button states
@@ -155,16 +151,16 @@ func (s *State) Update(en util.Engine) {
 	grid := &Grid{
 		colour1:  util.Grey1,
 		colour2:  util.Grey2,
-		pos:      Vector2{0, 70},
+		pos:      util.Vector2{X: 0, Y: 70},
 		offset:   s.pos,
-		size:     Vector2{util.Width, util.Height - 70},
-		cellSize: Vector2{10, 10},
+		size:     util.Vector2{X: util.Width, Y: util.Height - 70},
+		cellSize: util.Vector2{X: 10, Y: 10},
 	}
 
 	// sine wave
 	sine := &SineWave{
 		colour:     util.Cyan,
-		pos:        Vector2{0, util.Height * 0.75},
+		pos:        util.Vector2{X: 0, Y: util.Height * 0.75},
 		amplitude:  8,
 		wavelength: 40,
 		phase:      s.f,

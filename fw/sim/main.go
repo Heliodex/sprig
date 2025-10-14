@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"golang.org/x/exp/shiny/driver"
@@ -42,7 +41,6 @@ func startUI(s screen.Screen) {
 				}
 
 				en.ButtonImpls[btn].Set(e.Direction == key.DirPress)
-				fmt.Println("button", btn, "state", en.ButtonImpls[btn].State)
 			case lifecycle.Event:
 				if e.To == lifecycle.StageDead {
 					os.Exit(0)
