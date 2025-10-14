@@ -1,60 +1,62 @@
 package main
 
 import (
-	"image"
+	"fmt"
+	"os"
 
 	"golang.org/x/exp/shiny/driver"
 	"golang.org/x/exp/shiny/screen"
+	"golang.org/x/mobile/event/key"
 	"golang.org/x/mobile/event/lifecycle"
 
 	"fw/game"
 	"fw/sim/engine"
-	"fw/util"
+	// "fw/util"
 )
 
-func bufferToImg(buf *util.ScreenBuffer, scale int) []uint8 {
-	final := make([]uint8, util.Width*scale*util.Height*scale*4)
-	for y := range util.Height {
-		for x := range util.Width {
-			c := buf[y][x].RGBA()
-
-			for sy := range scale {
-				for sx := range scale {
-					i := ((y*scale+sy)*(util.Width*scale) + (x*scale + sx)) * 4
-					final[i+0] = c.R
-					final[i+1] = c.G
-					final[i+2] = c.B
-					final[i+3] = c.A
-				}
-			}
-		}
-	}
-	return final
+// these are Dvorak because I'm a nerd
+var codeMap = map[key.Code]uint8{
+	key.CodeComma: 0,
+	key.CodeA:     1,
+	key.CodeO:     2,
+	key.CodeE:     3,
+	key.CodeC:     4,
+	key.CodeH:     5,
+	key.CodeT:     6,
+	key.CodeN:     7,
 }
 
 func startUI(s screen.Screen) {
 	en := engine.New(s)
-	game.Splash(en)
 
-	buf, err := s.NewBuffer(image.Point{util.Width * engine.Scale, util.Height * engine.Scale})
-	if err != nil {
-		panic(err)
-	}
+	go func() {
+		// keypress events fire on both press and release
+		// all we need to do is check whether a key is pressed at a given time
+		// if a key is held, multiple press events will be fired, however these are easy to tell apart because normal fast keypresses have a few milliseconds between them, whereas held keys only have microseconds or nanoseconds between them (I guess we can realistically hope that no frame occurs in this time)
+		for {
+			switch e := en.Window.NextEvent().(type) {
+			case key.Event:
+				btn, ok := codeMap[e.Code]
+				if !ok {
+					continue
+				}
 
-	img := buf.RGBA()
-	copy(img.Pix, bufferToImg(en.ScreenBuffer(), engine.Scale))
-
-	for {
-
-		en.Window.Upload(image.Point{0, 0}, buf, img.Bounds())
-
-		switch e := en.Window.NextEvent().(type) {
-		case lifecycle.Event:
-			if e.To == lifecycle.StageDead {
-				return
+				en.ButtonImpls[btn].Set(e.Direction == key.DirPress)
+				fmt.Println("button", btn, "state", en.ButtonImpls[btn].State)
+			case lifecycle.Event:
+				if e.To == lifecycle.StageDead {
+					os.Exit(0)
+				}
 			}
 		}
-	}
+	}()
+
+	game.Splash(en)
+
+	// for state := (&game.State{}); ; {
+	// 	state.Update(en)
+	// }
+	select {}
 }
 
 func main() {
