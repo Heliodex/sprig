@@ -19,6 +19,7 @@ func (sb *ScreenBuffer) Set(x, y int, px pixel.RGB565BE) {
 }
 
 type DisplayDevice interface {
+	Backlight(on bool)
 	SetScreen(buf *ScreenBuffer, i int16)
 }
 
@@ -58,6 +59,7 @@ type Button interface {
 type Buttons [ButtonsCount]Button
 
 type Engine interface {
+	Backlight(on bool)
 	Buttons() Buttons
 	CPUFrequency() uint32
 	Render()

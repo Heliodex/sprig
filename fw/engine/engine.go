@@ -83,6 +83,10 @@ func New() *Engine {
 	}
 }
 
+func (e *Engine) Backlight(on bool) {
+	e.display.d.Backlight(on)
+}
+
 func (e *Engine) Buttons() util.Buttons {
 	return e.buttons
 }
@@ -100,6 +104,3 @@ func (e *Engine) ScreenBuffer() *util.ScreenBuffer {
 	return e.buffer
 }
 
-// func (e *Engine) Backlight(on bool) {
-// 	e.display.d.Backlight(on)
-// }

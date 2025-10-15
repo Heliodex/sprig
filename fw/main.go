@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fw/game"
 	"fw/engine"
+	"fw/game"
 )
 
 func main() {

@@ -16,11 +16,16 @@ const (
 	height = util.Height * Scale
 )
 
-func bufferToImg(buf *util.ScreenBuffer, scale int) []uint8 {
+func bufferToImg(buf *util.ScreenBuffer, scale int, backlight bool) []uint8 {
 	final := make([]uint8, util.Width*scale*util.Height*scale*4)
 	for y := range util.Height {
 		for x := range util.Width {
 			c := buf[y][x].RGBA()
+			if !backlight {
+				c.R >>= 3
+				c.G >>= 3
+				c.B >>= 3
+			}
 
 			for sy := range scale {
 				for sx := range scale {
@@ -77,7 +82,8 @@ func (b *ButtonImpl) Set(pressed bool) {
 type Buttons [util.ButtonsCount]*ButtonImpl
 
 type Engine struct {
-	screen screen.Screen
+	backlight bool
+	screen    screen.Screen
 	screen.Window
 	ButtonImpls Buttons
 
@@ -116,6 +122,7 @@ func New(s screen.Screen) *Engine {
 	w.Fill(image.Rect(0, 0, width, height), bg, screen.Src)
 
 	return &Engine{
+		backlight:   true,
 		screen:      s,
 		Window:      w,
 		ButtonImpls: btnimpls,
@@ -124,6 +131,10 @@ func New(s screen.Screen) *Engine {
 		buffer:       &util.ScreenBuffer{},
 		buttons:      btns,
 	}
+}
+
+func (e *Engine) Backlight(on bool) {
+	e.backlight = on
 }
 
 func (e *Engine) Buttons() util.Buttons {
@@ -136,7 +147,7 @@ func (e *Engine) CPUFrequency() uint32 {
 
 func (e *Engine) Render() {
 	img := e.windowBuffer.RGBA()
-	copy(img.Pix, bufferToImg(e.buffer, Scale))
+	copy(img.Pix, bufferToImg(e.buffer, Scale, e.backlight))
 
 	e.Window.Upload(image.Point{util.Width * Scale * 0.25, 0}, e.windowBuffer, img.Bounds())
 	clear(e.buffer[:])
