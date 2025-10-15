@@ -20,7 +20,7 @@ func bufferToImg(buf *util.ScreenBuffer, scale int, backlight bool) []uint8 {
 	final := make([]uint8, util.Width*scale*util.Height*scale*4)
 	for y := range util.Height {
 		for x := range util.Width {
-			r,g,b := buf[y][x].RGB()
+			r, g, b := buf[y][x].RGB()
 			if !backlight {
 				r >>= 3
 				g >>= 3
@@ -43,20 +43,23 @@ func bufferToImg(buf *util.ScreenBuffer, scale int, backlight bool) []uint8 {
 // huh, I don't think I've ever written a var with both a type and an initialiser in Go before
 var bg color.Color = color.Gray{0x10}
 
-const buttonSize = 50
+const (
+	buttonSize = 12 * Scale
+	pad        = 2 * Scale
+)
 
 // sprig has 8kro, my keyboard has 6kro, it's joever
 // WASD IJKL
 var buttonPoss = [util.ButtonsCount]util.Vector2{
-	{X: buttonSize + 5, Y: 0},
-	{X: 5, Y: buttonSize},
-	{X: buttonSize + 5, Y: buttonSize * 2},
-	{X: buttonSize*2 + 5, Y: buttonSize},
+	{X: buttonSize + pad, Y: 0},
+	{X: pad, Y: buttonSize},
+	{X: buttonSize + pad, Y: buttonSize * 2},
+	{X: buttonSize*2 + pad, Y: buttonSize},
 
-	{X: width - buttonSize*2 - 5, Y: 0},
-	{X: width - buttonSize*3 - 5, Y: buttonSize},
-	{X: width - buttonSize*2 - 5, Y: buttonSize * 2},
-	{X: width - buttonSize - 5, Y: buttonSize},
+	{X: width - buttonSize*2 - pad, Y: 0},
+	{X: width - buttonSize*3 - pad, Y: buttonSize},
+	{X: width - buttonSize*2 - pad, Y: buttonSize * 2},
+	{X: width - buttonSize - pad, Y: buttonSize},
 }
 
 type ButtonImpl struct {
@@ -76,7 +79,7 @@ func (b *ButtonImpl) Set(pressed bool) {
 	if pressed {
 		c = color.White
 	}
-	b.window.Fill(image.Rect(b.pos.X, b.pos.Y, b.pos.X+50, b.pos.Y+50), c, screen.Src)
+	b.window.Fill(image.Rect(b.pos.X, b.pos.Y, b.pos.X+buttonSize, b.pos.Y+buttonSize), c, screen.Src)
 }
 
 type Buttons [util.ButtonsCount]*ButtonImpl
