@@ -2,6 +2,7 @@ package game
 
 import (
 	"math"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -82,7 +83,7 @@ func Splash(en util.Engine) {
 	freq := en.CPUFrequency()
 
 	engineText := &Text{FontDex, "Grips Engine", util.Vector2{X: 25, Y: 5}, util.Red} // I'm calling it this because it's an anagram of Sprig
-	buildText := &Text{FontUnifont, "build 21", util.Vector2{X: 5, Y: 35}, util.Blue}
+	buildText := &Text{FontUnifont, strconv.Itoa(runtime.NumCPU()) + " cores", util.Vector2{X: 5, Y: 35}, util.Blue}
 	freqText := &Text{FontUnifont, strconv.Itoa(int(freq/1_000_000)) + "MHz", util.Vector2{X: 5, Y: 50}, util.Green}
 
 	ui := []UIElement{engineText, buildText, freqText}
@@ -98,6 +99,7 @@ func Splash(en util.Engine) {
 	en.Render()
 
 	time.Sleep(time.Second)
+	println("Splash complete")
 }
 
 type State struct {

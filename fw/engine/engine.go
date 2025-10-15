@@ -24,7 +24,6 @@ func (b *Button) Pressed() bool {
 	return !b.Get()
 }
 
-// MUST be declared as top-level (why? nobody knows)
 var sb = &util.ScreenBuffer{}
 
 type Engine struct {
@@ -54,14 +53,14 @@ func New() *Engine {
 	}
 
 	realButtons := []Button{
-		Button{machine.GP5},
-		Button{machine.GP6},
-		Button{machine.GP7},
-		Button{machine.GP8},
-		Button{machine.GP12},
-		Button{machine.GP13},
-		Button{machine.GP14},
-		Button{machine.GP15},
+		{machine.GP5},
+		{machine.GP6},
+		{machine.GP7},
+		{machine.GP8},
+		{machine.GP12},
+		{machine.GP13},
+		{machine.GP14},
+		{machine.GP15},
 	}
 
 	for _, b := range realButtons {
@@ -103,4 +102,3 @@ func (e *Engine) Render() {
 func (e *Engine) ScreenBuffer() *util.ScreenBuffer {
 	return e.buffer
 }
-
