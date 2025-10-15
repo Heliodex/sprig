@@ -20,19 +20,19 @@ func bufferToImg(buf *util.ScreenBuffer, scale int, backlight bool) []uint8 {
 	final := make([]uint8, util.Width*scale*util.Height*scale*4)
 	for y := range util.Height {
 		for x := range util.Width {
-			c := buf[y][x].RGBA()
+			r,g,b := buf[y][x].RGB()
 			if !backlight {
-				c.R >>= 3
-				c.G >>= 3
-				c.B >>= 3
+				r >>= 3
+				g >>= 3
+				b >>= 3
 			}
 
 			for sy := range scale {
 				for sx := range scale {
 					i := ((y*scale+sy)*(util.Width*scale) + (x*scale + sx)) * 4
-					final[i+0] = c.R
-					final[i+1] = c.G
-					final[i+2] = c.B
+					final[i+0] = r
+					final[i+1] = g
+					final[i+2] = b
 				}
 			}
 		}

@@ -27,9 +27,9 @@ func (t *Text) drawTo(buf *util.ScreenBuffer) {
 	for _, char := range textToChars(t.font, t.text) {
 		for y, row := range char.content {
 			for x, b := range row {
+				// skip empty pixels
 				if b != 0 {
-					// skip empty pixels
-					buf.Set(xp+x, t.pos.Y+y, t.colour)
+					buf.Set(xp+x, t.pos.Y+y, t.colour.Brightness(b))
 				}
 			}
 		}

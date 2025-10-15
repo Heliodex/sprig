@@ -22,14 +22,6 @@ var brightnessMap = map[byte]uint8{
 	'@': 255,
 }
 
-// var byteMap = map[uint8]byte{
-// 	0:   ' ',
-// 	64:  '-',
-// 	128: '=',
-// 	192: '#',
-// 	255: '@',
-// }
-
 type Char struct {
 	width   uint8
 	content [][]uint8
@@ -63,21 +55,22 @@ func loadChar(font *Font, i uint8, dir embed.FS) {
 	lines := strings.Split(string(data), "\n")
 	lines = lines[:len(lines)-1] // remove last empty line
 
-	font.charset[i].width = uint8(len(lines[0]))
+	char := &font.charset[i]
+	char.width = uint8(len(lines[0]))
 	font.height = uint8(len(lines))
+	char.content = make([][]uint8, font.height)
 
-	for _, line := range lines {
-		content := make([]uint8, len(line))
-		font.charset[i].content = append(font.charset[i].content, content)
+	for l, line := range lines {
+		ll := len(line)
+		lx := make([]uint8, ll)
 
 		for x, char := range []byte(line) {
-			b, ok := brightnessMap[char]
-			if !ok {
-				continue // invalid brightness character
+			if b, ok := brightnessMap[char]; ok { // valid brightness character
+				lx[x] = b
 			}
-
-			content[x] = b
 		}
+
+		char.content[l] = lx
 	}
 }
 
