@@ -105,7 +105,7 @@ type Vector2 struct {
 	X, Y int
 }
 
-func NewV2(x, y int) Vector2 {
+func V2(x, y int) Vector2 {
 	return Vector2{X: x, Y: y}
 }
 
