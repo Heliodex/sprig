@@ -115,48 +115,62 @@ func Update(en util.Engine) {
 	// })
 	// println(len(lines))
 
-	grid := &Grid{
-		colour1:  util.Grey1,
-		colour2:  util.Grey2,
-		pos:      util.NewV2(0, 70),
-		offset:   pos,
-		size:     util.NewV2(util.Width, util.Height-70),
-		cellSize: util.NewV2(10, 10),
-	}
+	// grid := &Grid{
+	// 	colour1:  util.Grey1,
+	// 	colour2:  util.Grey2,
+	// 	pos:      util.NewV2(0, 70),
+	// 	offset:   pos,
+	// 	size:     util.NewV2(util.Width, util.Height-70),
+	// 	cellSize: util.NewV2(10, 10),
+	// }
 
 	// sine wave
-	sine := &SineWave{
-		colour:     util.Cyan,
-		pos:        util.NewV2(0, util.Height*0.75),
-		amplitude:  8,
-		wavelength: 40,
-		phase:      f,
-	}
+	// sine := &SineWave{
+	// 	colour:     util.Cyan,
+	// 	pos:        util.NewV2(0, util.Height*0.75),
+	// 	amplitude:  8,
+	// 	wavelength: 40,
+	// 	phase:      f,
+	// }
 
-	cube := &Cube3D{
+	cube1 := &Cube3D{
 		colour: util.Yellow,
-		pos:    util.NewV2(util.Width/2, util.Height/2),
+		pos:    util.NewV2(util.Width*0.15, util.Height/2),
+		size:   18,
+		angle1: f,
+		angle2: f / 2,
+	}
+	cube2 := &Cube3D{
+		colour: util.Yellow,
+		pos:    util.NewV2(util.Width*0.5, util.Height/2),
+		size:   18,
+		angle1: f,
+		angle2: f / 2,
+	}
+	cube3 := &Cube3D{
+		colour: util.Yellow,
+		pos:    util.NewV2(util.Width*0.85, util.Height/2),
 		size:   18,
 		angle1: f,
 		angle2: f / 2,
 	}
 
-	ui := []UIElement{grid, x, y}
+	ui := []UIElement{ x, y}
 	for _, t := range Texts {
 		ui = append(ui, t)
 	}
-	ui = append(ui, sine, cube)
+	ui = append(ui, cube1, cube2, cube3)
 
 	for _, e := range ui {
 		e.drawTo(en.ScreenBuffer())
 	}
 
-	for i := 0; i < 55; i += 5 {
-		drawLine(en.ScreenBuffer(), util.NewV2(0, i), util.NewV2(util.Width, util.Height), util.Red)
-		drawLine(en.ScreenBuffer(), util.NewV2(i, 0), util.NewV2(util.Width/2, util.Height), util.Yellow)
-		drawLine(en.ScreenBuffer(), util.NewV2(i, util.Height), util.NewV2(util.Width, i), util.Green)
-		drawLine(en.ScreenBuffer(), util.NewV2(i, util.Height/2), util.NewV2(util.Width, i), util.Blue)
-	}
+	// for i := 0; i < 55; i += 5 {
+	// 	drawLine(en.ScreenBuffer(), util.NewV2(0, i), util.NewV2(util.Width, util.Height), util.Red)
+	// 	drawLine(en.ScreenBuffer(), util.NewV2(i, 0), util.NewV2(util.Width/2, util.Height), util.Yellow)
+	// 	drawLine(en.ScreenBuffer(), util.NewV2(i, util.Height), util.NewV2(util.Width, i), util.Green)
+	// 	drawLine(en.ScreenBuffer(), util.NewV2(i, util.Height/2), util.NewV2(util.Width, i), util.Blue)
+	// }
 	// for _, line := range lines {
 	// 	drawLineAntialiased(en.ScreenBuffer(), line.start, line.end, line.colour)
 	// }

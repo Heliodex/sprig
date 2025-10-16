@@ -7,9 +7,8 @@ import (
 )
 
 type Text struct {
-	font *Font
-	text string
-	// xPos, yPos int
+	font   *Font
+	text   string
 	pos    util.Vector2
 	colour util.Pixel
 }
@@ -108,16 +107,24 @@ func drawLine(buf *util.ScreenBuffer, p1, p2 util.Vector2, colour util.Pixel) {
 	}
 }
 
-func floor(x float64) int {
+func floorint(x float32) int {
 	if x < 0 {
 		return int(x) - 1
 	}
 	return int(x)
 }
 
+func floor(x float32) float32 {
+	// return float32(math.Floor(float64(x)))
+	if x < 0 {
+		return float32(int(x) - 1)
+	}
+	return float32(int(x))
+}
+
 // WARNING: VERY SLOW
 func drawLineAntialiased(buf *util.ScreenBuffer, p1, p2 util.Vector2, colour util.Pixel) {
-	dx, dy := p2.X -p1.X, p2.Y-p1.Y
+	dx, dy := p2.X-p1.X, p2.Y-p1.Y
 	steep := abs(dy) > abs(dx)
 
 	if steep {
@@ -131,47 +138,27 @@ func drawLineAntialiased(buf *util.ScreenBuffer, p1, p2 util.Vector2, colour uti
 		dy = p2.Y - p1.Y
 	}
 
-	gradient := float64(dy) / float64(dx)
+	gradient := float32(dy) / float32(dx)
 
-	// handle first endpoint
-	xEnd := float64(p1.X)
-	yEnd := float64(p1.Y) + gradient*(xEnd-float64(p1.X))
-	xGap := 1 - (xEnd - math.Floor(xEnd))
-	xPixel1 := int(xEnd)
-	yPixel1 := floor(yEnd)
-	if steep {
-		buf.SetAlpha(yPixel1, xPixel1, colour, uint8((1-(yEnd-math.Floor(yEnd)))*xGap*0xff))
-		buf.SetAlpha(yPixel1+1, xPixel1, colour, uint8((yEnd-math.Floor(yEnd))*xGap*0xff))
-	} else {
-		buf.SetAlpha(xPixel1, yPixel1, colour, uint8((1-(yEnd-math.Floor(yEnd)))*xGap*0xff))
-		buf.SetAlpha(xPixel1, yPixel1+1, colour, uint8((yEnd-math.Floor(yEnd))*xGap*0xff))
-	}
-	intery := yEnd + gradient
+	// idc about endpoints it works well enough without them
 
-	// handle second endpoint
-	xEnd = float64(p2.X)
-	yEnd = float64(p2.Y) + gradient*(xEnd-float64(p2.X))
-	xGap = xEnd - math.Floor(xEnd)
-	xPixel2 := int(xEnd)
-	yPixel2 := int(math.Floor(yEnd))
-	if steep {
-		buf.SetAlpha(yPixel2, xPixel2, colour, uint8((1-(yEnd-math.Floor(yEnd)))*xGap*0xff))
-		buf.SetAlpha(yPixel2+1, xPixel2, colour, uint8((yEnd-math.Floor(yEnd))*xGap*0xff))
-	}
+	intery := float32(p1.Y) + gradient
+
+
 	// main loop
 	if steep {
-		for x := xPixel1 + 1; x < xPixel2; x++ {
-			buf.SetAlpha(floor(intery), x, colour, uint8((1-(intery-math.Floor(intery)))*0xff))
-			buf.SetAlpha(floor(intery)+1, x, colour, uint8((intery-math.Floor(intery))*0xff))
+		for x := p1.X; x < p2.X; x++ {
+			buf.SetAlpha(floorint(intery), x, colour, uint8((1-(intery-floor(intery)))*0xff))
+			buf.SetAlpha(floorint(intery)+1, x, colour, uint8((intery-floor(intery))*0xff))
 			intery += gradient
 		}
 	} else {
-		for x := xPixel1 + 1; x < xPixel2; x++ {
-			buf.SetAlpha(x, floor(intery), colour, uint8((1-(intery-math.Floor(intery)))*0xff))
-			buf.SetAlpha(x, floor(intery)+1, colour, uint8((intery-math.Floor(intery))*0xff))
+		for x := p1.X; x < p2.X; x++ {
+			buf.SetAlpha(x, floorint(intery), colour, uint8((1-(intery-floor(intery)))*0xff))
+			buf.SetAlpha(x, floorint(intery)+1, colour, uint8((intery-floor(intery))*0xff))
 			intery += gradient
 		}
-	} 
+	}
 }
 
 type Cube3D struct {
@@ -229,6 +216,6 @@ func (c *Cube3D) drawTo(buf *util.ScreenBuffer) {
 	}
 
 	for _, e := range edges {
-		drawLine(buf, points[e[0]], points[e[1]], c.colour)
+		drawLineAntialiased(buf, points[e[0]], points[e[1]], c.colour)
 	}
 }
