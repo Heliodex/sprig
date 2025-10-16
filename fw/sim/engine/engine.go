@@ -3,6 +3,7 @@ package engine
 import (
 	"image"
 	"image/color"
+	"math"
 	"time"
 
 	"fw/util"
@@ -45,22 +46,28 @@ var bg color.Color = color.Gray{0x10}
 
 const (
 	buttonSize = 12 * Scale
+	ledSize    = 4 * Scale
 	pad        = 2 * Scale
 )
 
 // sprig has 8kro, my keyboard has 6kro, it's joever
 // WASD IJKL
 var buttonPoss = [util.ButtonsCount]util.Vector2{
-	{X: buttonSize + pad, Y: 0},
-	{X: pad, Y: buttonSize},
-	{X: buttonSize + pad, Y: buttonSize * 2},
-	{X: buttonSize*2 + pad, Y: buttonSize},
+	{X: buttonSize + pad, Y: buttonSize},
+	{X: pad, Y: buttonSize * 2},
+	{X: buttonSize + pad, Y: buttonSize * 3},
+	{X: buttonSize*2 + pad, Y: buttonSize * 2},
 
-	{X: width - buttonSize*2 - pad, Y: 0},
-	{X: width - buttonSize*3 - pad, Y: buttonSize},
-	{X: width - buttonSize*2 - pad, Y: buttonSize * 2},
-	{X: width - buttonSize - pad, Y: buttonSize},
+	{X: width - buttonSize*2 - pad, Y: buttonSize},
+	{X: width - buttonSize*3 - pad, Y: buttonSize * 2},
+	{X: width - buttonSize*2 - pad, Y: buttonSize * 3},
+	{X: width - buttonSize - pad, Y: buttonSize * 2},
 }
+
+var (
+	ledLeftPos  = util.Vector2{X: pad, Y: pad}
+	ledRightPos = util.Vector2{X: width - ledSize*1.5 - pad, Y: pad}
+)
 
 type ButtonImpl struct {
 	pos    util.Vector2
@@ -77,7 +84,7 @@ func (b *ButtonImpl) Set(pressed bool) {
 
 	c := bg
 	if pressed {
-		c = color.White
+		c = color.Gray{Y: 0x80}
 	}
 	b.window.Fill(image.Rect(b.pos.X, b.pos.Y, b.pos.X+buttonSize, b.pos.Y+buttonSize), c, screen.Src)
 }
@@ -156,10 +163,29 @@ func (e *Engine) Render() {
 	clear(e.buffer[:])
 }
 
+// relatively alright log scale, as 0xffff brightness is brighter but not 16x as bright as 0xfff
+func Log(x uint16) uint8 {
+	return uint8((math.Log(float64(x)/0xffff)/math.Log(100) + 1) * 0xff)
+}
+
 func (e *Engine) SetLeft(on uint16) {
+	c := bg
+	if on != 0 {
+		v := Log(on)
+		c = color.RGBA{v, v, v, 0xff} // white
+	}
+
+	e.Window.Fill(image.Rect(ledLeftPos.X, ledLeftPos.Y, ledLeftPos.X+ledSize*1.5, ledLeftPos.Y+ledSize), c, screen.Src)
 }
 
 func (e *Engine) SetRight(on uint16) {
+	c := bg
+	if on != 0 {
+		v := Log(on)
+		c = color.RGBA{0, v, v, 0xff} // cyan
+	}
+
+	e.Window.Fill(image.Rect(ledRightPos.X, ledRightPos.Y, ledRightPos.X+ledSize*1.5, ledRightPos.Y+ledSize), c, screen.Src)
 }
 
 func (e *Engine) ScreenBuffer() *util.ScreenBuffer {

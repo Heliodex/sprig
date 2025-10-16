@@ -53,15 +53,17 @@ func (d *Display) Render(buf *util.ScreenBuffer) {
 	}
 }
 
+var spi = machine.SPI0
+
 func NewDisplay() *Display {
-	machine.SPI0.Configure(machine.SPIConfig{
+	spi.Configure(machine.SPIConfig{
 		Frequency: 36_000_000, // 36 I think is the design limit
 		SDI:       rx,
 		SCK:       sck,
 		SDO:       tx,
 	})
 
-	d := st7735.New(machine.SPI0, rst, dc, cs, machine.GP17)
+	d := st7735.New(spi, rst, dc, cs, machine.GP17)
 
 	return &Display{
 		d: &d,
