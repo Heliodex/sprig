@@ -238,12 +238,30 @@ func (s *State) Update(en util.Engine) {
 	}
 
 	// read button states
+	var leftPressed, rightPressed bool
 	for i, b := range btns {
 		if b.Pressed() {
+			if i < int(util.ButtonsCount/2) {
+				leftPressed = true
+			} else {
+				rightPressed = true
+			}
 			Texts[i].colour = util.Green
 		} else {
 			Texts[i].colour = util.Red
 		}
+	}
+
+	if leftPressed {
+		en.SetLeft(0xffff) // max brightness
+	} else {
+		en.SetLeft(0xfff) // off
+	}
+
+	if rightPressed {
+		en.SetRight(0xffff) // max brightness
+	} else {
+		en.SetRight(0xfff) // off
 	}
 
 	grid := &Grid{

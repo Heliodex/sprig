@@ -30,7 +30,7 @@ type Engine struct {
 	buffer            *util.ScreenBuffer
 	buttons           util.Buttons
 	display           *Display
-	SetLeft, SetRight func(uint32)
+	setLeft, setRight func(uint16)
 }
 
 func New() *Engine {
@@ -40,16 +40,18 @@ func New() *Engine {
 	ledLeft := machine.PWM6
 	ledLeft.Configure(machine.PWMConfig{})
 	lch, _ := ledLeft.Channel(machine.GP28)
-	setLeft := func(value uint32) {
-		ledLeft.Set(lch, value)
+	println("Left channel", lch)
+	setLeft := func(value uint16) {
+		ledLeft.Set(lch, uint32(value))
 	}
 
 	// init right led (GP4, PWM2 channel A)
 	ledRight := machine.PWM2
 	ledRight.Configure(machine.PWMConfig{})
 	rch, _ := ledRight.Channel(machine.GP4)
-	setRight := func(value uint32) {
-		ledRight.Set(rch, value)
+	println("Right channel", rch)
+	setRight := func(value uint16) {
+		ledRight.Set(rch, uint32(value))
 	}
 
 	realButtons := []Button{
@@ -77,8 +79,8 @@ func New() *Engine {
 		buffer:   sb,
 		buttons:  buttons,
 		display:  display,
-		SetLeft:  setLeft,
-		SetRight: setRight,
+		setLeft:  setLeft,
+		setRight: setRight,
 	}
 }
 
@@ -97,6 +99,14 @@ func (e *Engine) CPUFrequency() uint32 {
 func (e *Engine) Render() {
 	e.display.Render(e.buffer)
 	clear(e.buffer[:])
+}
+
+func (e *Engine) SetLeft(on uint16) {
+	e.setLeft(on)
+}
+
+func (e *Engine) SetRight(on uint16) {
+	e.setRight(on)
 }
 
 func (e *Engine) ScreenBuffer() *util.ScreenBuffer {

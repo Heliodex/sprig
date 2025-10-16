@@ -80,6 +80,8 @@ type Engine interface {
 	Buttons() Buttons
 	CPUFrequency() uint32
 	Render()
+	SetLeft(on uint32)
+	SetRight(on uint32)
 	ScreenBuffer() *ScreenBuffer
 }
 

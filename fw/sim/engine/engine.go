@@ -156,6 +156,12 @@ func (e *Engine) Render() {
 	clear(e.buffer[:])
 }
 
+func (e *Engine) SetLeft(on uint16) {
+}
+
+func (e *Engine) SetRight(on uint16) {
+}
+
 func (e *Engine) ScreenBuffer() *util.ScreenBuffer {
 	return e.buffer
 }
