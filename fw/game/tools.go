@@ -161,6 +161,83 @@ func drawLineAntialiased(buf *util.ScreenBuffer, p1, p2 util.Vector2, colour uti
 	}
 }
 
+func clampX(x int) int {
+	if x < 0 {
+		return -1
+	}
+	if x > util.Width {
+		return util.Width
+	}
+	return x
+}
+
+func clampY(y int) int {
+	if y < 0 {
+		return -1
+	}
+	if y > util.Height {
+		return util.Height
+	}
+	return y
+}
+
+func drawTriangle2D(buf *util.ScreenBuffer, p1, p2, p3 util.Vector2, colour util.Pixel) {
+	// sort points by Y
+	if p1.Y > p2.Y {
+		p1, p2 = p2, p1
+	}
+	if p1.Y > p3.Y {
+		p1, p3 = p3, p1
+	}
+	if p2.Y > p3.Y {
+		p2, p3 = p3, p2
+	}
+
+	// compute slopes
+	var dx1, dx2, dx3 float32
+	if p2.Y-p1.Y > 0 {
+		dx1 = float32(p2.X-p1.X) / float32(p2.Y-p1.Y)
+	}
+	if p3.Y-p1.Y > 0 {
+		dx2 = float32(p3.X-p1.X) / float32(p3.Y-p1.Y)
+	}
+	if p3.Y-p2.Y > 0 {
+		dx3 = float32(p3.X-p2.X) / float32(p3.Y-p2.Y)
+	}
+
+	// draw upper part
+	if p2.Y-p1.Y > 0 {
+		for y := clampY(p1.Y); y <= clampY(p2.Y); y++ {
+			sx := int(float32(p1.X) + float32(y-p1.Y)*dx1)
+			ex := int(float32(p1.X) + float32(y-p1.Y)*dx2)
+
+			if sx > ex {
+				sx, ex = ex, sx
+			}
+
+			for x := clampX(sx); x <= clampX(ex); x++ {
+				buf.Set(x, y, colour)
+			}
+		}
+	}
+
+	// draw lower part
+	if p3.Y-p2.Y > 0 {
+		for y := clampY(p2.Y); y <= clampY(p3.Y); y++ {
+			sx := int(float32(p2.X) + float32(y-p2.Y)*dx3)
+			ex := int(float32(p1.X) + float32(y-p1.Y)*dx2)
+
+			if sx > ex {
+				sx, ex = ex, sx
+			}
+
+			for x := clampX(sx); x <= clampX(ex); x++ {
+				buf.Set(x, y, colour)
+			}
+		}
+	}
+}
+
 func f32Sin(x float32) float32 {
 	return float32(math.Sin(float64(x)))
 }
@@ -189,6 +266,10 @@ func (v Vector3) Add(o Vector3) Vector3 {
 	return V3(v.X+o.X, v.Y+o.Y, v.Z+o.Z)
 }
 
+func (v Vector3) Mul(s float32) Vector3 {
+	return V3(v.X*s, v.Y*s, v.Z*s)
+}
+
 func (v Vector3) Div(s float32) Vector3 {
 	return V3(v.X/s, v.Y/s, v.Z/s)
 }
@@ -206,47 +287,83 @@ func Distance(a, b Vector3) float32 {
 	return f32Sqrt(dx*dx + dy*dy + dz*dz)
 }
 
-type Line3D struct {
-	start, end Vector3
-	colour     util.Pixel
+type Tri struct {
+	a, b, c Vector3
+	colour  util.Pixel
+}
+
+func tri(a, b, c Vector3, colour util.Pixel) *Tri {
+	return &Tri{a: a, b: b, c: c, colour: colour}
+}
+
+func drawTriangle3D(tri *Tri, s *Scene3D, buf *util.ScreenBuffer, fov float32, cos, sin Vector3) {
+	// Transform vertices to camera space
+	p1 := V3(tri.a.X-s.camera.X, tri.a.Y-s.camera.Y, tri.a.Z-s.camera.Z)
+	p2 := V3(tri.b.X-s.camera.X, tri.b.Y-s.camera.Y, tri.b.Z-s.camera.Z)
+	p3 := V3(tri.c.X-s.camera.X, tri.c.Y-s.camera.Y, tri.c.Z-s.camera.Z)
+
+	// Apply rotation (Y, X, Z order)
+	rotate := func(p Vector3) Vector3 {
+		// Y axis
+		x, z := p.X*cos.Y-p.Z*sin.Y, p.X*sin.Y+p.Z*cos.Y
+		// X axis
+		y := p.Y*cos.X - z*sin.X
+		z = p.Y*sin.X + z*cos.X
+		// Z axis
+		x, y = x*cos.Z-y*sin.Z, x*sin.Z+y*cos.Z
+		return V3(x, y, z)
+	}
+	p1r, p2r, p3r := rotate(p1), rotate(p2), rotate(p3)
+
+	// Cull triangles behind camera
+	if p1r.Z <= 0 || p2r.Z <= 0 || p3r.Z <= 0 {
+		return
+	}
+
+	// Perspective projection
+	project := func(p Vector3) util.Vector2 {
+		return util.V2(
+			int(fov*p.X/p.Z)+util.Width/2,
+			util.Height/2-int(fov*p.Y/p.Z),
+		)
+	}
+	s1, s2, s3 := project(p1r), project(p2r), project(p3r)
+
+	// Simple distance-based shading
+	dist := Distance(tri.a, s.camera) + Distance(tri.b, s.camera) + Distance(tri.c, s.camera)
+	fade := max(0xff-int(dist), 0)
+	c := tri.colour.Brightness(uint8(fade))
+
+	if fade > 0 {
+		drawTriangle2D(buf, s1, s2, s3, c)
+	}
 }
 
 type Object3D struct {
-	Lines []Line3D
+	Tris []*Tri
 }
 
-func NewCube3D(colour util.Pixel, position Vector3, size int) *Object3D {
-	// 8 corners of the cube
+func NewCube3D(colour util.Pixel, position Vector3, size float32) *Object3D {
+	// 8 vertices
 	var points [8]Vector3
-	for i := 0; i < 8; i++ {
-		x := position.X + float32(size)*(float32((i>>0)&1)-0.5)
-		y := position.Y + float32(size)*(float32((i>>1)&1)-0.5)
-		z := position.Z + float32(size)*(float32((i>>2)&1)-0.5)
+	for i := range points {
+		x := position.X + size*(float32(i>>0&1)-0.5)
+		y := position.Y + size*(float32(i>>1&1)-0.5)
+		z := position.Z + size*(float32(i>>2&1)-0.5)
 		points[i] = V3(x, y, z)
 	}
 
-	// edges
-	edges := [12][2]int{
-		{0, 1},
-		{1, 3},
-		{3, 2},
-		{2, 0},
-		{4, 5},
-		{5, 7},
-		{7, 6},
-		{6, 4},
-		{0, 4},
-		{1, 5},
-		{2, 6},
-		{3, 7},
+	// 12 triangles (2 per face)
+	tris := []*Tri{
+		tri(points[0], points[1], points[2], colour), tri(points[1], points[3], points[2], colour), // front
+		tri(points[4], points[5], points[6], colour), tri(points[5], points[7], points[6], colour), // back
+		tri(points[0], points[1], points[4], colour), tri(points[1], points[5], points[4], colour), // left
+		tri(points[2], points[3], points[6], colour), tri(points[3], points[7], points[6], colour), // right
+		tri(points[0], points[2], points[4], colour), tri(points[2], points[6], points[4], colour), // top
+		tri(points[1], points[3], points[5], colour), tri(points[3], points[7], points[5], colour), // bottom
 	}
 
-	lines := make([]Line3D, len(edges))
-	for i, e := range edges {
-		lines[i] = Line3D{start: points[e[0]], end: points[e[1]], colour: colour}
-	}
-
-	return &Object3D{Lines: lines}
+	return &Object3D{Tris: tris}
 }
 
 type Scene3D struct {
@@ -256,17 +373,15 @@ type Scene3D struct {
 }
 
 func (s *Scene3D) drawTo(buf *util.ScreenBuffer) {
-	var lines []Line3D
+	var tris []*Tri
 	for _, obj := range s.objects {
-		lines = append(lines, obj.Lines...)
+		tris = append(tris, obj.Tris...)
 	}
 
-	// sort lines by distance from camera (painter's algorithm)
-	slices.SortFunc(lines, func(a, b Line3D) int {
-		// d1 := Distance(V3((a.start.X+a.end.X)/2, (a.start.Y+a.end.Y)/2, (a.start.Z+a.end.Z)/2), s.camera)
-		// d2 := Distance(V3((b.start.X+b.end.X)/2, (b.start.Y+b.end.Y)/2, (b.start.Z+b.end.Z)/2), s.camera)
-		d1 := Distance(a.start, s.camera) + Distance(a.end, s.camera)
-		d2 := Distance(b.start, s.camera) + Distance(b.end, s.camera)
+	// sort tris by distance from camera (painter's algorithm)
+	slices.SortFunc(tris, func(a, b *Tri) int {
+		d1 := Distance(V3(a.a.X+a.b.X+a.c.X, a.a.Y+a.b.Y+a.c.Y, a.a.Z+a.b.Z+a.c.Z), s.camera)
+		d2 := Distance(V3(b.a.X+b.b.X+b.c.X, b.a.Y+b.b.Y+b.c.Y, b.a.Z+b.b.Z+b.c.Z), s.camera)
 		if d1 < d2 {
 			return 1
 		} else if d1 > d2 {
@@ -288,46 +403,7 @@ func (s *Scene3D) drawTo(buf *util.ScreenBuffer) {
 		f32Cos(s.cameraRotation.Z),
 	)
 
-	for _, line := range lines {
-		// translate line to camera space
-		x1, y1, z1 := line.start.X-s.camera.X, line.start.Y-s.camera.Y, line.start.Z-s.camera.Z
-		x2, y2, z2 := line.end.X-s.camera.X, line.end.Y-s.camera.Y, line.end.Z-s.camera.Z
-
-		// rotate around Y axis
-		x1, z1 = x1*cos.Y-z1*sin.Y, x1*sin.Y+z1*cos.Y
-		x2, z2 = x2*cos.Y-z2*sin.Y, x2*sin.Y+z2*cos.Y
-
-		// rotate around X axis
-		y1, z1 = y1*cos.X-z1*sin.X, y1*sin.X+z1*cos.X
-		y2, z2 = y2*cos.X-z2*sin.X, y2*sin.X+z2*cos.X
-
-		// rotate around Z axis
-		x1, y1 = x1*cos.Z-y1*sin.Z, x1*sin.Z+y1*cos.Z
-		x2, y2 = x2*cos.Z-y2*sin.Z, x2*sin.Z+y2*cos.Z
-
-		// project to 2D
-		if z1 <= 0 || z2 <= 0 {
-			continue
-		}
-		sx1 := int(fov * x1 / z1)
-		sy1 := int(fov * y1 / z1)
-		sx2 := int(fov * x2 / z2)
-		sy2 := int(fov * y2 / z2)
-
-		// convert to screen space
-		sx1 += util.Width / 2
-		sy1 = util.Height/2 - sy1
-		sx2 += util.Width / 2
-		sy2 = util.Height/2 - sy2
-
-		// darken depending on distance from camera
-		dist := Distance(line.start, s.camera) + Distance(line.end, s.camera)
-		fade := max(0xff - dist*2, 0)
-		c := line.colour.Brightness(uint8(fade))
-
-		// draw line
-		if fade > 0 {
-			drawLine(buf, util.V2(sx1, sy1), util.V2(sx2, sy2), c)
-		}
+	for _, tri := range tris {
+		drawTriangle3D(tri, s, buf, fov, cos, sin)
 	}
 }
