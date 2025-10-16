@@ -9,7 +9,7 @@ func main() {
 	en := engine.New()
 	game.Splash(en)
 
-	for state := (&game.State{}); ; {
-		state.Update(en)
+	for {
+		game.Update(en)
 	}
 }

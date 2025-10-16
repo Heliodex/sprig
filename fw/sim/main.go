@@ -38,6 +38,9 @@ func startUI(s screen.Screen) {
 			case key.Event:
 				btn, ok := codeMap[e.Code]
 				if !ok {
+					if e.Code == key.CodeEscape {
+						os.Exit(0)
+					}
 					continue
 				}
 
@@ -50,10 +53,10 @@ func startUI(s screen.Screen) {
 		}
 	}()
 
-	game.Splash(en)
+	// game.Splash(en)
 
-	for state := (&game.State{}); ; {
-		state.Update(en)
+	for  {
+		game.Update(en)
 		// wait 1 frame
 		time.Sleep(40 * time.Millisecond) // ~25fps, which is how fast my console actually runs, ymmv
 	}

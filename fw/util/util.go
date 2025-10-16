@@ -35,6 +35,22 @@ func (sb *ScreenBuffer) Set(x, y int, px Pixel) {
 	(*sb)[y][x] = px
 }
 
+func (sb *ScreenBuffer) SetAlpha(x, y int, px Pixel, alpha uint8) {
+	if x < 0 || x >= Width || y < 0 || y >= Height {
+		return
+	}
+	r1, g1, b1 := (*sb)[y][x].RGB()
+	r2, g2, b2 := px.RGB()
+
+	ua := uint16(alpha)
+	nua := 0xff - ua
+	r := uint8((uint16(r1)*nua + uint16(r2)*ua) / 0xff)
+	g := uint8((uint16(g1)*nua + uint16(g2)*ua) / 0xff)
+	b := uint8((uint16(b1)*nua + uint16(b2)*ua) / 0xff)
+
+	(*sb)[y][x] = MakePixel(r, g, b)
+}
+
 type DisplayDevice interface {
 	Backlight(on bool)
 	SetScreen(buf *ScreenBuffer, i int16)
@@ -87,4 +103,12 @@ type Engine interface {
 
 type Vector2 struct {
 	X, Y int
+}
+
+func NewV2(x, y int) Vector2 {
+	return Vector2{X: x, Y: y}
+}
+
+func (v Vector2) Swap() Vector2 {
+	return Vector2{X: v.Y, Y: v.X}
 }
