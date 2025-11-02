@@ -1,10 +1,9 @@
 package game
 
 import (
+	"fw/util"
 	"math"
 	"slices"
-
-	"fw/util"
 )
 
 type Text struct {
@@ -22,7 +21,7 @@ func (t *Text) drawTo(buf *util.ScreenBuffer) {
 			for x, b := range row {
 				// skip empty pixels
 				if b != 0 {
-					buf.Set(xp+x, t.pos.Y+y, t.colour.Brightness(b))
+					buf.SetAlpha(xp+x, t.pos.Y+y, t.colour, b)
 				}
 			}
 		}
@@ -406,4 +405,55 @@ func (s *Scene3D) drawTo(buf *util.ScreenBuffer) {
 	for _, tri := range tris {
 		drawTriangle3D(tri, s, buf, fov, cos, sin)
 	}
+}
+
+type Circle struct {
+	centre util.Vector2
+	radius int
+	colour util.Pixel
+}
+
+func (c *Circle) drawTo(buf *util.ScreenBuffer) {
+	x0, y0, r := c.centre.X, c.centre.Y, c.radius
+
+	// draw filled circle
+	for y := -r; y <= r; y++ {
+		for x := -r; x <= r; x++ {
+			if x*x+y*y <= r*r {
+				buf.Set(x0+x, y0+y, c.colour)
+			}
+		}
+	}
+}
+
+type Pendulum struct {
+	length, angle float32
+}
+
+type DoublePendulum struct {
+	origin util.Vector2
+	p1, p2 Pendulum
+}
+
+func (dp *DoublePendulum) drawTo(buf *util.ScreenBuffer) {
+	// calculate positions
+	pos1 := util.V2(
+		dp.origin.X+int(dp.p1.length*f32Sin(dp.p1.angle)),
+		dp.origin.Y+int(dp.p1.length*f32Cos(dp.p1.angle)),
+	)
+
+	pos2 := util.V2(
+		pos1.X+int(dp.p2.length*f32Sin(dp.p2.angle)),
+		pos1.Y+int(dp.p2.length*f32Cos(dp.p2.angle)),
+	)
+
+	// draw arms
+	drawLine(buf, dp.origin, pos1, util.White)
+	drawLine(buf, pos1, pos2, util.White)
+
+	// draw bobs
+	circle1 := &Circle{pos1, 10, util.Red}
+	circle2 := &Circle{pos2, 10, util.Blue}
+	circle1.drawTo(buf)
+	circle2.drawTo(buf)
 }

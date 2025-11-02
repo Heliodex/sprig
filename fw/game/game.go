@@ -1,11 +1,10 @@
 package game
 
 import (
+	"fw/util"
 	"runtime"
 	"strconv"
 	"time"
-
-	"fw/util"
 )
 
 type UIElement interface {
@@ -41,69 +40,11 @@ type Line struct {
 	colour     util.Pixel
 }
 
-var (
-	lines []*Line
-	f     int
-	// position   util.Vector2
-	position = V3(0, 2, 0)
-	rotation Vector3
-)
+var f int
 
 // ran every frame (or, more like this is what makes the frames)
 func Update(en util.Engine) {
 	btns := en.Buttons()
-
-	if btns[util.W].Pressed() {
-		// forwardX, forwardZ := f32Sin(rotation.Y)*f32Cos(rotation.X), f32Cos(rotation.Y)*f32Cos(rotation.X)
-		// position.X += forwardX
-		// position.Z += forwardZ
-		position.X += f32Sin(rotation.Y) * f32Cos(rotation.X)
-		position.Z += f32Cos(rotation.Y) * f32Cos(rotation.X)
-	}
-
-	if btns[util.S].Pressed() {
-		// backwardX, backwardZ := -f32Sin(rotation.Y)*f32Cos(rotation.X), -f32Cos(rotation.Y)*f32Cos(rotation.X)
-		// position.X += backwardX
-		// position.Z += backwardZ
-		position.X -= f32Sin(rotation.Y) * f32Cos(rotation.X)
-		position.Z -= f32Cos(rotation.Y) * f32Cos(rotation.X)
-	}
-
-	if btns[util.A].Pressed() {
-		// leftX, leftZ := -f32Cos(rotation.Y), f32Sin(rotation.Y)
-		// position.X += leftX
-		// position.Z += leftZ
-		position.X -= f32Cos(rotation.Y)
-		position.Z += f32Sin(rotation.Y)
-	}
-
-	if btns[util.D].Pressed() {
-		// rightX, rightZ := f32Cos(rotation.Y), -f32Sin(rotation.Y)
-		// position.X += rightX
-		// position.Z += rightZ
-		position.X += f32Cos(rotation.Y)
-		position.Z -= f32Sin(rotation.Y)
-	}
-
-	if btns[util.I].Pressed() {
-		rotation.X += 0.06
-	}
-
-	if btns[util.K].Pressed() {
-		rotation.X -= 0.06
-	}
-
-	if btns[util.J].Pressed() {
-		rotation.Y -= 0.06
-	}
-
-	if btns[util.L].Pressed() {
-		rotation.Y += 0.06
-	}
-
-	x := &Text{FontUnifont, strconv.Itoa(int(rotation.X)), util.V2(70, 2), util.Green}
-	y := &Text{FontUnifont, strconv.Itoa(int(rotation.Y)), util.V2(70, 22), util.Green}
-	z := &Text{FontUnifont, strconv.Itoa(int(rotation.Z)), util.V2(70, 42), util.Green}
 
 	Texts := [util.ButtonsCount]*Text{
 		{FontDex, "W", util.V2(2+20-2, 2), util.Red},
@@ -117,38 +58,33 @@ func Update(en util.Engine) {
 	}
 
 	// read button states
-	// var leftPressed, rightPressed bool
 	for i, b := range btns {
 		if b.Pressed() {
-			// if i < int(util.ButtonsCount/2) {
-			// 	leftPressed = true
-			// } else {
-			// 	rightPressed = true
-			// }
 			Texts[i].colour = util.Green
 		} else {
 			Texts[i].colour = util.Red
 		}
 	}
 
-	scene := &Scene3D{
-		camera:         position,
-		cameraRotation: rotation,
-		zoom:           110, // 72 or so degrees
-		objects: []*Object3D{
-			NewCube3D(util.White, V3(20, 5, 5), 10),
-			NewCube3D(util.Red, V3(0, 2.5, -10), 5),
-			NewCube3D(util.Green, V3(-10, 5, 5), 10),
-			NewCube3D(util.Blue, V3(-20, 10, 30), 20),
-			NewCube3D(util.Yellow, V3(10, 2.5, 25), 5),
+	// circle := &Circle{util.V2(50, 50), 10, util.Blue}
+
+	pendulum := &DoublePendulum{
+		origin: util.V2(80, 0),
+		p1: Pendulum{
+			length:          50,
+			angle: float32(f) * 0.01,
+		},
+		p2: Pendulum{
+			length:          50,
+			angle: float32(f) * 0.1,
 		},
 	}
 
-	ui := []UIElement{x, y, z}
+	ui := []UIElement{}
 	for _, t := range Texts {
 		ui = append(ui, t)
 	}
-	ui = append(ui, scene)
+	ui = append(ui, pendulum)
 
 	for _, e := range ui {
 		e.drawTo(en.ScreenBuffer())

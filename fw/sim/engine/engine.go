@@ -30,7 +30,7 @@ func bufferToImg(buf *util.ScreenBuffer, scale int, backlight bool) []uint8 {
 
 			for sy := range scale {
 				for sx := range scale {
-					i := ((y*scale+sy)*(util.Width*scale) + (x*scale + sx)) * 4
+					i := ((y*scale+sy)*util.Width*scale + (x*scale + sx)) * 4
 					final[i+0] = r
 					final[i+1] = g
 					final[i+2] = b
