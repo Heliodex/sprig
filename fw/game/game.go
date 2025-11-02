@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"fw/util"
 	"math"
 	"runtime"
@@ -49,14 +50,16 @@ type Simulation struct {
 var (
 	f   int
 	sim = &Simulation{
-		g: 9.81,
-		len1:    120,
-		len2:    120,
-		angle1:  math.Pi / 2,
-		angle2:  math.Pi / 2,
-		mass1:   10,
-		mass2:   10,
-		dt:      0.06,
+		g:    9.81,
+		len1: 120,
+		len2: 120,
+		// angle1: math.Pi / 2,
+		// angle2: math.Pi / 2,
+		angle1: math.Pi,
+		angle2: math.Pi,
+		mass1:  10,
+		mass2:  10,
+		dt:     0.06,
 	}
 )
 
@@ -95,11 +98,19 @@ func Update(en util.Engine) {
 
 	// L := ek - ep
 
+	fmt.Println("Frame:", f)
+
 	diff := sim.angle2 - sim.angle1
+
+	fmt.Println("  angle1:", sim.angle1)
+	fmt.Println("  angle2:", sim.angle2)
 
 	d1 := (sim.mass1+sim.mass2)*sim.len1 -
 		sim.mass2*sim.len1*f32Square(f32Cos(diff))
 	d2 := (sim.len2 / sim.len1) * d1
+
+	fmt.Println("      d1:", d1) 
+	fmt.Println("      d2:", d2)
 
 	aAccel1 := (sim.mass2*sim.len1 + f32Square(sim.aVel1)*f32Sin(diff)*f32Cos(diff) +
 		sim.mass2*sim.g*f32Sin(sim.angle2)*f32Cos(diff) +
@@ -111,6 +122,10 @@ func Update(en util.Engine) {
 		(sim.mass1+sim.mass2)*sim.len1*f32Square(sim.aVel1)*f32Sin(diff) -
 		(sim.mass1+sim.mass2)*sim.g*f32Sin(sim.angle2)) / d2
 
+	fmt.Println("   aVel1:", sim.aVel1)
+	fmt.Println("   aVel2:", sim.aVel2)
+	fmt.Println(" aAccel1:", aAccel1)
+	fmt.Println(" aAccel2:", aAccel2)
 	sim.aVel1 += aAccel1 * sim.dt
 	sim.aVel2 += aAccel2 * sim.dt
 	sim.angle1 += sim.aVel1 * sim.dt
@@ -140,4 +155,8 @@ func Update(en util.Engine) {
 
 	en.Render()
 	f++
+
+	if f > 10 {
+		panic("stop")
+	}
 }
