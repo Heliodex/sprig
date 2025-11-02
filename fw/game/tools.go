@@ -249,6 +249,14 @@ func f32Sqrt(x float32) float32 {
 	return float32(math.Sqrt(float64(x)))
 }
 
+func f32Square(x float32) float32 {
+	return x * x
+}
+
+func square(x float64) float64 {
+	return x * x
+}
+
 type Vector3 struct {
 	X, Y, Z float32
 }
@@ -438,13 +446,13 @@ type DoublePendulum struct {
 func (dp *DoublePendulum) drawTo(buf *util.ScreenBuffer) {
 	// calculate positions
 	pos1 := util.V2(
-		dp.origin.X+int(dp.p1.length*f32Sin(dp.p1.angle)),
-		dp.origin.Y+int(dp.p1.length*f32Cos(dp.p1.angle)),
+		dp.origin.X+int(dp.p1.length/4*f32Sin(math.Pi-dp.p1.angle)),
+		dp.origin.Y+int(dp.p1.length/4*f32Cos(math.Pi-dp.p1.angle)),
 	)
 
 	pos2 := util.V2(
-		pos1.X+int(dp.p2.length*f32Sin(dp.p2.angle)),
-		pos1.Y+int(dp.p2.length*f32Cos(dp.p2.angle)),
+		pos1.X+int(dp.p2.length/4*f32Sin(math.Pi-dp.p2.angle)),
+		pos1.Y+int(dp.p2.length/4*f32Cos(math.Pi-dp.p2.angle)),
 	)
 
 	// draw arms
@@ -452,8 +460,8 @@ func (dp *DoublePendulum) drawTo(buf *util.ScreenBuffer) {
 	drawLine(buf, pos1, pos2, util.White)
 
 	// draw bobs
-	circle1 := &Circle{pos1, 10, util.Red}
-	circle2 := &Circle{pos2, 10, util.Blue}
+	circle1 := &Circle{pos1, 4, util.Red}
+	circle2 := &Circle{pos2, 4, util.Blue}
 	circle1.drawTo(buf)
 	circle2.drawTo(buf)
 }

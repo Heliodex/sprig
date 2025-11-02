@@ -2,6 +2,7 @@ package game
 
 import (
 	"fw/util"
+	"math"
 	"runtime"
 	"strconv"
 	"time"
@@ -35,12 +36,29 @@ func Splash(en util.Engine) {
 	println("Splash complete")
 }
 
-type Line struct {
-	start, end util.Vector2
-	colour     util.Pixel
+type Simulation struct {
+	g,
+	len1, len2,
+	angle1, angle2,
+	mass1, mass2,
+	aVel1, aVel2,
+	dt float32
+	// aAcc1, aAcc2 float32
 }
 
-var f int
+var (
+	f   int
+	sim = &Simulation{
+		g: 9.81,
+		len1:    120,
+		len2:    120,
+		angle1:  math.Pi / 2,
+		angle2:  math.Pi / 2,
+		mass1:   10,
+		mass2:   10,
+		dt:      0.06,
+	}
+)
 
 // ran every frame (or, more like this is what makes the frames)
 func Update(en util.Engine) {
@@ -66,17 +84,47 @@ func Update(en util.Engine) {
 		}
 	}
 
-	// circle := &Circle{util.V2(50, 50), 10, util.Blue}
+	// update simulation
+	// ek := 0.5*sim.mass1*f32Square(sim.len1)*f32Square(sim.aVel1) +
+	// 	0.5*sim.mass2*(f32Square(sim.len1)*f32Square(sim.aVel1)+
+	// 		f32Square(sim.len2)*f32Square(sim.aVel2)+
+	// 		2*sim.len1*sim.len2*sim.aVel1*sim.aVel2*f32Cos(sim.angle1-sim.angle2))
+
+	// ep := (sim.mass1+sim.mass2)*sim.gravity*sim.len1*(1-f32Cos(sim.angle1)) +
+	// 	sim.mass2*sim.gravity*sim.len2*(1-f32Cos(sim.angle2))
+
+	// L := ek - ep
+
+	diff := sim.angle2 - sim.angle1
+
+	d1 := (sim.mass1+sim.mass2)*sim.len1 -
+		sim.mass2*sim.len1*f32Square(f32Cos(diff))
+	d2 := (sim.len2 / sim.len1) * d1
+
+	aAccel1 := (sim.mass2*sim.len1 + f32Square(sim.aVel1)*f32Sin(diff)*f32Cos(diff) +
+		sim.mass2*sim.g*f32Sin(sim.angle2)*f32Cos(diff) +
+		sim.mass2*sim.len2*f32Square(sim.aVel2)*f32Sin(diff) -
+		(sim.mass1+sim.mass2)*sim.g*f32Sin(sim.angle1)) / d1
+
+	aAccel2 := (-sim.mass2*sim.len2*f32Square(sim.aVel2)*f32Sin(diff)*f32Cos(diff) +
+		(sim.mass1+sim.mass2)*sim.g*f32Sin(sim.angle1)*f32Cos(diff) -
+		(sim.mass1+sim.mass2)*sim.len1*f32Square(sim.aVel1)*f32Sin(diff) -
+		(sim.mass1+sim.mass2)*sim.g*f32Sin(sim.angle2)) / d2
+
+	sim.aVel1 += aAccel1 * sim.dt
+	sim.aVel2 += aAccel2 * sim.dt
+	sim.angle1 += sim.aVel1 * sim.dt
+	sim.angle2 += sim.aVel2 * sim.dt
 
 	pendulum := &DoublePendulum{
-		origin: util.V2(80, 0),
+		origin: util.V2(80, 64),
 		p1: Pendulum{
-			length:          50,
-			angle: float32(f) * 0.01,
+			length: sim.len1,
+			angle:  sim.angle1,
 		},
 		p2: Pendulum{
-			length:          50,
-			angle: float32(f) * 0.1,
+			length: sim.len2,
+			angle:  sim.angle2,
 		},
 	}
 
