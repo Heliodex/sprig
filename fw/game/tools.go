@@ -253,10 +253,6 @@ func f32Square(x float32) float32 {
 	return x * x
 }
 
-func square(x float64) float64 {
-	return x * x
-}
-
 type Vector3 struct {
 	X, Y, Z float32
 }
@@ -446,13 +442,13 @@ type DoublePendulum struct {
 func (dp *DoublePendulum) drawTo(buf *util.ScreenBuffer) {
 	// calculate positions
 	pos1 := util.V2(
-		dp.origin.X+int(dp.p1.length/4*f32Sin(math.Pi-dp.p1.angle)),
-		dp.origin.Y+int(dp.p1.length/4*f32Cos(math.Pi-dp.p1.angle)),
+		dp.origin.X+int(dp.p1.length/4*f32Sin(dp.p1.angle)),
+		dp.origin.Y+int(dp.p1.length/4*f32Cos(dp.p1.angle)),
 	)
 
 	pos2 := util.V2(
-		pos1.X+int(dp.p2.length/4*f32Sin(math.Pi-dp.p2.angle)),
-		pos1.Y+int(dp.p2.length/4*f32Cos(math.Pi-dp.p2.angle)),
+		pos1.X+int(dp.p2.length/4*f32Sin(dp.p2.angle)),
+		pos1.Y+int(dp.p2.length/4*f32Cos(dp.p2.angle)),
 	)
 
 	// draw arms
