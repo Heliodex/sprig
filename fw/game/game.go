@@ -49,15 +49,16 @@ type Simulation struct {
 var (
 	f   int
 	sim = &Simulation{
-		g:      9.81,
-		len1:   120,
-		len2:   120,
-		angle1: math.Pi / 2,
-		angle2: math.Pi / 2,
-		mass1:  10,
-		mass2:  10,
-		dt:     0.06,
+		g:      2,
+		len1:   40,
+		len2:   40,
+		angle1: math.Pi + 0.1,
+		angle2: math.Pi + 0.1,
+		mass1:  4,
+		mass2:  4,
+		dt:     0.4,
 	}
+	trace [][2]util.Vector2
 )
 
 // ran every frame (or, more like this is what makes the frames)
@@ -117,7 +118,7 @@ func Update(en util.Engine) {
 	sim.angle2 += sim.aVel2 * sim.dt
 
 	pendulum := &DoublePendulum{
-		origin: util.V2(80, 64),
+		origin: util.V2(80, 24),
 		p1: Pendulum{
 			length: sim.len1,
 			angle:  sim.angle1,
@@ -128,6 +129,14 @@ func Update(en util.Engine) {
 		},
 	}
 
+	p1p := pendulum.p1.position(pendulum.origin)
+	p2p := pendulum.p2.position(p1p)
+
+	trace = append(trace, [2]util.Vector2{p1p, p2p})
+	if len(trace) > 300 {
+		trace = trace[1:]
+	}
+
 	ui := []UIElement{}
 	for _, t := range Texts {
 		ui = append(ui, t)
@@ -136,6 +145,11 @@ func Update(en util.Engine) {
 
 	for _, e := range ui {
 		e.drawTo(en.ScreenBuffer())
+	}
+
+	for i := 1; i < len(trace); i++ {
+		drawLine(en.ScreenBuffer(), trace[i-1][0], trace[i][0], util.Red)
+		drawLine(en.ScreenBuffer(), trace[i-1][1], trace[i][1], util.Blue)
 	}
 
 	en.Render()

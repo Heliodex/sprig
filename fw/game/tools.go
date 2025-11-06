@@ -434,6 +434,13 @@ type Pendulum struct {
 	length, angle float32
 }
 
+func (p *Pendulum) position(origin util.Vector2) util.Vector2 {
+	return util.V2(
+		origin.X+int(p.length*f32Sin(p.angle)),
+		origin.Y+int(p.length*f32Cos(p.angle)),
+	)
+}
+
 type DoublePendulum struct {
 	origin util.Vector2
 	p1, p2 Pendulum
@@ -441,15 +448,8 @@ type DoublePendulum struct {
 
 func (dp *DoublePendulum) drawTo(buf *util.ScreenBuffer) {
 	// calculate positions
-	pos1 := util.V2(
-		dp.origin.X+int(dp.p1.length/4*f32Sin(dp.p1.angle)),
-		dp.origin.Y+int(dp.p1.length/4*f32Cos(dp.p1.angle)),
-	)
-
-	pos2 := util.V2(
-		pos1.X+int(dp.p2.length/4*f32Sin(dp.p2.angle)),
-		pos1.Y+int(dp.p2.length/4*f32Cos(dp.p2.angle)),
-	)
+	pos1 := dp.p1.position(dp.origin)
+	pos2 := dp.p2.position(pos1)
 
 	// draw arms
 	drawLine(buf, dp.origin, pos1, util.White)
