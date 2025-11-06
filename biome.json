@@ -3,14 +3,6 @@
 	"formatter": {
 		"indentWidth": 4
 	},
-	"linter": {
-		"rules": {
-			"nursery": {
-				"all": true,
-				"useImportRestrictions": "off"
-			}
-		}
-	},
 	"javascript": {
 		"formatter": {
 			"semicolons": "asNeeded",
