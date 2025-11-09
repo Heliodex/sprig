@@ -42,23 +42,25 @@ type Simulation struct {
 	angle1, angle2,
 	mass1, mass2,
 	aVel1, aVel2,
-	dt float32
+	dt float64
 	// aAcc1, aAcc2 float32
 }
+
+type State [2]util.Vector2
+
+const maxTraceLen = 30
 
 var (
 	f   int
 	sim = &Simulation{
-		g:      2,
-		len1:   40,
-		len2:   40,
-		angle1: math.Pi + 0.1,
-		angle2: math.Pi + 0.1,
-		mass1:  4,
-		mass2:  4,
-		dt:     0.4,
+		g:     2,
+		len1:  40,
+		len2:  40,
+		mass1: 4,
+		mass2: 4,
+		dt:    0.4,
 	}
-	trace [][2]util.Vector2
+	trace []State
 )
 
 // ran every frame (or, more like this is what makes the frames)
@@ -81,39 +83,83 @@ func Update(en util.Engine) {
 		if b.Pressed() {
 			Texts[i].colour = util.Green
 		} else {
-			Texts[i].colour = util.Red
+			Texts[i].colour = util.Grey2
 		}
 	}
 
-	// update simulation
-	// ek := 0.5*sim.mass1*f32Square(sim.len1)*f32Square(sim.aVel1) +
-	// 	0.5*sim.mass2*(f32Square(sim.len1)*f32Square(sim.aVel1)+
-	// 		f32Square(sim.len2)*f32Square(sim.aVel2)+
-	// 		2*sim.len1*sim.len2*sim.aVel1*sim.aVel2*f32Cos(sim.angle1-sim.angle2))
+	if btns[util.W].Pressed() {
+		sim.g = 0
+	} else {
+		sim.g = 2
+	}
 
-	// ep := (sim.mass1+sim.mass2)*sim.gravity*sim.len1*(1-f32Cos(sim.angle1)) +
-	// 	sim.mass2*sim.gravity*sim.len2*(1-f32Cos(sim.angle2))
+	if btns[util.S].Pressed() {
+		// reset
+		sim = &Simulation{
+			g:     2,
+			len1:  40,
+			len2:  40,
+			mass1: 4,
+			mass2: 4,
+			dt:    0.4,
+		}
+		trace = nil
+	}
+
+	if btns[util.A].Pressed() {
+		sim.aVel1 -= 0.01
+	}
+
+	if btns[util.D].Pressed() {
+		sim.aVel1 += 0.01
+	}
+
+	if btns[util.I].Pressed() {
+		sim.len1 = min(sim.len1+1, 100)
+	}
+
+	if btns[util.K].Pressed() {
+		sim.len1 = max(sim.len1-1, 10)
+	}
+
+	if btns[util.L].Pressed() {
+		sim.mass2 = min(sim.mass2+0.5, 20)
+	}
+
+	if btns[util.J].Pressed() {
+		sim.mass2 = max(sim.mass2-0.5, 1)
+	}
+
+	// update simulation
+	// ek := 0.5*sim.mass1*math.Square(sim.len1)*math.Square(sim.aVel1) +
+	// 	0.5*sim.mass2*(math.Square(sim.len1)*math.Square(sim.aVel1)+
+	// 		math.Square(sim.len2)*math.Square(sim.aVel2)+
+	// 		2*sim.len1*sim.len2*sim.aVel1*sim.aVel2*math.Cos(sim.angle1-sim.angle2))
+
+	// ep := (sim.mass1+sim.mass2)*sim.gravity*sim.len1*(1-math.Cos(sim.angle1)) +
+	// 	sim.mass2*sim.gravity*sim.len2*(1-math.Cos(sim.angle2))
 
 	// L := ek - ep
 
 	diff := sim.angle2 - sim.angle1
 
 	d1 := (sim.mass1+sim.mass2)*sim.len1 -
-		sim.mass2*sim.len1*f32Square(f32Cos(diff))
+		sim.mass2*sim.len1*square(math.Cos(diff))
 	d2 := (sim.len2 / sim.len1) * d1
 
-	aAccel1 := (sim.mass2*sim.len1*f32Square(sim.aVel1)*f32Sin(diff)*f32Cos(diff) +
-		sim.mass2*sim.g*f32Sin(sim.angle2)*f32Cos(diff) +
-		sim.mass2*sim.len2*f32Square(sim.aVel2)*f32Sin(diff) -
-		(sim.mass1+sim.mass2)*sim.g*f32Sin(sim.angle1)) / d1
+	aAccel1 := (sim.mass2*sim.len1*square(sim.aVel1)*math.Sin(diff)*math.Cos(diff) +
+		sim.mass2*sim.g*math.Sin(sim.angle2)*math.Cos(diff) +
+		sim.mass2*sim.len2*square(sim.aVel2)*math.Sin(diff) -
+		(sim.mass1+sim.mass2)*sim.g*math.Sin(sim.angle1)) / d1
 
-	aAccel2 := (-sim.mass2*sim.len2*f32Square(sim.aVel2)*f32Sin(diff)*f32Cos(diff) +
-		(sim.mass1+sim.mass2)*sim.g*f32Sin(sim.angle1)*f32Cos(diff) -
-		(sim.mass1+sim.mass2)*sim.len1*f32Square(sim.aVel1)*f32Sin(diff) -
-		(sim.mass1+sim.mass2)*sim.g*f32Sin(sim.angle2)) / d2
+	aAccel2 := (-sim.mass2*sim.len2*square(sim.aVel2)*math.Sin(diff)*math.Cos(diff) +
+		(sim.mass1+sim.mass2)*sim.g*math.Sin(sim.angle1)*math.Cos(diff) -
+		(sim.mass1+sim.mass2)*sim.len1*square(sim.aVel1)*math.Sin(diff) -
+		(sim.mass1+sim.mass2)*sim.g*math.Sin(sim.angle2)) / d2
 
-	sim.aVel1 += aAccel1 * sim.dt
-	sim.aVel2 += aAccel2 * sim.dt
+	// speed clamping, so it can't helicopter itself to NaNistan
+	sim.aVel1 = min(sim.aVel1+aAccel1*sim.dt, 1)
+	sim.aVel2 = min(sim.aVel2+aAccel2*sim.dt, 1)
 	sim.angle1 += sim.aVel1 * sim.dt
 	sim.angle2 += sim.aVel2 * sim.dt
 
@@ -122,34 +168,35 @@ func Update(en util.Engine) {
 		p1: Pendulum{
 			length: sim.len1,
 			angle:  sim.angle1,
+			mass:   sim.mass1,
 		},
 		p2: Pendulum{
 			length: sim.len2,
 			angle:  sim.angle2,
+			mass:   sim.mass2,
 		},
 	}
 
 	p1p := pendulum.p1.position(pendulum.origin)
 	p2p := pendulum.p2.position(p1p)
 
-	trace = append(trace, [2]util.Vector2{p1p, p2p})
-	if len(trace) > 300 {
+	trace = append(trace, State{p1p, p2p})
+	if len(trace) > maxTraceLen {
 		trace = trace[1:]
-	}
-
-	ui := []UIElement{}
-	for _, t := range Texts {
-		ui = append(ui, t)
-	}
-	ui = append(ui, pendulum)
-
-	for _, e := range ui {
-		e.drawTo(en.ScreenBuffer())
 	}
 
 	for i := 1; i < len(trace); i++ {
 		drawLine(en.ScreenBuffer(), trace[i-1][0], trace[i][0], util.Red)
 		drawLine(en.ScreenBuffer(), trace[i-1][1], trace[i][1], util.Blue)
+	}
+
+	ui := []UIElement{pendulum}
+	for _, t := range Texts {
+		ui = append(ui, t)
+	}
+
+	for _, e := range ui {
+		e.drawTo(en.ScreenBuffer())
 	}
 
 	en.Render()

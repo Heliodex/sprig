@@ -253,6 +253,10 @@ func f32Square(x float32) float32 {
 	return x * x
 }
 
+func square(x float64) float64 {
+	return x * x
+}
+
 type Vector3 struct {
 	X, Y, Z float32
 }
@@ -431,13 +435,13 @@ func (c *Circle) drawTo(buf *util.ScreenBuffer) {
 }
 
 type Pendulum struct {
-	length, angle float32
+	length, angle, mass float64
 }
 
 func (p *Pendulum) position(origin util.Vector2) util.Vector2 {
 	return util.V2(
-		origin.X+int(p.length*f32Sin(p.angle)),
-		origin.Y+int(p.length*f32Cos(p.angle)),
+		origin.X+int(p.length*math.Sin(p.angle)),
+		origin.Y+int(p.length*math.Cos(p.angle)),
 	)
 }
 
@@ -455,9 +459,9 @@ func (dp *DoublePendulum) drawTo(buf *util.ScreenBuffer) {
 	drawLine(buf, dp.origin, pos1, util.White)
 	drawLine(buf, pos1, pos2, util.White)
 
-	// draw bobs
-	circle1 := &Circle{pos1, 4, util.Red}
-	circle2 := &Circle{pos2, 4, util.Blue}
+	// draw bobs, scaled by mass
+	circle1 := &Circle{pos1, int(math.Sqrt(dp.p1.mass / math.Pi)* 5), util.Red}
+	circle2 := &Circle{pos2, int(math.Sqrt(dp.p2.mass / math.Pi)* 5), util.Blue}
 	circle1.drawTo(buf)
 	circle2.drawTo(buf)
 }
