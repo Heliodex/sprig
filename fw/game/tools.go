@@ -249,10 +249,6 @@ func f32Sqrt(x float32) float32 {
 	return float32(math.Sqrt(float64(x)))
 }
 
-func f32Square(x float32) float32 {
-	return x * x
-}
-
 func square(x float64) float64 {
 	return x * x
 }

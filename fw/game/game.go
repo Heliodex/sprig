@@ -58,7 +58,7 @@ var (
 		len2:  40,
 		mass1: 4,
 		mass2: 4,
-		dt:    0.4,
+		dt:    0.2,
 	}
 	trace []State
 )
