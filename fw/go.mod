@@ -1,6 +1,6 @@
 module fw
 
-go 1.25.2
+go 1.25.4
 
 require tinygo.org/x/drivers v0.31.0
 
