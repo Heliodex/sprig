@@ -461,3 +461,15 @@ func (dp *DoublePendulum) drawTo(buf *util.ScreenBuffer) {
 	circle1.drawTo(buf)
 	circle2.drawTo(buf)
 }
+
+type Mass struct {
+	position util.Vector2
+	mass     float64
+	colour  util.Pixel
+}
+
+func (m *Mass) drawTo(buf *util.ScreenBuffer) {
+	radius := int(math.Sqrt(m.mass / math.Pi) * 5)
+	circle := &Circle{m.position, radius, m.colour}
+	circle.drawTo(buf)
+}
