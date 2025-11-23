@@ -59,24 +59,24 @@ var (
 	f   int
 	sim = &Simulation{
 		dt:     0.06,
-		scale:  10,
+		scale:  75,
 		G:      1,
 		origin: util.V2(64, 64),
 		masses: []Mass{
 			{
-				mass:     1,
+				mass:     2,
 				position: util.V2(-0.372008640907423, 0),
 				velocity: util.V2(0, 1.21800411067968),
 				colour:   util.Blue,
 			},
 			{
-				mass:     1,
+				mass:     2,
 				position: util.V2[float64](1, 0),
 				velocity: util.V2(0, 0.4531080538336022),
 				colour:   util.Red,
 			},
 			{
-				mass:     1,
+				mass:     2,
 				position: util.V2[float64](0, 0),
 				velocity: util.V2(0, -(1.21800411067968 + 0.4531080538336022)),
 				colour:   util.Green,
@@ -114,11 +114,13 @@ func Update(en util.Engine) {
 	forces := make([]util.Vector2[float64], len(sim.masses))
 
 	for i, mi := range sim.masses {
-		for j, mj := range sim.masses[i+1:] {
+		for j := i + 1; j < len(sim.masses); j++ {
+			mj := sim.masses[j]
+
 			d := mj.position.Sub(mi.position)
 
 			force := sim.G * mi.mass * mj.mass
-			distance := math.Max(d.Len(), 1)
+			distance := max(d.Len(), 1)
 
 			f := d.Mul(force).Div(distance * distance * distance)
 
@@ -156,9 +158,9 @@ func Update(en util.Engine) {
 
 	sim.drawTo(en.ScreenBuffer())
 
-	for _, e := range Texts {
-		e.drawTo(en.ScreenBuffer())
-	}
+	// for _, e := range Texts {
+	// 	e.drawTo(en.ScreenBuffer())
+	// }
 
 	en.Render()
 	f++
