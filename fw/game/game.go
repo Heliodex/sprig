@@ -56,6 +56,15 @@ var (
 	trace []State
 )
 
+func ForceBetween(m1, m2 *Mass) util.Vector2 {
+	dir := m2.position.Sub(m1.position)
+	dist := dir.Len()
+	if dist == 0 {
+		return util.Vector2{}
+	}
+	return dir.Normalize().Mul(m1.mass * m2.mass / float64(dist * dist))
+}
+
 // ran every frame (or, more like this is what makes the frames)
 func Update(en util.Engine) {
 	btns := en.Buttons()

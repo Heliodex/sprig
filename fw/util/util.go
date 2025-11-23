@@ -1,6 +1,10 @@
 package util
 
-import "tinygo.org/x/drivers/pixel"
+import (
+	"math"
+
+	"tinygo.org/x/drivers/pixel"
+)
 
 const (
 	Width  = 160
@@ -101,6 +105,10 @@ type Engine interface {
 	ScreenBuffer() *ScreenBuffer
 }
 
+func sqrt(x int) int {
+	return int(math.Sqrt(float64(x)))
+}
+
 type Vector2 struct {
 	X, Y int
 }
@@ -112,3 +120,30 @@ func V2(x, y int) Vector2 {
 func (v Vector2) Swap() Vector2 {
 	return Vector2{X: v.Y, Y: v.X}
 }
+
+func (v Vector2) Add(o Vector2) Vector2 {
+	return Vector2{X: v.X + o.X, Y: v.Y + o.Y}
+}
+
+func (v Vector2) Sub(o Vector2) Vector2 {
+	return Vector2{X: v.X - o.X, Y: v.Y - o.Y}
+}
+
+func (v Vector2) Mul(scalar float64) Vector2 {
+	return Vector2{X: int(float64(v.X) * scalar), Y: int(float64(v.Y) * scalar)}
+}
+
+func (v Vector2) Len() int {
+	x2 := v.X * v.X
+	y2 := v.Y * v.Y
+	return sqrt(x2 + y2)
+}
+
+func (v Vector2) Normalize() Vector2 {
+	length := v.Len()
+	if length == 0 {
+		return Vector2{}
+	}
+	return Vector2{X: v.X / length, Y: v.Y / length}
+}
+
