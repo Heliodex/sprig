@@ -1,6 +1,6 @@
 module music
 
-go 1.22.5
+go 1.25.4
 
 require (
 	github.com/gotracker/goaudiofile v1.0.16 // indirect
