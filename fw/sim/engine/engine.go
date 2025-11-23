@@ -52,7 +52,7 @@ const (
 
 // sprig has 8kro, my keyboard has 6kro, it's joever
 // WASD IJKL
-var buttonPoss = [util.ButtonsCount]util.Vector2{
+var buttonPoss = [util.ButtonsCount]util.Vector2[int]{
 	{X: buttonSize + pad, Y: buttonSize},
 	{X: pad, Y: buttonSize * 2},
 	{X: buttonSize + pad, Y: buttonSize * 3},
@@ -65,12 +65,12 @@ var buttonPoss = [util.ButtonsCount]util.Vector2{
 }
 
 var (
-	ledLeftPos  = util.Vector2{X: pad, Y: pad}
-	ledRightPos = util.Vector2{X: width - ledSize*1.5 - pad, Y: pad}
+	ledLeftPos  = util.Vector2[int]{X: pad, Y: pad}
+	ledRightPos = util.Vector2[int]{X: width - ledSize*1.5 - pad, Y: pad}
 )
 
 type ButtonImpl struct {
-	pos    util.Vector2
+	pos    util.Vector2[int]
 	window screen.Window
 	state  bool
 }

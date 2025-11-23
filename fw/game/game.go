@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"fw/util"
 	"runtime"
 	"strconv"
@@ -39,7 +40,7 @@ type (
 	Simulation struct {
 		masses []Mass
 	}
-	State []util.Vector2
+	State []util.Vector2[float64]
 )
 
 const maxTraceLen = 30
@@ -48,21 +49,29 @@ var (
 	f   int
 	sim = &Simulation{
 		masses: []Mass{
-			{position: util.V2(60, 24), mass: 5, colour: util.Red},
-			{position: util.V2(100, 24), mass: 5, colour: util.Blue},
-			{position: util.V2(80, 48), mass: 5, colour: util.Green},
+			{position: util.V2[float64](20, 24), mass: 5, colour: util.Red},
+			{position: util.V2[float64](90, 34), mass: 5, colour: util.Blue},
+			{position: util.V2[float64](75, 98), mass: 5, colour: util.Green},
 		},
 	}
 	trace []State
 )
 
-func ForceBetween(m1, m2 *Mass) util.Vector2 {
+func ForceBetween(m1, m2 *Mass) util.Vector2[float64] {
 	dir := m2.position.Sub(m1.position)
+	fmt.Println("ForceBetween:", dir)
 	dist := dir.Len()
 	if dist == 0 {
-		return util.Vector2{}
+		return util.Vector2[float64]{}
 	}
-	return dir.Normalize().Mul(m1.mass * m2.mass / float64(dist * dist))
+
+	xNormal := float64(dir.X) / float64(dist)
+	yNormal := float64(dir.Y) / float64(dist)
+	forceMagnitude := (m1.mass * m2.mass) / float64(dist*dist) * 10
+	forceX := xNormal * forceMagnitude
+	forceY := yNormal * forceMagnitude
+
+	return util.Vector2[float64]{X: forceX, Y: forceY}
 }
 
 // ran every frame (or, more like this is what makes the frames)
@@ -90,6 +99,21 @@ func Update(en util.Engine) {
 	}
 
 	// update simulation
+	for i := range sim.masses {
+		f := util.Vector2[float64]{}
+		for j := range sim.masses {
+			if i != j {
+				f = f.Add(ForceBetween(&sim.masses[i], &sim.masses[j]))
+			}
+		}
+		sim.masses[i].force = f
+		fmt.Println("Mass", i, "force:", sim.masses[i].force)
+	}
+
+	for i := range sim.masses {
+		acc := sim.masses[i].force.Mul(1 / sim.masses[i].mass)
+		sim.masses[i].position = sim.masses[i].position.Add(acc)
+	}
 
 	m1p := sim.masses[0].position
 	m2p := sim.masses[1].position
@@ -101,9 +125,9 @@ func Update(en util.Engine) {
 	}
 
 	for i := 1; i < len(trace); i++ {
-		drawLine(en.ScreenBuffer(), trace[i-1][0], trace[i][0], util.Red)
-		drawLine(en.ScreenBuffer(), trace[i-1][1], trace[i][1], util.Blue)
-		drawLine(en.ScreenBuffer(), trace[i-1][2], trace[i][2], util.Green)
+		drawLine(en.ScreenBuffer(), trace[i-1][0].Int(), trace[i][0].Int(), util.Red)
+		drawLine(en.ScreenBuffer(), trace[i-1][1].Int(), trace[i][1].Int(), util.Blue)
+		drawLine(en.ScreenBuffer(), trace[i-1][2].Int(), trace[i][2].Int(), util.Green)
 	}
 
 	for _, m := range sim.masses {

@@ -9,7 +9,7 @@ import (
 type Text struct {
 	font   *Font
 	text   string
-	pos    util.Vector2
+	pos    util.Vector2[int]
 	colour util.Pixel
 }
 
@@ -32,7 +32,7 @@ func (t *Text) drawTo(buf *util.ScreenBuffer) {
 
 type Grid struct {
 	colour1, colour2            util.Pixel
-	pos, offset, size, cellSize util.Vector2
+	pos, offset, size, cellSize util.Vector2[int]
 }
 
 func (g *Grid) drawTo(buf *util.ScreenBuffer) {
@@ -59,7 +59,7 @@ func (g *Grid) drawTo(buf *util.ScreenBuffer) {
 
 type SineWave struct {
 	colour                       util.Pixel
-	pos                          util.Vector2
+	pos                          util.Vector2[int]
 	amplitude, wavelength, phase int
 }
 
@@ -77,7 +77,7 @@ func abs(x int) int {
 	return x
 }
 
-func drawLine(buf *util.ScreenBuffer, p1, p2 util.Vector2, colour util.Pixel) {
+func drawLine(buf *util.ScreenBuffer, p1, p2 util.Vector2[int], colour util.Pixel) {
 	dx := abs(p2.X - p1.X)
 	dy := -abs(p2.Y - p1.Y)
 	sx := -1
@@ -123,7 +123,7 @@ func floor(x float32) float32 {
 }
 
 // WARNING: VERY SLOW
-func drawLineAntialiased(buf *util.ScreenBuffer, p1, p2 util.Vector2, colour util.Pixel) {
+func drawLineAntialiased(buf *util.ScreenBuffer, p1, p2 util.Vector2[int], colour util.Pixel) {
 	dx, dy := p2.X-p1.X, p2.Y-p1.Y
 	steep := abs(dy) > abs(dx)
 
@@ -180,7 +180,7 @@ func clampY(y int) int {
 	return y
 }
 
-func drawTriangle2D(buf *util.ScreenBuffer, p1, p2, p3 util.Vector2, colour util.Pixel) {
+func drawTriangle2D(buf *util.ScreenBuffer, p1, p2, p3 util.Vector2[int], colour util.Pixel) {
 	// sort points by Y
 	if p1.Y > p2.Y {
 		p1, p2 = p2, p1
@@ -324,7 +324,7 @@ func drawTriangle3D(tri *Tri, s *Scene3D, buf *util.ScreenBuffer, fov float32, c
 	}
 
 	// Perspective projection
-	project := func(p Vector3) util.Vector2 {
+	project := func(p Vector3) util.Vector2[int] {
 		return util.V2(
 			int(fov*p.X/p.Z)+util.Width/2,
 			util.Height/2-int(fov*p.Y/p.Z),
@@ -412,7 +412,7 @@ func (s *Scene3D) drawTo(buf *util.ScreenBuffer) {
 }
 
 type Circle struct {
-	centre util.Vector2
+	centre util.Vector2[int]
 	radius int
 	colour util.Pixel
 }
@@ -434,7 +434,7 @@ type Pendulum struct {
 	length, angle, mass float64
 }
 
-func (p *Pendulum) position(origin util.Vector2) util.Vector2 {
+func (p *Pendulum) position(origin util.Vector2[int]) util.Vector2[int] {
 	return util.V2(
 		origin.X+int(p.length*math.Sin(p.angle)),
 		origin.Y+int(p.length*math.Cos(p.angle)),
@@ -442,7 +442,7 @@ func (p *Pendulum) position(origin util.Vector2) util.Vector2 {
 }
 
 type DoublePendulum struct {
-	origin util.Vector2
+	origin util.Vector2[int]
 	p1, p2 Pendulum
 }
 
@@ -463,13 +463,13 @@ func (dp *DoublePendulum) drawTo(buf *util.ScreenBuffer) {
 }
 
 type Mass struct {
-	position util.Vector2
+	position, force util.Vector2[float64]
 	mass     float64
 	colour  util.Pixel
 }
 
 func (m *Mass) drawTo(buf *util.ScreenBuffer) {
 	radius := int(math.Sqrt(m.mass / math.Pi) * 5)
-	circle := &Circle{m.position, radius, m.colour}
+	circle := &Circle{m.position.Int(), radius, m.colour}
 	circle.drawTo(buf)
 }
