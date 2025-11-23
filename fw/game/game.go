@@ -1,8 +1,8 @@
 package game
 
 import (
-	"fmt"
 	"fw/util"
+	"math"
 	"runtime"
 	"strconv"
 	"time"
@@ -38,41 +38,53 @@ func Splash(en util.Engine) {
 
 type (
 	Simulation struct {
-		masses []Mass
+		dt, scale, G float64
+		origin       util.Vector2[int]
+		masses       []Mass
 	}
 	State []util.Vector2[float64]
 )
+
+func (sim *Simulation) drawTo(sb *util.ScreenBuffer) {
+	for _, m := range sim.masses {
+		radius := int(math.Sqrt(m.mass/math.Pi) * 5)
+		circle := &Circle{sim.origin.Add(m.position.Mul(sim.scale).Int()), radius, m.colour}
+		circle.drawTo(sb)
+	}
+}
 
 const maxTraceLen = 30
 
 var (
 	f   int
 	sim = &Simulation{
+		dt:     0.06,
+		scale:  10,
+		G:      1,
+		origin: util.V2(64, 64),
 		masses: []Mass{
-			{position: util.V2[float64](20, 24), mass: 5, colour: util.Red},
-			{position: util.V2[float64](90, 34), mass: 5, colour: util.Blue},
-			{position: util.V2[float64](75, 98), mass: 5, colour: util.Green},
+			{
+				mass:     1,
+				position: util.V2(-0.372008640907423, 0),
+				velocity: util.V2(0, 1.21800411067968),
+				colour:   util.Blue,
+			},
+			{
+				mass:     1,
+				position: util.V2[float64](1, 0),
+				velocity: util.V2(0, 0.4531080538336022),
+				colour:   util.Red,
+			},
+			{
+				mass:     1,
+				position: util.V2[float64](0, 0),
+				velocity: util.V2(0, -(1.21800411067968 + 0.4531080538336022)),
+				colour:   util.Green,
+			},
 		},
 	}
 	trace []State
 )
-
-func ForceBetween(m1, m2 *Mass) util.Vector2[float64] {
-	dir := m2.position.Sub(m1.position)
-	fmt.Println("ForceBetween:", dir)
-	dist := dir.Len()
-	if dist == 0 {
-		return util.Vector2[float64]{}
-	}
-
-	xNormal := float64(dir.X) / float64(dist)
-	yNormal := float64(dir.Y) / float64(dist)
-	forceMagnitude := (m1.mass * m2.mass) / float64(dist*dist) * 10
-	forceX := xNormal * forceMagnitude
-	forceY := yNormal * forceMagnitude
-
-	return util.Vector2[float64]{X: forceX, Y: forceY}
-}
 
 // ran every frame (or, more like this is what makes the frames)
 func Update(en util.Engine) {
@@ -99,40 +111,51 @@ func Update(en util.Engine) {
 	}
 
 	// update simulation
-	for i := range sim.masses {
-		f := util.Vector2[float64]{}
-		for j := range sim.masses {
-			if i != j {
-				f = f.Add(ForceBetween(&sim.masses[i], &sim.masses[j]))
-			}
+	forces := make([]util.Vector2[float64], len(sim.masses))
+
+	for i, mi := range sim.masses {
+		for j, mj := range sim.masses[i+1:] {
+			d := mj.position.Sub(mi.position)
+
+			force := sim.G * mi.mass * mj.mass
+			distance := math.Max(d.Len(), 1)
+
+			f := d.Mul(force).Div(distance * distance * distance)
+
+			forces[i] = forces[i].Add(f)
+			forces[j] = forces[j].Sub(f)
 		}
-		sim.masses[i].force = f
-		fmt.Println("Mass", i, "force:", sim.masses[i].force)
 	}
 
-	for i := range sim.masses {
-		acc := sim.masses[i].force.Mul(1 / sim.masses[i].mass)
-		sim.masses[i].position = sim.masses[i].position.Add(acc)
+	for i, m := range sim.masses {
+		a := forces[i].Div(m.mass)
+
+		m.velocity = m.velocity.Add(a.Mul(sim.dt))
+		m.position = m.position.Add(m.velocity.Mul(sim.dt))
+
+		sim.masses[i] = m // todo ptr or smth
 	}
 
-	m1p := sim.masses[0].position
-	m2p := sim.masses[1].position
-	m3p := sim.masses[2].position
+	state := make(State, len(sim.masses))
+	for i, m := range sim.masses {
+		state[i] = m.position
+	}
 
-	trace = append(trace, State{m1p, m2p, m3p})
+	trace = append(trace, state)
 	if len(trace) > maxTraceLen {
 		trace = trace[1:]
 	}
 
 	for i := 1; i < len(trace); i++ {
-		drawLine(en.ScreenBuffer(), trace[i-1][0].Int(), trace[i][0].Int(), util.Red)
-		drawLine(en.ScreenBuffer(), trace[i-1][1].Int(), trace[i][1].Int(), util.Blue)
-		drawLine(en.ScreenBuffer(), trace[i-1][2].Int(), trace[i][2].Int(), util.Green)
+		for j := range sim.masses {
+			drawLine(en.ScreenBuffer(), trace[i-1][j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int(),
+				trace[i][j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int(),
+				sim.masses[j].colour)
+		}
 	}
 
-	for _, m := range sim.masses {
-		m.drawTo(en.ScreenBuffer())
-	}
+	sim.drawTo(en.ScreenBuffer())
+
 	for _, e := range Texts {
 		e.drawTo(en.ScreenBuffer())
 	}

@@ -137,6 +137,10 @@ func (v Vector2[T]) Mul(scalar float64) Vector2[T] {
 	return Vector2[T]{X: T(float64(v.X) * scalar), Y: T(float64(v.Y) * scalar)}
 }
 
+func (v Vector2[T]) Div(scalar float64) Vector2[T] {
+	return Vector2[T]{X: T(float64(v.X) / scalar), Y: T(float64(v.Y) / scalar)}
+}
+
 func (v Vector2[T]) Len() T {
 	x2 := v.X * v.X
 	y2 := v.Y * v.Y

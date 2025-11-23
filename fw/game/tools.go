@@ -456,20 +456,15 @@ func (dp *DoublePendulum) drawTo(buf *util.ScreenBuffer) {
 	drawLine(buf, pos1, pos2, util.White)
 
 	// draw bobs, scaled by mass
-	circle1 := &Circle{pos1, int(math.Sqrt(dp.p1.mass / math.Pi)* 5), util.Red}
-	circle2 := &Circle{pos2, int(math.Sqrt(dp.p2.mass / math.Pi)* 5), util.Blue}
+	circle1 := &Circle{pos1, int(math.Sqrt(dp.p1.mass/math.Pi) * 5), util.Red}
+	circle2 := &Circle{pos2, int(math.Sqrt(dp.p2.mass/math.Pi) * 5), util.Blue}
 	circle1.drawTo(buf)
 	circle2.drawTo(buf)
 }
 
 type Mass struct {
-	position, force util.Vector2[float64]
-	mass     float64
-	colour  util.Pixel
+	position, velocity util.Vector2[float64]
+	mass               float64
+	colour             util.Pixel
 }
 
-func (m *Mass) drawTo(buf *util.ScreenBuffer) {
-	radius := int(math.Sqrt(m.mass / math.Pi) * 5)
-	circle := &Circle{m.position.Int(), radius, m.colour}
-	circle.drawTo(buf)
-}
