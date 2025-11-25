@@ -55,11 +55,28 @@ func (sim *Simulation) drawTo(sb *util.ScreenBuffer) {
 
 const maxTraceLen = 30
 
+type Toggle struct {
+	last, state bool
+	onPress     func()
+}
+
+func (t *Toggle) Update(current bool) {
+	// if the value has changed since last frame
+	if current && current != t.last {
+		t.state = !t.state
+		// and it's now pressed
+		if t.onPress != nil {
+			t.onPress()
+		}
+	}
+	t.last = current
+}
+
 var (
 	f   int
 	sim = &Simulation{
 		dt:     0.06,
-		scale:  75,
+		scale:  50,
 		G:      1,
 		origin: util.V2(64, 64),
 		masses: []Mass{
@@ -83,7 +100,26 @@ var (
 			},
 		},
 	}
-	trace []State
+	trace     []State
+	toggleAdd = &Toggle{
+		onPress: func() {
+			newmass := Mass{
+				mass:     1,
+				position: util.V2((float64(f%20)-10)*0.1, (float64((f/20)%20)-10)*0.1),
+				velocity: util.V2[float64](0, 0),
+				colour:   util.White,
+			}
+			sim.masses = append(sim.masses, newmass)
+		},
+	}
+	toggleRemove = &Toggle{
+		onPress: func() {
+			if len(sim.masses) == 0 {
+				return
+			}
+			sim.masses = sim.masses[:len(sim.masses)-1]
+		},
+	}
 )
 
 // ran every frame (or, more like this is what makes the frames)
@@ -109,6 +145,9 @@ func Update(en util.Engine) {
 			Texts[i].colour = util.Grey2
 		}
 	}
+
+	toggleAdd.Update(btns[3].Pressed())
+	toggleRemove.Update(btns[1].Pressed())
 
 	// update simulation
 	forces := make([]util.Vector2[float64], len(sim.masses))
@@ -150,17 +189,21 @@ func Update(en util.Engine) {
 
 	for i := 1; i < len(trace); i++ {
 		for j := range sim.masses {
-			drawLine(en.ScreenBuffer(), trace[i-1][j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int(),
-				trace[i][j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int(),
-				sim.masses[j].colour)
+			if j >= len(trace[i-1]) || j >= len(trace[i]) {
+				continue
+			}
+
+			start := trace[i-1][j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int()
+			end := trace[i][j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int()
+			drawLine(en.ScreenBuffer(), start, end, sim.masses[j].colour)
 		}
 	}
 
 	sim.drawTo(en.ScreenBuffer())
 
-	// for _, e := range Texts {
-	// 	e.drawTo(en.ScreenBuffer())
-	// }
+	for _, e := range Texts {
+		e.drawTo(en.ScreenBuffer())
+	}
 
 	en.Render()
 	f++
