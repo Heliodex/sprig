@@ -77,6 +77,18 @@ func abs(x int) int {
 	return x
 }
 
+func drawVLine(buf *util.ScreenBuffer, x, y1, y2 int, colour util.Pixel) {
+	for y := y1; y <= y2; y++ {
+		buf.Set(x, y, colour)
+	}
+}
+
+func drawHLine(buf *util.ScreenBuffer, y, x1, x2 int, colour util.Pixel) {
+	for x := x1; x <= x2; x++ {
+		buf.Set(x, y, colour)
+	}
+}
+
 func drawLine(buf *util.ScreenBuffer, p1, p2 util.Vector2[int], colour util.Pixel) {
 	dx := abs(p2.X - p1.X)
 	dy := -abs(p2.Y - p1.Y)
@@ -468,3 +480,13 @@ type Mass struct {
 	colour             util.Pixel
 }
 
+type Crosshair struct {
+	pos    util.Vector2[int]
+	colour util.Pixel
+	size   int
+}
+
+func (c *Crosshair) drawTo(buf *util.ScreenBuffer) {
+	drawHLine(buf, c.pos.Y, c.pos.X-c.size, c.pos.X+c.size, c.colour)
+	drawVLine(buf, c.pos.X, c.pos.Y-c.size, c.pos.Y+c.size, c.colour)
+}

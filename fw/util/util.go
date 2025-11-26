@@ -72,6 +72,7 @@ var (
 
 	Grey1 = MakePixel(0x20, 0x20, 0x20)
 	Grey2 = MakePixel(0x40, 0x40, 0x40)
+	Grey3 = MakePixel(0x80, 0x80, 0x80)
 )
 
 type buttonId uint8
@@ -141,6 +142,10 @@ func (v Vector2[T]) Div(scalar float64) Vector2[T] {
 	return Vector2[T]{X: T(float64(v.X) / scalar), Y: T(float64(v.Y) / scalar)}
 }
 
+func (v Vector2[T]) Neg() Vector2[T] {
+	return Vector2[T]{X: -v.X, Y: -v.Y}
+}
+
 func (v Vector2[T]) Len() T {
 	x2 := v.X * v.X
 	y2 := v.Y * v.Y
@@ -149,4 +154,8 @@ func (v Vector2[T]) Len() T {
 
 func (v Vector2[float64]) Int() Vector2[int] {
 	return V2(int(v.X), int(v.Y))
+}
+
+func (v Vector2[int]) Float64() Vector2[float64] {
+	return V2(float64(v.X), float64(v.Y))
 }
