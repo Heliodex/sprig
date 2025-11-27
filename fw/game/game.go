@@ -41,7 +41,7 @@ type (
 	Simulation struct {
 		dt, scale, G float64
 		origin       util.Vector2[int]
-		masses       []Mass
+		masses       []*Mass
 	}
 	State []util.Vector2[float64]
 )
@@ -53,8 +53,6 @@ func (sim *Simulation) drawTo(sb *util.ScreenBuffer) {
 		circle.drawTo(sb)
 	}
 }
-
-const maxTraceLen = 30
 
 type Toggle struct {
 	last, state bool
@@ -80,7 +78,7 @@ var (
 		scale:  50,
 		G:      1,
 		origin: util.V2(64, 64),
-		masses: []Mass{
+		masses: []*Mass{
 			{
 				mass:     2,
 				position: util.V2(-0.372008640907423, 0),
@@ -101,7 +99,7 @@ var (
 			},
 		},
 	}
-	trace     []State
+	trace     []*State
 	toggleAdd = &Toggle{
 		onPress: func() {
 			colours := []util.Pixel{util.Red, util.Green, util.Blue, util.White, util.Yellow, util.Cyan, util.Magenta, util.Grey2, util.Grey3}
@@ -110,7 +108,7 @@ var (
 			// centre on window crosshairs
 			centre := util.V2[float64](util.Width/2, util.Height/2).Sub(sim.origin.Float64()).Div(sim.scale)
 
-			newmass := Mass{
+			newmass := &Mass{
 				mass:     rand.Float64()*1.5 + 0.5,
 				position: centre,
 				velocity: util.V2(rand.Float64()*2-1, rand.Float64()*2-1).Mul(0.3),
@@ -217,19 +215,23 @@ func Update(en util.Engine) {
 		state[i] = m.position
 	}
 
-	trace = append(trace, state)
-	if len(trace) > maxTraceLen {
-		trace = trace[1:]
+	maxTraceLen := max(30-len(sim.masses), 0)
+
+	trace = append(trace, &state)
+	if diff := len(trace) - maxTraceLen; diff > 0 {
+		trace = trace[diff:]
 	}
 
 	for i := 1; i < len(trace); i++ {
 		for j := range sim.masses {
-			if j >= len(trace[i-1]) || j >= len(trace[i]) {
+			a, b := *(trace[i-1]), *(trace[i])
+
+			if j >= len(a) || j >= len(b) {
 				continue
 			}
 
-			start := trace[i-1][j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int()
-			end := trace[i][j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int()
+			start := a[j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int()
+			end := b[j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int()
 			drawLine(en.ScreenBuffer(), start, end, sim.masses[j].colour)
 		}
 	}
