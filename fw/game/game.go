@@ -38,9 +38,9 @@ func Splash(en util.Engine) {
 
 type (
 	Simulation struct {
-		dt, scale, G float64
-		origin       util.Vector2[int]
-		masses       []*Mass
+		dt, scale, G, floor float64
+		origin              util.Vector2[int]
+		masses              []*Mass
 	}
 	State []util.Vector2[float64]
 )
@@ -51,6 +51,11 @@ func (sim *Simulation) drawTo(sb *util.ScreenBuffer) {
 		circle := &Circle{sim.origin.Add(m.position.Mul(sim.scale).Int()), radius, m.colour}
 		circle.drawTo(sb)
 	}
+
+	// draw floor
+	y := int(float64(sim.origin.Y) + sim.floor*sim.scale)
+	// drawHLine(sb, 50, 0, 100, util.Red)
+	drawHLine(sb, y, 0, util.Width, util.Grey3)
 }
 
 type Toggle struct {
@@ -76,6 +81,7 @@ var (
 		dt:     0.06,
 		scale:  50,
 		G:      1,
+		floor:  1,
 		origin: util.V2(80, 64),
 	}
 	trace     []*State
@@ -88,20 +94,18 @@ var (
 			// centre := util.V2[float64](util.Width/2, util.Height/2).Sub(sim.origin.Float64()).Div(sim.scale)
 
 			newmass := &Mass{
-				mass:     1.5,
-				position: util.V2[float64](0, 0),
-				velocity: util.V2[float64](1, 1),
-				colour:   c,
+				mass:         1.5,
+				initPosition: util.V2[float64](0, 0),
+				initVelocity: util.V2[float64](1, -1),
+				colour:       c,
 			}
+
+			// if len(sim.masses) < 10 {
 			sim.masses = append(sim.masses, newmass)
-		},
-	}
-	toggleRemove = &Toggle{
-		onPress: func() {
-			if len(sim.masses) == 0 {
-				return
-			}
-			sim.masses = sim.masses[:len(sim.masses)-1]
+			// } else {
+			// 	sim.masses = sim.masses[1:]
+			// 	sim.masses = append(sim.masses, newmass)
+			// }
 		},
 	}
 )
@@ -151,13 +155,46 @@ func Update(en util.Engine) {
 	}
 
 	toggleAdd.Update(btns[7].Pressed())
-	toggleRemove.Update(btns[5].Pressed())
 
-	// update simulation
+	// update projectile simulation
+	for _, m := range sim.masses {
+		m.time += sim.dt
+
+		m.position = util.V2(
+			m.initPosition.X+m.initVelocity.X*m.time,
+			m.initPosition.Y+m.initVelocity.Y*m.time+(sim.G*m.time*m.time)/2,
+		)
+
+		m.velocity = util.V2(
+			m.initVelocity.X,
+			m.initVelocity.Y+sim.G*m.time,
+		)
+	}
 
 	state := make(State, len(sim.masses))
 	for i, m := range sim.masses {
 		state[i] = m.position
+
+		rf := sim.floor - 0.07
+		if m.position.Y < rf {
+			continue
+		}
+
+		// reset position and time
+		m.initPosition = util.V2(
+			m.position.X,
+			rf,
+		)
+		m.time = 0
+		// dampen velocity
+		m.initVelocity = util.V2(
+			m.velocity.X*0.7,
+			-m.velocity.Y*0.7,
+		)
+
+		if math.Abs(m.initVelocity.Y) < 0.1 {
+			m.initVelocity.Y = 0
+		}
 	}
 
 	maxTraceLen := max(30-len(sim.masses), 0)
