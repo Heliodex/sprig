@@ -3,7 +3,6 @@ package game
 import (
 	"fw/util"
 	"math"
-	"math/rand/v2"
 	"runtime"
 	"strconv"
 	"time"
@@ -77,27 +76,7 @@ var (
 		dt:     0.06,
 		scale:  50,
 		G:      1,
-		origin: util.V2(64, 64),
-		masses: []*Mass{
-			{
-				mass:     2,
-				position: util.V2(-0.372008640907423, 0),
-				velocity: util.V2(0, 1.21800411067968),
-				colour:   util.Blue,
-			},
-			{
-				mass:     2,
-				position: util.V2[float64](1, 0),
-				velocity: util.V2(0, 0.4531080538336022),
-				colour:   util.Red,
-			},
-			{
-				mass:     2,
-				position: util.V2[float64](0, 0),
-				velocity: util.V2(0, -(1.21800411067968 + 0.4531080538336022)),
-				colour:   util.Green,
-			},
-		},
+		origin: util.V2(80, 64),
 	}
 	trace     []*State
 	toggleAdd = &Toggle{
@@ -106,12 +85,12 @@ var (
 			c := colours[len(sim.masses)%len(colours)]
 
 			// centre on window crosshairs
-			centre := util.V2[float64](util.Width/2, util.Height/2).Sub(sim.origin.Float64()).Div(sim.scale)
+			// centre := util.V2[float64](util.Width/2, util.Height/2).Sub(sim.origin.Float64()).Div(sim.scale)
 
 			newmass := &Mass{
-				mass:     rand.Float64()*1.5 + 0.5,
-				position: centre,
-				velocity: util.V2(rand.Float64()*2-1, rand.Float64()*2-1).Mul(0.3),
+				mass:     1.5,
+				position: util.V2[float64](0, 0),
+				velocity: util.V2[float64](1, 1),
 				colour:   c,
 			}
 			sim.masses = append(sim.masses, newmass)
@@ -158,14 +137,6 @@ func Update(en util.Engine) {
 		}
 	}
 
-	if btns[4].Pressed() {
-		sim.dt += 0.001
-	}
-
-	if btns[6].Pressed() {
-		sim.dt -= 0.001
-	}
-
 	if btns[2].Pressed() {
 		sim.origin = sim.origin.Add(util.V2(0, -2))
 	}
@@ -183,32 +154,6 @@ func Update(en util.Engine) {
 	toggleRemove.Update(btns[5].Pressed())
 
 	// update simulation
-	forces := make([]util.Vector2[float64], len(sim.masses))
-
-	for i, mi := range sim.masses {
-		for j := i + 1; j < len(sim.masses); j++ {
-			mj := sim.masses[j]
-
-			d := mj.position.Sub(mi.position)
-
-			force := sim.G * mi.mass * mj.mass
-			distance := max(d.Len(), 1)
-
-			f := d.Mul(force).Div(distance * distance * distance)
-
-			forces[i] = forces[i].Add(f)
-			forces[j] = forces[j].Sub(f)
-		}
-	}
-
-	for i, m := range sim.masses {
-		a := forces[i].Div(m.mass)
-
-		m.velocity = m.velocity.Add(a.Mul(sim.dt))
-		m.position = m.position.Add(m.velocity.Mul(sim.dt))
-
-		sim.masses[i] = m // todo ptr or smth
-	}
 
 	state := make(State, len(sim.masses))
 	for i, m := range sim.masses {
