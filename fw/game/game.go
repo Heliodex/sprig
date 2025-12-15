@@ -39,8 +39,8 @@ func Splash(en util.Engine) {
 type (
 	Simulation struct {
 		dt, scale, G, floor, angle, speed float64
-		origin                     util.Vector2[int]
-		masses                     []*Mass
+		origin                            util.Vector2[int]
+		masses                            []*Mass
 	}
 	State []util.Vector2[float64]
 )
@@ -61,7 +61,7 @@ func (sim *Simulation) drawTo(sb *util.ScreenBuffer) {
 	lineEnd := util.V2(
 		int(10*math.Cos(angleRad)),
 		int(10*math.Sin(angleRad)),
-	).Add(origin)
+	).Mul(sim.speed).Add(origin)
 	drawLine(sb, origin, lineEnd, util.Yellow)
 
 	// draw floor
@@ -154,12 +154,24 @@ func Update(en util.Engine) {
 		}
 	}
 
-	if btns[2].Pressed() {
-		sim.origin = sim.origin.Add(util.V2(0, -2))
-	}
+	const (
+		maxSpeed = 3
+		speedStep = 0.02
+	)
+
 	if btns[0].Pressed() {
-		sim.origin = sim.origin.Add(util.V2(0, 2))
+		sim.speed += speedStep
+		if sim.speed > maxSpeed{
+			sim.speed = maxSpeed
+		}
 	}
+	if btns[2].Pressed() {
+		sim.speed -= speedStep
+		if sim.speed < speedStep {
+			sim.speed = speedStep
+		}
+	}
+
 	if btns[1].Pressed() {
 		sim.origin = sim.origin.Add(util.V2(2, 0))
 	}
