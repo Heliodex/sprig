@@ -38,9 +38,9 @@ func Splash(en util.Engine) {
 
 type (
 	Simulation struct {
-		dt, scale, G, floor float64
-		origin              util.Vector2[int]
-		masses              []*Mass
+		dt, scale, G, floor, angle, speed float64
+		origin                     util.Vector2[int]
+		masses                     []*Mass
 	}
 	State []util.Vector2[float64]
 )
@@ -51,6 +51,18 @@ func (sim *Simulation) drawTo(sb *util.ScreenBuffer) {
 		circle := &Circle{sim.origin.Add(m.position.Mul(sim.scale).Int()), radius, m.colour}
 		circle.drawTo(sb)
 	}
+
+	origin := util.V2(sim.origin.X-int(sim.scale), sim.origin.Y)
+	marker := &Crosshair{origin, util.Grey3, 3}
+	marker.drawTo(sb)
+
+	// draw 10px line in angle direction
+	angleRad := sim.angle * (math.Pi / 180)
+	lineEnd := util.V2(
+		int(10*math.Cos(angleRad)),
+		int(10*math.Sin(angleRad)),
+	).Add(origin)
+	drawLine(sb, origin, lineEnd, util.Yellow)
 
 	// draw floor
 	y := int(float64(sim.origin.Y) + sim.floor*sim.scale)
@@ -82,6 +94,8 @@ var (
 		scale:  50,
 		G:      1,
 		floor:  1,
+		angle:  -45,
+		speed:  1,
 		origin: util.V2(80, 64),
 	}
 	trace     []*State
@@ -90,13 +104,14 @@ var (
 			colours := []util.Pixel{util.Red, util.Green, util.Blue, util.White, util.Yellow, util.Cyan, util.Magenta, util.Grey2, util.Grey3}
 			c := colours[len(sim.masses)%len(colours)]
 
-			// centre on window crosshairs
-			// centre := util.V2[float64](util.Width/2, util.Height/2).Sub(sim.origin.Float64()).Div(sim.scale)
+			// base velocity on angle
+			angleRad := sim.angle * (math.Pi / 180)
+			vel := util.V2(math.Cos(angleRad), math.Sin(angleRad)).Mul(sim.speed)
 
 			newmass := &Mass{
 				mass:         1.5,
-				initPosition: util.V2[float64](0, 0),
-				initVelocity: util.V2[float64](1, -1),
+				initPosition: util.V2[float64](-1, 0),
+				initVelocity: vel,
 				colour:       c,
 			}
 
@@ -126,8 +141,6 @@ var Texts = [util.ButtonsCount]*Text{
 	{FontDex, "L", util.V2(2+util.Width-hOffset, 2+vOffset), util.Red},
 }
 
-var Crosshairs = &Crosshair{util.V2(util.Width/2, util.Height/2), util.Grey3, 3}
-
 // ran every frame (or, more like this is what makes the frames)
 func Update(en util.Engine) {
 	btns := en.Buttons()
@@ -152,6 +165,13 @@ func Update(en util.Engine) {
 	}
 	if btns[3].Pressed() {
 		sim.origin = sim.origin.Add(util.V2(-2, 0))
+	}
+
+	if btns[4].Pressed() {
+		sim.angle -= 2
+	}
+	if btns[6].Pressed() {
+		sim.angle += 2
 	}
 
 	toggleAdd.Update(btns[7].Pressed())
@@ -223,8 +243,6 @@ func Update(en util.Engine) {
 	for _, e := range Texts {
 		e.drawTo(en.ScreenBuffer())
 	}
-
-	Crosshairs.drawTo(en.ScreenBuffer())
 
 	en.Render()
 	f++
