@@ -42,7 +42,7 @@ type (
 		origin                            util.Vector2[int]
 		masses                            []*Mass
 	}
-	State []util.Vector2[float64]
+	Trace []util.Vector2[float64]
 )
 
 func (sim *Simulation) drawTo(sb *util.ScreenBuffer) {
@@ -98,7 +98,7 @@ var (
 		speed:  1,
 		origin: util.V2(80, 64),
 	}
-	trace     []*State
+	traces    []*Trace
 	toggleAdd = &Toggle{
 		onPress: func() {
 			colours := []util.Pixel{util.Red, util.Green, util.Blue, util.White, util.Yellow, util.Cyan, util.Magenta, util.Grey2, util.Grey3}
@@ -117,6 +117,7 @@ var (
 
 			// if len(sim.masses) < 10 {
 			sim.masses = append(sim.masses, newmass)
+			// println(len(sim.masses))
 			// } else {
 			// 	sim.masses = sim.masses[1:]
 			// 	sim.masses = append(sim.masses, newmass)
@@ -155,13 +156,13 @@ func Update(en util.Engine) {
 	}
 
 	const (
-		maxSpeed = 3
+		maxSpeed  = 3
 		speedStep = 0.02
 	)
 
 	if btns[0].Pressed() {
 		sim.speed += speedStep
-		if sim.speed > maxSpeed{
+		if sim.speed > maxSpeed {
 			sim.speed = maxSpeed
 		}
 	}
@@ -186,7 +187,7 @@ func Update(en util.Engine) {
 		sim.angle += 2
 	}
 
-	toggleAdd.Update(btns[7].Pressed())
+	toggleAdd.Update(btns[7].Pressed() || f % 5 == 0)
 
 	// update projectile simulation
 	for _, m := range sim.masses {
@@ -203,9 +204,18 @@ func Update(en util.Engine) {
 		)
 	}
 
-	state := make(State, len(sim.masses))
+	maxTraceLen := max(30-len(sim.masses), 0)
+
 	for i, m := range sim.masses {
-		state[i] = m.position
+		if len(traces) <= i {
+			traces = append(traces, &Trace{})
+		}
+		t := traces[i]
+
+		*t = append(*t, m.position)
+		if len(*t) > maxTraceLen {
+			*t = (*t)[1:]
+		}
 
 		rf := sim.floor - 0.07
 		if m.position.Y < rf {
@@ -229,24 +239,13 @@ func Update(en util.Engine) {
 		}
 	}
 
-	maxTraceLen := max(30-len(sim.masses), 0)
+	for i, trace := range traces {
+		for j := 1; j < len(*trace); j++ {
+			a, b := (*trace)[j-1], (*trace)[j]
 
-	trace = append(trace, &state)
-	if diff := len(trace) - maxTraceLen; diff > 0 {
-		trace = trace[diff:]
-	}
-
-	for i := 1; i < len(trace); i++ {
-		for j := range sim.masses {
-			a, b := *(trace[i-1]), *(trace[i])
-
-			if j >= len(a) || j >= len(b) {
-				continue
-			}
-
-			start := a[j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int()
-			end := b[j].Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int()
-			drawLine(en.ScreenBuffer(), start, end, sim.masses[j].colour)
+			start := a.Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int()
+			end := b.Mul(sim.scale).Add(util.V2(float64(sim.origin.X), float64(sim.origin.Y))).Int()
+			drawLine(en.ScreenBuffer(), start, end, sim.masses[i].colour)
 		}
 	}
 
