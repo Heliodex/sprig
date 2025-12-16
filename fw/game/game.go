@@ -88,7 +88,8 @@ func (t *Toggle) Update(current bool) {
 }
 
 var (
-	f   int
+	// f   int
+	defaultOrigin = util.V2(80, 64)
 	sim = &Simulation{
 		dt:     0.06,
 		scale:  50,
@@ -96,7 +97,7 @@ var (
 		floor:  1,
 		angle:  -45,
 		speed:  1,
-		origin: util.V2(80, 64),
+		origin: defaultOrigin,
 	}
 	traces    []*Trace
 	toggleAdd = &Toggle{
@@ -187,20 +188,28 @@ func Update(en util.Engine) {
 		sim.angle += 2
 	}
 
-	toggleAdd.Update(btns[7].Pressed() || f % 5 == 0)
+	if btns[5].Pressed() {
+		// reset
+		sim.origin = defaultOrigin
+		sim.masses = nil
+		traces = nil
+	}
+	toggleAdd.Update(btns[7].Pressed())
 
 	// update projectile simulation
 	for _, m := range sim.masses {
 		m.time += sim.dt
+		t := m.time
 
+		initPos, initVel := m.initPosition, m.initVelocity
 		m.position = util.V2(
-			m.initPosition.X+m.initVelocity.X*m.time,
-			m.initPosition.Y+m.initVelocity.Y*m.time+(sim.G*m.time*m.time)/2,
+			initPos.X+initVel.X*t,
+			initPos.Y+initVel.Y*t+(sim.G*t*t)/2,
 		)
 
 		m.velocity = util.V2(
-			m.initVelocity.X,
-			m.initVelocity.Y+sim.G*m.time,
+			initVel.X,
+			initVel.Y+sim.G*t,
 		)
 	}
 
@@ -223,16 +232,11 @@ func Update(en util.Engine) {
 		}
 
 		// reset position and time
-		m.initPosition = util.V2(
-			m.position.X,
-			rf,
-		)
+		m.initPosition = util.V2(m.position.X, rf)
 		m.time = 0
 		// dampen velocity
-		m.initVelocity = util.V2(
-			m.velocity.X*0.7,
-			-m.velocity.Y*0.7,
-		)
+		vel := m.velocity
+		m.initVelocity = util.V2(vel.X, -vel.Y).Mul(0.7)
 
 		if math.Abs(m.initVelocity.Y) < 0.1 {
 			m.initVelocity.Y = 0
@@ -256,5 +260,5 @@ func Update(en util.Engine) {
 	}
 
 	en.Render()
-	f++
+	// f++
 }
