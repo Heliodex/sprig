@@ -475,10 +475,9 @@ func (dp *DoublePendulum) drawTo(buf *util.ScreenBuffer) {
 }
 
 type Mass struct {
-	initPosition, initVelocity,
 	position, velocity util.Vector2[float64]
-	time, mass   float64
-	colour util.Pixel
+	mass, charge       float64
+	colour             util.Pixel
 }
 
 type Crosshair struct {
