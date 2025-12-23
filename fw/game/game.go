@@ -39,8 +39,8 @@ func Splash(en util.Engine) {
 type (
 	Simulation struct {
 		dt, scale float64
-		origin                         util.Vector2[int]
-		masses                         []*Mass
+		origin    util.Vector2[int]
+		masses    []*Mass
 	}
 	Trace []util.Vector2[float64]
 )
@@ -51,10 +51,6 @@ func (sim *Simulation) drawTo(sb *util.ScreenBuffer) {
 		circle := &Circle{sim.origin.Add(m.position.Mul(sim.scale).Int()), radius, m.colour}
 		circle.drawTo(sb)
 	}
-
-	origin := util.V2(sim.origin.X-int(sim.scale), sim.origin.Y)
-	marker := &Crosshair{origin, util.Grey3, 3}
-	marker.drawTo(sb)
 }
 
 type Toggle struct {
@@ -88,9 +84,13 @@ var (
 			colours := []util.Pixel{util.Red, util.Green, util.Blue, util.White, util.Yellow, util.Cyan, util.Magenta, util.Grey2, util.Grey3}
 			c := colours[len(sim.masses)%len(colours)]
 
+			// centre on window crosshairs
+			centre := util.V2[float64](util.Width/2, util.Height/2).Sub(sim.origin.Float64()).Div(sim.scale)
+
 			newmass := &Mass{
-				mass:         1.5,
-				colour:       c,
+				mass:     1.5,
+				position: centre,
+				colour:   c,
 			}
 
 			sim.masses = append(sim.masses, newmass)
@@ -103,16 +103,19 @@ const (
 	vOffset = 18
 )
 
-var Texts = [util.ButtonsCount]*Text{
-	{FontDex, "W", util.V2(2+hOffset-2, 2), util.Red},
-	{FontDex, "A", util.V2(2, 2+vOffset), util.Red},
-	{FontDex, "S", util.V2(2+hOffset, 2+vOffset*2), util.Red},
-	{FontDex, "D", util.V2(2+hOffset*2, 2+vOffset), util.Red},
-	{FontDex, "I", util.V2(2+util.Width-hOffset*2, 2), util.Red},
-	{FontDex, "J", util.V2(2+util.Width-hOffset*3, 2+vOffset), util.Red},
-	{FontDex, "K", util.V2(2+util.Width-hOffset*2, 2+vOffset*2), util.Red},
-	{FontDex, "L", util.V2(2+util.Width-hOffset, 2+vOffset), util.Red},
-}
+var (
+	Texts = [util.ButtonsCount]*Text{
+		{FontDex, "W", util.V2(2+hOffset-2, 2), util.Red},
+		{FontDex, "A", util.V2(2, 2+vOffset), util.Red},
+		{FontDex, "S", util.V2(2+hOffset, 2+vOffset*2), util.Red},
+		{FontDex, "D", util.V2(2+hOffset*2, 2+vOffset), util.Red},
+		{FontDex, "I", util.V2(2+util.Width-hOffset*2, 2), util.Red},
+		{FontDex, "J", util.V2(2+util.Width-hOffset*3, 2+vOffset), util.Red},
+		{FontDex, "K", util.V2(2+util.Width-hOffset*2, 2+vOffset*2), util.Red},
+		{FontDex, "L", util.V2(2+util.Width-hOffset, 2+vOffset), util.Red},
+	}
+	Crosshairs = &Crosshair{util.V2(util.Width/2, util.Height/2), util.Grey3, 3}
+)
 
 // ran every frame (or, more like this is what makes the frames)
 func Update(en util.Engine) {
@@ -125,6 +128,19 @@ func Update(en util.Engine) {
 		} else {
 			Texts[i].colour = util.Grey2
 		}
+	}
+
+	if btns[2].Pressed() {
+		sim.origin = sim.origin.Add(util.V2(0, -2))
+	}
+	if btns[0].Pressed() {
+		sim.origin = sim.origin.Add(util.V2(0, 2))
+	}
+	if btns[1].Pressed() {
+		sim.origin = sim.origin.Add(util.V2(2, 0))
+	}
+	if btns[3].Pressed() {
+		sim.origin = sim.origin.Add(util.V2(-2, 0))
 	}
 
 	//
@@ -158,6 +174,8 @@ func Update(en util.Engine) {
 	for _, e := range Texts {
 		e.drawTo(en.ScreenBuffer())
 	}
+
+	Crosshairs.drawTo(en.ScreenBuffer())
 
 	en.Render()
 	// f++
