@@ -3,6 +3,7 @@ package game
 import (
 	"fw/util"
 	"math"
+	"math/rand/v2"
 	"runtime"
 	"strconv"
 	"time"
@@ -81,14 +82,18 @@ var (
 	traces    []*Trace
 	toggleAdd = &Toggle{
 		onPress: func() {
-			colours := []util.Pixel{util.Red, util.Green, util.Blue, util.White, util.Yellow, util.Cyan, util.Magenta, util.Grey2, util.Grey3}
-			c := colours[len(sim.masses)%len(colours)]
+			// base colour on charge
+			charge := rand.Float64()*2 - 1 // -1 to 1
+
+			h := uint8((charge)*0x7f + 0x80)
+			c := util.MakePixel(h, 0, -h)
 
 			// centre on window crosshairs
 			centre := util.V2[float64](util.Width/2, util.Height/2).Sub(sim.origin.Float64()).Div(sim.scale)
 
 			newmass := &Mass{
 				mass:     1.5,
+				charge: charge,
 				position: centre,
 				colour:   c,
 			}
@@ -142,6 +147,8 @@ func Update(en util.Engine) {
 	if btns[3].Pressed() {
 		sim.origin = sim.origin.Add(util.V2(-2, 0))
 	}
+
+	toggleAdd.Update(btns[7].Pressed())
 
 	//
 
