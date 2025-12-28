@@ -146,6 +146,15 @@ func (v Vector2[T]) Neg() Vector2[T] {
 	return Vector2[T]{X: -v.X, Y: -v.Y}
 }
 
+func (v Vector2[T]) Mag() float64 {
+	return math.Sqrt(math.Abs(float64(v.X + v.Y)))
+}
+
+func (v Vector2[T]) Norm() Vector2[T] {
+	mag := v.Mag()
+	return v.Div(mag)
+}
+
 func (v Vector2[T]) Len() T {
 	x2 := v.X * v.X
 	y2 := v.Y * v.Y

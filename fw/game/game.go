@@ -3,7 +3,6 @@ package game
 import (
 	"fw/util"
 	"math"
-	"math/rand/v2"
 	"runtime"
 	"strconv"
 	"time"
@@ -83,7 +82,8 @@ var (
 	toggleAdd = &Toggle{
 		onPress: func() {
 			// base colour on charge
-			charge := rand.Float64()*2 - 1 // -1 to 1
+			// charge := rand.Float64()*2 - 1 // -1 to 1
+			charge := float64(1 - (len(sim.masses)%2)*2)
 
 			h := uint8((charge)*0x7f + 0x80)
 			c := util.MakePixel(h, 0, -h)
@@ -93,7 +93,7 @@ var (
 
 			newmass := &Mass{
 				mass:     1.5,
-				charge: charge,
+				charge:   charge,
 				position: centre,
 				colour:   c,
 			}
@@ -121,6 +121,8 @@ var (
 	}
 	Crosshairs = &Crosshair{util.V2(util.Width/2, util.Height/2), util.Grey3, 3}
 )
+
+const K = 9_000_000_000
 
 // ran every frame (or, more like this is what makes the frames)
 func Update(en util.Engine) {
@@ -155,6 +157,7 @@ func Update(en util.Engine) {
 	maxTraceLen := max(30-len(sim.masses), 0)
 
 	for i, m := range sim.masses {
+		// calculate trace
 		if len(traces) <= i {
 			traces = append(traces, &Trace{})
 		}
@@ -164,6 +167,31 @@ func Update(en util.Engine) {
 		if len(*t) > maxTraceLen {
 			*t = (*t)[1:]
 		}
+
+		// update mass position
+
+		// for each pair of charges
+		var tf util.Vector2[float64]
+
+		for j, m2 := range sim.masses {
+			if i == j {
+				continue // same mass
+			}
+
+			// apply force to the first mass
+			diff := m.position.Sub(m2.position)
+
+			dir := diff.Norm()
+			println(dir.Mag())
+
+			mag := max(diff.Mag(), 1)
+			F := m.charge * m2.charge / square(mag)
+
+			// fmt.Println(diff.Mag(), mag)
+			tf = tf.Add(dir.Mul(F))
+		}
+
+		m.position = m.position.Add(tf.Mul(0.01))
 	}
 
 	for i, trace := range traces {
