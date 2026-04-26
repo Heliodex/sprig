@@ -2,6 +2,7 @@ package game
 
 import (
 	"fw/util"
+	"math"
 	"runtime"
 	"strconv"
 	"time"
@@ -9,6 +10,65 @@ import (
 
 type UIElement interface {
 	drawTo(*util.ScreenBuffer)
+}
+
+type Cube3D struct {
+	colour               util.Pixel
+	pos                  util.Vector2[int]
+	size, angle1, angle2 int
+}
+
+func (c *Cube3D) drawTo(buf *util.ScreenBuffer) {
+	// rotating cube in integer 3D
+	angle1 := float64(c.angle1) / 10
+	angle2 := float64(c.angle2) / 10
+	sin1, cos1 := math.Sin(angle1), math.Cos(angle1)
+	sin2, cos2 := math.Sin(angle2), math.Cos(angle2)
+
+	// 8 corners of the cube
+	points := [8]util.Vector2[int]{}
+	for i := range points {
+		x := float64((i>>0)&1*2-1) * float64(c.size)
+		y := float64((i>>1)&1*2-1) * float64(c.size)
+		z := float64((i>>2)&1*2-1) * float64(c.size)
+
+		// rotate around Y axis
+		xz := x*cos1 - z*sin1
+		z = x*sin1 + z*cos1
+		x = xz
+
+		// rotate around X axis
+		yz := y*cos2 - z*sin2
+		z = y*sin2 + z*cos2
+		y = yz
+
+		// project 3D to 2D (simple orthographic projection)
+		f := 20.0 / (z + 40) // perspective factor
+		sx := int(x*f) + c.pos.X
+		sy := int(y*f) + c.pos.Y
+
+		points[i] = util.V2(sx, sy)
+	}
+
+	// draw edges
+	edges := [][2]int{
+		{0, 1},
+		{1, 3},
+		{3, 2},
+		{2, 0},
+		{4, 5},
+		{5, 7},
+		{7, 6},
+		{6, 4},
+		{0, 4},
+		{1, 5},
+		{2, 6},
+		{3, 7},
+	}
+
+	for _, e := range edges {
+		drawLine(buf, points[e[0]], points[e[1]], c.colour)
+	}
 }
 
 // intro to show, in the event that something else is loading or to show information
@@ -35,6 +95,11 @@ func Splash(en util.Engine) {
 	println("Splash complete")
 }
 
+var (
+	f   int
+	pos util.Vector2[int]
+)
+
 const (
 	hOffset = 15
 	vOffset = 18
@@ -55,14 +120,68 @@ var Texts = [util.ButtonsCount]*Text{
 func Update(en util.Engine) {
 	btns := en.Buttons()
 
+	if btns[util.W].Pressed() {
+		pos.Y--
+	}
+
+	if btns[util.S].Pressed() {
+		pos.Y++
+	}
+
+	if btns[util.A].Pressed() {
+		pos.X--
+	}
+
+	if btns[util.D].Pressed() {
+		pos.X++
+	}
+
+	x := &Text{FontUnifont, strconv.Itoa(pos.X), util.V2(70, 2), util.Green}
+	y := &Text{FontUnifont, strconv.Itoa(pos.Y), util.V2(70, 22), util.Green}
+
 	// read button states
 	for i, b := range btns {
 		if b.Pressed() {
-			println("Button", i, "pressed")
 			Texts[i].colour = util.Green
 		} else {
 			Texts[i].colour = util.Grey2
 		}
+	}
+
+	grid := &Grid{
+		colour1:  util.Grey1,
+		colour2:  util.Grey2,
+		pos:      util.V2(0, 70),
+		offset:   pos,
+		size:     util.V2(util.Width, util.Height-70),
+		cellSize: util.V2(10, 10),
+	}
+
+	// sine wave
+	sine := &SineWave{
+		colour:     util.Cyan,
+		pos:        util.V2(0, int(util.Height*0.75)),
+		amplitude:  8,
+		wavelength: 40,
+		phase:      f,
+	}
+
+	cube := &Cube3D{
+		colour: util.Yellow,
+		pos:    util.V2(util.Width/2, util.Height/2),
+		size:   18,
+		angle1: f,
+		angle2: f / 2,
+	}
+
+	ui := []UIElement{grid, x, y}
+	for _, t := range Texts {
+		ui = append(ui, t)
+	}
+	ui = append(ui, sine, cube)
+
+	for _, e := range ui {
+		e.drawTo(en.ScreenBuffer())
 	}
 
 	for _, e := range Texts {
@@ -70,4 +189,5 @@ func Update(en util.Engine) {
 	}
 
 	en.Render()
+	f++
 }
