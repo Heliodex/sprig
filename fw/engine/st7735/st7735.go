@@ -4,11 +4,10 @@
 package st7735 // import "tinygo.org/x/drivers/st7735"
 
 import (
+	"fw/util"
 	"machine"
 	"time"
 	"unsafe"
-
-	"fw/util"
 
 	"tinygo.org/x/drivers"
 )
