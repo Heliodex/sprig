@@ -161,12 +161,12 @@ func Update(en util.Engine) {
 	for x := range terrainX {
 		for y := range terrainY {
 			for z := range terrainHeight {
-				terrain[x][y][z] = (x+y+z)%2 == 0
+				terrain[x][y][z] = true
 			}
 		}
 	}
 
-	terrain.Cull()
+	terrain.OcclusionCull()
 
 	size := 10
 

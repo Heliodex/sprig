@@ -95,7 +95,7 @@ func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
 
 type Terrain [][][]bool // 3d
 
-func (t *Terrain) Cull() {
+func (t *Terrain) OcclusionCull() {
 	xl := len(*t) - 1
 	for x := range *t {
 		yl := len((*t)[x]) - 1
@@ -170,13 +170,28 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 				// project 3d coordinates to 2d isometric
 				sx := g.pos.X + (x-y)*g.cellSize/2 - g.offset.X
 				sy := g.pos.Y + (x+y)*g.cellSize/4 - g.offset.Y - z*g.cellHeight/2
+				if sx >= util.Width || sy >= util.Height {
+					// cell top is below camera, skip
+					continue
+				}
 
-				// set multiple pixels based on cell size to create a larger diamond shape
 				w := g.cellSize * 2
 				h := g.cellSize
+				if sx+w < 0 || sy+h+g.cellHeight < 0 {
+					// cell (including its base) is above camera, skip
+					continue
+				}
+
+				// set multiple pixels based on cell size to create a larger diamond shape
 
 				for dy := range h + g.cellHeight {
 					for dx := range w {
+						rx, ry := sx+dx, sy+dy
+						if rx < 0 || rx >= util.Width || ry < 0 || ry >= util.Height {
+							// this particular pixel is out of bounds, skip
+							continue
+						}
+
 						if dx+dy*2 < h /* top left */ ||
 							dy*2+h < dx /* top right */ ||
 							dy*2-h-g.cellHeight > dx /* bottom left of top */ ||
@@ -195,12 +210,15 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 							} else {
 								c = g.baseColour2 // right base
 							}
-							buf.Set(sx+dx, sy+dy, c.Brightness(factor))
+							// buf.Set(sx+dx, sy+dy, c.Brightness(factor))
+							// since we've already checked, we can force set
+							(*buf)[ry][rx] = c.Brightness(factor)
 							continue
 						}
 
 						// draw top
-						buf.Set(sx+dx, sy+dy, g.topColour.Brightness(factor))
+						// buf.Set(sx+dx, sy+dy, g.topColour.Brightness(factor))
+						(*buf)[ry][rx] = g.topColour.Brightness(factor)
 					}
 				}
 				drew++
