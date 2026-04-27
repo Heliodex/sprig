@@ -58,7 +58,7 @@ func startUI(s screen.Screen) {
 	for  {
 		game.Update(en)
 		// wait 1 frame
-		time.Sleep(20 * time.Millisecond) // ~50fps, which is how fast my console actually runs, ymmv
+		time.Sleep(40 * time.Millisecond) // ~25fps, which is how fast my console actually runs, ymmv
 	}
 }
 

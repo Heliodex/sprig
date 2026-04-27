@@ -144,41 +144,25 @@ func Update(en util.Engine) {
 		if b.Pressed() {
 			Texts[i].colour = util.Green
 		} else {
-			Texts[i].colour = util.Grey2
+			Texts[i].colour = util.Grey4
 		}
 	}
 
-	grid := &Grid{
-		colour1:  util.Grey1,
-		colour2:  util.Grey2,
-		pos:      util.V2(0, 70),
+	grid := &DiamondGrid{
+		colour1:  util.Grey2,
+		colour2:  util.Grey3,
+		pos:      util.V2(0, 0),
 		offset:   pos,
-		size:     util.V2(util.Width, util.Height-70),
-		cellSize: util.V2(10, 10),
+		size:     util.V2(util.Width, util.Height),
+		cellSize: 10,
+		heightMulti: 2,
 	}
 
-	// sine wave
-	sine := &SineWave{
-		colour:     util.Cyan,
-		pos:        util.V2(0, int(util.Height*0.75)),
-		amplitude:  8,
-		wavelength: 40,
-		phase:      f,
-	}
-
-	cube := &Cube3D{
-		colour: util.Yellow,
-		pos:    util.V2(util.Width/2, util.Height/2),
-		size:   18,
-		angle1: f,
-		angle2: f / 2,
-	}
 
 	ui := []UIElement{grid, x, y}
 	for _, t := range Texts {
 		ui = append(ui, t)
 	}
-	ui = append(ui, sine, cube)
 
 	for _, e := range ui {
 		e.drawTo(en.ScreenBuffer())

@@ -57,6 +57,42 @@ func (g *Grid) drawTo(buf *util.ScreenBuffer) {
 	}
 }
 
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+type DiamondGrid struct {
+	colour1, colour2  util.Pixel
+	pos, offset, size util.Vector2[int]
+	cellSize          int
+	heightMulti       float64
+}
+
+func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
+	// isometric diamond-style grid
+	for y := range g.size.Y {
+		for x := range g.size.X {
+			var c util.Pixel
+
+			xo, yo := abs(x+g.offset.X), abs(y+g.offset.Y)
+
+			diamondWidth := abs(g.cellSize - int(float64(yo)*g.heightMulti)%(g.cellSize*2))
+			diamondHeight := abs(g.cellSize - xo%(g.cellSize*2))
+
+			if diamondWidth+diamondHeight <= g.cellSize {
+				c = g.colour1
+			} else {
+				c = g.colour2
+			}
+
+			buf.Set(g.pos.X+x, g.pos.Y+y, c)
+		}
+	}
+}
+
 type SineWave struct {
 	colour                       util.Pixel
 	pos                          util.Vector2[int]
@@ -68,13 +104,6 @@ func (s *SineWave) drawTo(buf *util.ScreenBuffer) {
 		y := s.pos.Y + int(float64(s.amplitude)*math.Sin(float64(x)/float64(s.wavelength)*2*math.Pi+float64(s.phase)/10))
 		buf.Set(x, y, s.colour)
 	}
-}
-
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
 }
 
 func drawVLine(buf *util.ScreenBuffer, x, y1, y2 int, colour util.Pixel) {
