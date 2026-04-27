@@ -37,8 +37,9 @@ func Splash(en util.Engine) {
 }
 
 var (
-	f   int
-	pos util.Vector2[int] = util.V2(0, 50)
+	f         int
+	prevFrame time.Time
+	pos       util.Vector2[int] = util.V2(0, 50)
 )
 
 const (
@@ -78,9 +79,6 @@ func Update(en util.Engine) {
 	if btns[util.D].Pressed() {
 		pos.X++
 	}
-
-	x := &Text{FontUnifont, strconv.Itoa(pos.X), util.V2(70, 2), util.Green}
-	y := &Text{FontUnifont, strconv.Itoa(pos.Y), util.V2(70, 22), util.Green}
 
 	// read button states
 	for i, b := range btns {
@@ -122,7 +120,16 @@ func Update(en util.Engine) {
 		cellHeight:  20,
 	}
 
-	ui := []UIElement{grid, x, y}
+	// fps counter
+	now := time.Now()
+	elapsed := now.Sub(prevFrame)
+	prevFrame = now
+	fps := int(1 / elapsed.Seconds())
+
+	coords := &Text{FontUnifont, strconv.Itoa(pos.X) + " " + strconv.Itoa(pos.Y), util.V2(55, 2), util.Green}
+	fpst := &Text{FontUnifont, strconv.Itoa(fps) + " FPS", util.V2(55, 2+15), util.Green}
+
+	ui := []UIElement{grid, coords, fpst}
 	for _, t := range Texts {
 		ui = append(ui, t)
 	}
