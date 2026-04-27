@@ -148,16 +148,43 @@ func Update(en util.Engine) {
 		}
 	}
 
-	grid := &DiamondGrid{
-		colour1:  util.Grey2,
-		colour2:  util.Grey3,
-		pos:      util.V2(0, 0),
-		offset:   pos,
-		size:     util.V2(util.Width, util.Height),
-		cellSize: 10,
-		heightMulti: 2,
+	terrainX, terrainY, terrainHeight := 10, 10, 10
+
+	terrain := make(Terrain, terrainX)
+	for i := range terrain {
+		terrain[i] = make([][]bool, terrainY)
+		for j := range terrain[i] {
+			terrain[i][j] = make([]bool, terrainHeight)
+		}
 	}
 
+	for x := range terrainX {
+		for y := range terrainY {
+			for z := range terrainHeight {
+				terrain[x][y][z] = (x+y+z)%2 == 0
+			}
+		}
+	}
+
+	terrain.Cull()
+
+	size := 10
+
+	grid := &IsometricProjection{
+		terrainHeight: terrainHeight,
+		terrain:       terrain,
+
+		topColour:   util.White,
+		baseColour1: util.Grey8,
+		baseColour2: util.GreyB,
+		minFactor:   0x20,
+		maxFactor:   0x80,
+		pos:         util.V2(util.Width/2-size, util.Height/2-size),
+		offset:      pos,
+		size:        util.V2(util.Width, util.Height),
+		cellSize:    size,
+		cellHeight:  20,
+	}
 
 	ui := []UIElement{grid, x, y}
 	for _, t := range Texts {

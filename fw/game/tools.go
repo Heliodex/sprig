@@ -93,6 +93,124 @@ func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
 	}
 }
 
+type Terrain [][][]bool // 3d
+
+func (t *Terrain) Cull() {
+	xl := len(*t) - 1
+	for x := range *t {
+		yl := len((*t)[x]) - 1
+		for y := range (*t)[x] {
+			zl := len((*t)[x][y]) - 1
+			for z := range (*t)[x][y] {
+				if !(*t)[x][y][z] {
+					continue
+				}
+
+				// if it's on the front extreme, keep it
+				if x == xl || y == yl || z == zl {
+					continue
+				}
+
+				// if all adjacent blocks in the direction of the "camera" are filled, cull this block
+				if (*t)[x+1][y][z] &&
+					(*t)[x][y+1][z] &&
+					(*t)[x][y][z+1] {
+					(*t)[x][y][z] = false
+					continue
+				}
+
+				// if all blocks diagonally adjacent in the direction of the "camera" are filled, cull this block
+				if (*t)[x+1][y+1][z] &&
+					(*t)[x][y+1][z+1] &&
+					(*t)[x+1][y][z+1] {
+					(*t)[x][y][z] = false
+					continue
+				}
+
+				// if another block is on the diagonal between this block and the "camera", cull it
+				for i := 1; i <= min(xl-x, yl-y, zl-z); i++ {
+					if (*t)[x+i][y+i][z+i] {
+						(*t)[x][y][z] = false
+						continue
+					}
+				}
+			}
+		}
+	}
+}
+
+type IsometricProjection struct {
+	terrainHeight int
+	terrain       Terrain
+
+	topColour, baseColour1, baseColour2 util.Pixel
+	minFactor, maxFactor                uint8
+	pos, offset, size                   util.Vector2[int]
+	cellSize, cellHeight                int
+}
+
+func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
+	// isometric diamond-style grid
+
+	var drew int
+
+	for xc := range g.terrain {
+		for yc := range g.terrain[xc] {
+			for zc := range g.terrain[xc][yc] {
+				if !g.terrain[xc][yc][zc] {
+					continue
+				}
+
+				const multi = 2
+				x, y, z := xc*multi, yc*multi, zc
+
+				// calculate brightness factor based on height
+				factor := uint8(float64(g.minFactor) + (float64(g.maxFactor-g.minFactor) * float64(z) / float64(g.terrainHeight)))
+
+				// project 3d coordinates to 2d isometric
+				sx := g.pos.X + (x-y)*g.cellSize/2 - g.offset.X
+				sy := g.pos.Y + (x+y)*g.cellSize/4 - g.offset.Y - z*g.cellHeight/2
+
+				// set multiple pixels based on cell size to create a larger diamond shape
+				w := g.cellSize * 2
+				h := g.cellSize
+
+				for dy := range h + g.cellHeight {
+					for dx := range w {
+						if dx+dy*2 < h /* top left */ ||
+							dy*2+h < dx /* top right */ ||
+							dy*2-h-g.cellHeight > dx /* bottom left of top */ ||
+							dx+dy*2 > h+g.cellHeight+w /* bottom right of top */ {
+							// above top or below base, skip
+							continue
+						}
+
+						if dy*2-h > dx /* bottom left of base */ ||
+							dx+dy*2 > h+w /* bottom right of base */ {
+							// draw base
+
+							var c util.Pixel
+							if dx < w/2 {
+								c = g.baseColour1 // left base
+							} else {
+								c = g.baseColour2 // right base
+							}
+							buf.Set(sx+dx, sy+dy, c.Brightness(factor))
+							continue
+						}
+
+						// draw top
+						buf.Set(sx+dx, sy+dy, g.topColour.Brightness(factor))
+					}
+				}
+				drew++
+			}
+		}
+	}
+
+	println("drew", drew, "tiles")
+}
+
 type SineWave struct {
 	colour                       util.Pixel
 	pos                          util.Vector2[int]
