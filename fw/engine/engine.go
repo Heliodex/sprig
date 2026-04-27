@@ -1,9 +1,8 @@
 package engine
 
 import (
-	"machine"
-
 	"fw/util"
+	"machine"
 )
 
 // 270MHz
@@ -27,9 +26,9 @@ func (b *Button) Pressed() bool {
 var sb = &util.ScreenBuffer{}
 
 type Engine struct {
-	buffer            *util.ScreenBuffer
-	buttons           util.Buttons
-	display           *Display
+	buffer  *util.ScreenBuffer
+	buttons util.Buttons
+	display *Display
 }
 
 var (
@@ -68,9 +67,9 @@ func New() *Engine {
 
 	// and fire up the engine
 	return &Engine{
-		buffer:   sb,
-		buttons:  buttons,
-		display:  display,
+		buffer:  sb,
+		buttons: buttons,
+		display: display,
 	}
 }
 

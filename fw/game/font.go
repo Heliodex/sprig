@@ -64,8 +64,8 @@ func loadChar(font *Font, i uint8, dir embed.FS) {
 		ll := len(line)
 		lx := make([]uint8, ll)
 
-		for x, char := range []byte(line) {
-			if b, ok := brightnessMap[char]; ok { // valid brightness character
+		for x, c := range []byte(line) {
+			if b, ok := brightnessMap[c]; ok { // valid brightness character
 				lx[x] = b
 			}
 		}

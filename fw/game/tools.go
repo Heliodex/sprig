@@ -124,11 +124,12 @@ func (col *TerrainColumn) Set(z int, v bool) {
 type Terrain [terrainX][terrainY]TerrainColumn // 3d
 
 func (t *Terrain) OcclusionCull() {
-	xl := len(*t) - 1
+	const xl = terrainX - 1
+	const yl = terrainY - 1
+	const zl = terrainHeight - 1
+
 	for x := range *t {
-		yl := len((*t)[x]) - 1
 		for y := range (*t)[x] {
-			const zl = terrainHeight - 1
 			for z := range terrainHeight {
 				if !(*t)[x][y].Get(z) {
 					continue
