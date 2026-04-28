@@ -35,7 +35,7 @@ func Splash(en util.Engine) {
 var (
 	f         int
 	prevFrame time.Time
-	pos       util.Vector2[int] = util.V2(0, 200)
+	pos       util.Vector2[int] = util.V2(0, 0)
 )
 
 const (
@@ -109,8 +109,8 @@ func Update(en util.Engine) {
 	}
 
 	size := 10
-	sz := abs(62 - f%(62*2))
-	println(sz)
+	szsize := terrainDiagonal-1
+	sz := abs(szsize - f%(szsize*2))
 
 	grid := &IsometricProjection{
 		terrainHeight: 8,

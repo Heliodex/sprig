@@ -111,8 +111,9 @@ func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
 }
 
 const (
-	terrainSize, terrainHeight = 32, 8
+	terrainSize, terrainHeight = 8, 8
 	terrainX, terrainY         = terrainSize, terrainSize
+	terrainDiagonal            = terrainX + terrainY - 1
 )
 
 type TerrainColumn uint8 // 1d
@@ -181,20 +182,21 @@ type DiagonalColumn struct {
 	x, y int
 }
 
-func (t *Terrain) OrderColsDiagonal() (diags [][]DiagonalColumn) {
-	// so how this works is the columns will be in the order [(0 0)] [(1 0) (0 1)] [(2 0) (1 1) (0 2)] ...
-
-	for d := 0; d < terrainX+terrainY-1; d++ {
-		var diag []DiagonalColumn
-		for x := 0; x <= d; x++ {
+func (t *Terrain) OrderColsDiagonal() [][]DiagonalColumn {
+	// so how this works is the columns will be in the order [(0 0)] [(1 0) (0 1)] [(2 0) (1 1) (0 2)]... yeah
+	diags := make([][]DiagonalColumn, terrainDiagonal)
+	for d := range terrainDiagonal {
+		dl := d + 1
+		diag := make([]DiagonalColumn, dl)
+		for x := range dl {
 			y := d - x
 			if x < terrainX && y < terrainY {
-				diag = append(diag, DiagonalColumn{(*t)[x][y], x, y})
+				diag[x] = DiagonalColumn{(*t)[x][y], x, y}
 			}
 		}
-		diags = append(diags, diag)
+		diags[d] = diag
 	}
-	return
+	return diags
 }
 
 type IsometricProjection struct {
@@ -219,12 +221,9 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 	// 	for y, col := range cols {
 	// we'll draw diagonally instead
 	for i, diag := range g.terrain.OrderColsDiagonal() {
-		if i == g.spriteZ {
-			g.sprite.drawTo(buf)
-		}
-
 		for _, col := range diag {
 			x, y := col.x, col.y
+			sx := g.pos.X + (x-y)*g.cellSize - g.offset.X
 
 			for z := range terrainHeight {
 				if !col.Get(z) {
@@ -236,7 +235,6 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 				factor := uint8(min(factorf, 255))
 
 				// project 3d coordinates to 2d isometric
-				sx := g.pos.X + (x-y)*g.cellSize - g.offset.X
 				sy := g.pos.Y + (x+y)*g.cellSize/2 - g.offset.Y - z*g.cellHeight/2
 				if sx >= util.Width || sy >= util.Height {
 					// cell top is below camera, skip
@@ -289,6 +287,10 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 				}
 				drew++
 			}
+		}
+
+		if i == g.spriteZ {
+			g.sprite.drawTo(buf)
 		}
 	}
 
