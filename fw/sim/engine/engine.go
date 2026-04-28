@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Scale  = 2
+	Scale  = 4
 	width  = util.Width * Scale * 1.5
 	height = util.Height * Scale
 )

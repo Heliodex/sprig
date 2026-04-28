@@ -2,7 +2,6 @@ package game
 
 import (
 	"fw/util"
-	"math"
 	"runtime"
 	"strconv"
 	"time"
@@ -35,7 +34,7 @@ func Splash(en util.Engine) {
 var (
 	f         int
 	prevFrame time.Time
-	pos       util.Vector2[int] = util.V2(0, 0)
+	pos       util.Vector2[int] = util.V2(0, -40)
 )
 
 const (
@@ -85,19 +84,22 @@ func Update(en util.Engine) {
 		}
 	}
 
-	const mul = 2
-	const div = 4
-	for x := range terrainX {
-		for y := range terrainY {
-			h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
-			for z := range min(int(h), terrainHeight) {
-				terrain[x][y].Set(z, true)
-			}
-			// for z := range terrainHeight {
-			// 	terrain[x][y].Set(z, true)
-			// }
-		}
-	}
+	// const mul = 2
+	// const div = 4
+	// for x := range terrainX {
+	// 	for y := range terrainY {
+	// 		h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
+	// 		for z := range min(int(h), terrainHeight) {
+	// 			terrain[x][y].Set(z, true)
+	// 		}
+	// 		// for z := range terrainHeight {
+	// 		// 	terrain[x][y].Set(z, true)
+	// 		// }
+	// 	}
+	// }
+	terrain[0][0].Set(5, true)
+	terrain[1][0].Set(6, true)
+	terrain[2][0].Set(7, true)
 
 	terrain.OcclusionCull()
 

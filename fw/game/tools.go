@@ -111,7 +111,7 @@ func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
 }
 
 const (
-	terrainSize, terrainHeight = 32, 8
+	terrainSize, terrainHeight = 8, 8
 	terrainX, terrainY         = terrainSize, terrainSize
 	terrainDiagonal            = terrainX + terrainY - 1
 )
@@ -216,6 +216,9 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 		for _, dcol := range diag {
 			x, y := dcol.X, dcol.Y
 
+			extremeX := x == terrainX-1
+			extremeY := y == terrainY-1
+
 			sx := g.pos.X + (x-y)*g.cellSize - g.offset.X
 			col := g.terrain[x][y]
 
@@ -250,13 +253,15 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 							continue
 						}
 
-						if dx+dy*2 < h /* top left */ ||
-							dy*2+h < dx /* top right */ ||
+						if dx+dy*2 <= h /* top left */ ||
+							dy*2+h <= dx /* top right */ ||
 							dy*2-h-g.cellHeight > dx /* bottom left of top */ ||
 							dx+dy*2 > h+g.cellHeight+w /* bottom right of top */ {
 							// above top or below base, skip
 							continue
 						}
+
+						extremeZ := z == terrainHeight-1
 
 						if dy*2-h > dx /* bottom left of base */ ||
 							dx+dy*2 > h+w /* bottom right of base */ {
@@ -265,30 +270,44 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 							var c util.Pixel
 							if dx < w/2 {
 								// if there's a block to the front left, no need to draw this
-								if y < terrainY-1 && g.terrain[x][y+1].Get(z) {
+								if !extremeY && g.terrain[x][y+1].Get(z) {
+									continue
+								}
+								// if there's a block above the one to the front left AND one in front, no need to draw this
+								if !extremeX && !extremeY && !extremeZ && g.terrain[x][y+1].Get(z+1) && g.terrain[x+1][y+1].Get(z) {
 									continue
 								}
 								c = g.baseColour1 // left base
 							} else {
 								// if there's a block to the front right, no need to draw this
-								if x < terrainX-1 && g.terrain[x+1][y].Get(z) {
+								if !extremeX && g.terrain[x+1][y].Get(z) {
+									continue
+								}
+								// if there's a block above the one to the front right AND one in front, no need to draw this
+								if !extremeX && !extremeY && !extremeZ && g.terrain[x+1][y].Get(z+1) && g.terrain[x+1][y+1].Get(z) {
 									continue
 								}
 								c = g.baseColour2 // right base
 							}
-							// buf.Set(sx+dx, sy+dy, c.Brightness(factor))
+							buf.SetAlpha(sx+dx, sy+dy, c.Brightness(factor), 0xff)
 							// since we've already checked, we can force set
-							(*buf)[ry][rx] = c.Brightness(factor)
+							// (*buf)[ry][rx] = c.Brightness(factor)
 							continue
 						}
 
 						// draw top
-						// buf.SetAlpha(sx+dx, sy+dy, g.topColour.Brightness(factor), 0xff)
-						(*buf)[ry][rx] = g.topColour.Brightness(factor)
 
-						if rx == util.Width/2 && ry == util.Height/2 {
-							println("drawing center pixel of cell at", x, y, z)
+						// if there's a block on top of this one, no need to draw the top face
+						if z < terrainHeight-1 && col.Get(z+1) {
+							continue
 						}
+
+						buf.SetAlpha(sx+dx, sy+dy, g.topColour.Brightness(factor), 0xff)
+						// (*buf)[ry][rx] = g.topColour.Brightness(factor)
+
+						// if rx == util.Width/2 && ry == util.Height/2 {
+						// 	println("drawing center pixel of cell at", x, y, z)
+						// }
 					}
 				}
 				drew++
@@ -296,7 +315,7 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 		}
 
 		if i == g.spriteZ {
-			g.sprite.drawTo(buf)
+			// g.sprite.drawTo(buf)
 		}
 	}
 
