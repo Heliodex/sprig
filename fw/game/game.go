@@ -2,15 +2,10 @@ package game
 
 import (
 	"fw/util"
-	"math"
 	"runtime"
 	"strconv"
 	"time"
 )
-
-type UIElement interface {
-	drawTo(*util.ScreenBuffer)
-}
 
 // intro to show, in the event that something else is loading or to show information
 func Splash(en util.Engine) {
@@ -93,14 +88,24 @@ func Update(en util.Engine) {
 	const div = 2
 	for x := range terrainX {
 		for y := range terrainY {
-			h := (math.Sin(float64(x)/div) * mul) + (math.Cos(float64(y)/div) * mul) + mul*2 + 1
-			for z := range min(int(h), terrainHeight) {
+			// h := (math.Sin(float64(x)/div) * mul) + (math.Cos(float64(y)/div) * mul) + mul*2 + 1
+			// for z := range min(int(h), terrainHeight) {
+			// 	terrain[x][y].Set(z, true)
+			// }
+			for z := range terrainHeight {
 				terrain[x][y].Set(z, true)
 			}
 		}
 	}
 
 	terrain.OcclusionCull()
+
+	rectsize := util.V2(util.Width, util.Height)
+	rect := &Rect{
+		pos:    util.V2((util.Width-rectsize.X)/2, (util.Height-rectsize.Y)/2),
+		size:   rectsize,
+		colour: util.Magenta,
+	}
 
 	size := 10
 
@@ -118,6 +123,9 @@ func Update(en util.Engine) {
 		size:        util.V2(util.Width, util.Height),
 		cellSize:    size,
 		cellHeight:  20,
+
+		sprite:  rect,
+		spriteZ: 6,
 	}
 
 	// fps counter

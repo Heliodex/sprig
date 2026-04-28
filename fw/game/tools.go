@@ -6,6 +6,23 @@ import (
 	"slices"
 )
 
+type UIElement interface {
+	drawTo(*util.ScreenBuffer)
+}
+
+type Rect struct {
+	pos, size util.Vector2[int]
+	colour    util.Pixel
+}
+
+func (r *Rect) drawTo(buf *util.ScreenBuffer) {
+	for y := r.pos.Y; y < r.pos.Y+r.size.Y; y++ {
+		for x := r.pos.X; x < r.pos.X+r.size.X; x++ {
+			buf.SetAlpha(x, y, r.colour, 0x40)
+		}
+	}
+}
+
 type Text struct {
 	font   *Font
 	text   string
@@ -168,6 +185,19 @@ func (t *Terrain) OcclusionCull() {
 	}
 }
 
+func (t *Terrain) GetDiagonal(di int) []TerrainColumn {
+	// get diagonal of terrain for isometric projection
+	cols := []TerrainColumn{}
+	for xc := range terrainX {
+		for yc := range terrainY {
+			if xc+yc == di {
+				cols = append(cols, (*t)[xc][yc])
+			}
+		}
+	}
+	return cols
+}
+
 type IsometricProjection struct {
 	terrainHeight int
 	terrain       Terrain
@@ -176,6 +206,9 @@ type IsometricProjection struct {
 	minFactor, maxFactor                uint8
 	pos, offset, size                   util.Vector2[int]
 	cellSize, cellHeight                int
+
+	sprite  UIElement // to be drawn on top of the terrain at the specified Z height
+	spriteZ int       // Z up I guess
 }
 
 func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
@@ -183,8 +216,17 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 
 	var drew int
 
-	for xc := range g.terrain {
-		for yc := range g.terrain[xc] {
+	// for xc := range g.terrain {
+	// 	for yc := range g.terrain[xc] {
+	// we'll draw diagonally instead
+	for di := range max(terrainX, terrainY) {
+		cols := g.terrain.GetDiagonal(di)
+		for yc := range cols {
+			xc := di - yc
+
+			if xc == g.spriteZ && yc == g.spriteZ {
+				g.sprite.drawTo(buf)
+			}
 			for zc := range terrainHeight {
 				if !g.terrain[xc][yc].Get(zc) {
 					continue
@@ -211,8 +253,6 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 					// cell (including its base) is above camera, skip
 					continue
 				}
-
-				// set multiple pixels based on cell size to create a larger diamond shape
 
 				for dy := range h + g.cellHeight {
 					for dx := range w {
