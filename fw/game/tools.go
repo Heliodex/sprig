@@ -111,7 +111,7 @@ func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
 }
 
 const (
-	terrainSize, terrainHeight = 3, 8
+	terrainSize, terrainHeight = 32, 8
 	terrainX, terrainY         = terrainSize, terrainSize
 	terrainDiagonal            = terrainX + terrainY - 1
 )
@@ -132,6 +132,8 @@ func (col *TerrainColumn) Set(z int, v bool) {
 
 type Terrain [terrainX][terrainY]TerrainColumn // 3d
 
+// Flawed, cuts out information that is necessary for future face culling
+/*
 func (t *Terrain) OcclusionCull() {
 	const xl = terrainX - 1
 	const yl = terrainY - 1
@@ -176,6 +178,7 @@ func (t *Terrain) OcclusionCull() {
 		}
 	}
 }
+*/
 
 func (t *Terrain) OrderColsDiagonal() (diags [terrainDiagonal][]util.Vector2[int]) {
 	// so how this works is the columns will be in the order [(0 0)] [(1 0) (0 1)] [(2 0) (1 1) (0 2)] ...
@@ -208,27 +211,34 @@ type ProjectionBlock struct {
 
 func (p *ProjectionBlock) Render(h, w, cellHeight int, terrain *Terrain, pos util.Vector2[int], x, y, z int, extremeX, extremeY bool, buf *util.ScreenBuffer, col TerrainColumn) {
 	for dy := range h + cellHeight {
+		ry := pos.Y + dy
+
+		dy2 := dy * 2
+		dy2h := dy2 + h
+		dy2_h := dy2 - h
+		dy2_hw := dy2_h - w
+		dy2_hch := dy2_h - cellHeight
+		dy2_hwch := dy2_hw - cellHeight
+
 		for dx := range w {
-			rx, ry := pos.X+dx, pos.Y+dy
+			rx := pos.X + dx
 			if rx < 0 || rx >= util.Width || ry < 0 || ry >= util.Height {
 				// this particular pixel is out of bounds, skip
 				continue
 			}
 			// since we've already checked, we can force set pixels without worrying about bounds from here on
 
-			dy2 := dy * 2
-
 			// <=/< or >=/> chosen based on which prevents double pixels being drawn on edges of blocks
-			if dy2-h <= -dx /* top left */ ||
-				dy2+h <= dx /* top right */ ||
-				dy2-h-cellHeight > dx /* bottom left of top */ ||
-				dy2-h-cellHeight-w > -dx /* bottom right of top */ {
+			if dy2_h <= -dx /* top left */ ||
+				dy2h <= dx /* top right */ ||
+				dy2_hch > dx /* bottom left of top */ ||
+				dy2_hwch > -dx /* bottom right of top */ {
 				// above top or below base, skip
 				continue
 			}
 
-			if dy2-h <= dx /* Face 2, 3 */ &&
-				dy2+dx <= h+w /* Face 4, 5 */ {
+			if dy2_h <= dx /* Face 2, 3 */ &&
+				dy2_hw <= -dx /* Face 4, 5 */ {
 				// draw top
 				if dx < w/2 {
 					// Face 0
@@ -241,8 +251,8 @@ func (p *ProjectionBlock) Render(h, w, cellHeight int, terrain *Terrain, pos uti
 						continue
 					}
 				}
-				buf.SetAlpha(pos.X+dx, pos.Y+dy, p.topColour.Brightness(p.factor), 0x7f)
-				// (*buf)[ry][rx] = p.topColour.Brightness(p.factor)
+				// buf.ForceSetAlpha(rx, ry, p.topColour.Brightness(p.factor), 0x7f)
+				(*buf)[ry][rx] = p.topColour.Brightness(p.factor)
 				continue
 			}
 
@@ -250,7 +260,7 @@ func (p *ProjectionBlock) Render(h, w, cellHeight int, terrain *Terrain, pos uti
 			if dx < w/2 {
 				// Face 2, 3
 
-				if dy2+dx <= h+w {
+				if dy2_hw <= -dx {
 					// Face 2
 					if !p.toRender[2] {
 						continue
@@ -262,12 +272,12 @@ func (p *ProjectionBlock) Render(h, w, cellHeight int, terrain *Terrain, pos uti
 					}
 				}
 
-				buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour1.Brightness(p.factor), 0x7f)
-				// (*buf)[ry][rx] = p.baseColour1.Brightness(p.factor)
+				// buf.ForceSetAlpha(rx, ry, p.baseColour1.Brightness(p.factor), 0x7f)
+				(*buf)[ry][rx] = p.baseColour1.Brightness(p.factor)
 			} else {
 				// Face 4, 5
 
-				if dy2-dx <= h {
+				if dy2_h <= dx {
 					// Face 4
 					if !p.toRender[4] {
 						continue
@@ -279,16 +289,16 @@ func (p *ProjectionBlock) Render(h, w, cellHeight int, terrain *Terrain, pos uti
 					}
 				}
 
-				buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour2.Brightness(p.factor), 0x7f)
-				// (*buf)[ry][rx] = p.baseColour2.Brightness(p.factor)
+				// buf.ForceSetAlpha(rx, ry, p.baseColour2.Brightness(p.factor), 0x7f)
+				(*buf)[ry][rx] = p.baseColour2.Brightness(p.factor)
 			}
 		}
 	}
 }
 
 type IsometricProjection struct {
-	terrainHeight int
-	terrain       Terrain
+	terrainHeight uint8
+	terrain       *Terrain
 
 	topColour, baseColour1, baseColour2 util.Pixel
 	minFactor, maxFactor                uint8
@@ -299,24 +309,37 @@ type IsometricProjection struct {
 	spriteZ int       // Z up I guess
 }
 
-func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
+func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 	// isometric diamond-style grid
+	const xl = terrainX - 1
+	const yl = terrainY - 1
+	const zl = terrainHeight - 1
 
 	var drew int
+
+	// factorf := float64(p.minFactor) + (float64(p.maxFactor-p.minFactor) * float64(z) / float64(p.terrainHeight))
+	fminf := float64(p.minFactor)
+	fdiff := float64(p.maxFactor - p.minFactor)
+	fth := float64(p.terrainHeight)
+
+	w := p.cellSize * 2
+	h := p.cellSize
 
 	// for x, cols := range g.terrain {
 	// 	for y, col := range cols {
 	// we'll draw diagonally instead
-	for i, diag := range g.terrain.OrderColsDiagonal() {
+	for i, diag := range p.terrain.OrderColsDiagonal() {
 		for _, dcol := range diag {
 			x, y := dcol.X, dcol.Y
 
-			extremeX := x == terrainX-1
-			extremeY := y == terrainY-1
+			extremeX := x == xl
+			extremeY := y == yl
 
-			sx := g.pos.X + (x-y)*g.cellSize - g.offset.X
-			col := g.terrain[x][y]
+			sx := p.pos.X + (x-y)*h - p.offset.X
+			sy1 := p.pos.Y + (x+y)*h/2 - p.offset.Y
+			col := p.terrain[x][y]
 
+		loopcol:
 			for z := range terrainHeight {
 				if !col.Get(z) {
 					continue
@@ -324,26 +347,20 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 
 				// calculate brightness factor based on height
 
-				// project 3d coordinates to 2d isometric
-				sy := g.pos.Y + (x+y)*g.cellSize/2 - g.offset.Y - z*g.cellHeight/2
+				// project 3d coordinates to 2d isometric1
+				sy := sy1 - z*p.cellHeight/2
 				if sx >= util.Width || sy >= util.Height {
 					// cell top is below camera, skip
 					continue
 				}
 
 				pos := util.V2(sx, sy)
-
-				w := g.cellSize * 2
-				h := g.cellSize
-				if pos.X+w < 0 || pos.Y+h+g.cellHeight < 0 {
+				if pos.X+w < 0 || pos.Y+h+p.cellHeight < 0 {
 					// cell (including its base) is above camera, skip
 					continue
 				}
 
-				extremeZ := z == terrainHeight-1
-
-				factorf := float64(g.minFactor) + (float64(g.maxFactor-g.minFactor) * float64(z) / float64(g.terrainHeight))
-				factor := uint8(min(factorf, 255))
+				factorf := fminf + (fdiff * float64(z) / (fth /*- 1*/)) // -1? TODO
 
 				// Better to draw too many faces and waste cycles than to draw too few and miss pixels... but neither is good
 				toRender := FaceRender{true, true, true, true, true, true}
@@ -353,8 +370,18 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 					toRender[0], toRender[1] = false, false
 				}
 
+				// if another block is on the diagonal between this block and the "camera", cull it
+				for i := 1; i <= min(xl-x, yl-y, zl-z); i++ {
+					if p.terrain[x+i][y+i].Get(z + i) {
+						col.Set(z, false)
+						continue loopcol
+					}
+				}
+
+				extremeZ := z == zl
+
 				if !extremeY {
-					frontLeftCol := g.terrain[x][y+1]
+					frontLeftCol := p.terrain[x][y+1]
 
 					// if there's a block to the front left, cull 2, 3
 					if frontLeftCol.Get(z) {
@@ -365,15 +392,15 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 					if !extremeZ && frontLeftCol.Get(z+1) {
 						toRender[0], toRender[2] = false, false
 					}
-				}
 
-				// if there's a block in front, cull 3, 5
-				if !extremeX && !extremeY && terrain[x+1][y+1].Get(z) {
-					toRender[3], toRender[5] = false, false
+					// if there's a block in front, cull 3, 5
+					if !extremeX && p.terrain[x+1][y+1].Get(z) {
+						toRender[3], toRender[5] = false, false
+					}
 				}
 
 				if !extremeX {
-					frontRightCol := terrain[x+1][y]
+					frontRightCol := p.terrain[x+1][y]
 
 					// if there's a block to the front right, cull 4, 5
 					if frontRightCol.Get(z) {
@@ -384,15 +411,6 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 					if !extremeZ && frontRightCol.Get(z+1) {
 						toRender[1], toRender[4] = false, false
 					}
-				}
-
-				block := ProjectionBlock{
-					topColour:   g.topColour,
-					baseColour1: g.baseColour1,
-					baseColour2: g.baseColour2,
-					factor:      factor,
-					pos:         pos,
-					toRender:    toRender,
 				}
 
 				var render bool
@@ -407,12 +425,21 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 					continue
 				}
 
-				block.Render(h, w, g.cellHeight, &g.terrain, pos, x, y, z, extremeX, extremeY, buf, col)
+				block := ProjectionBlock{
+					topColour:   p.topColour,
+					baseColour1: p.baseColour1,
+					baseColour2: p.baseColour2,
+					factor:      uint8(min(factorf, 255)),
+					pos:         pos,
+					toRender:    toRender,
+				}
+
+				block.Render(h, w, p.cellHeight, p.terrain, pos, x, y, z, extremeX, extremeY, buf, col)
 				drew++
 			}
 		}
 
-		if i == g.spriteZ {
+		if i == p.spriteZ {
 			// g.sprite.drawTo(buf)
 		}
 	}

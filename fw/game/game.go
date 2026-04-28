@@ -34,7 +34,7 @@ func Splash(en util.Engine) {
 var (
 	f         int
 	prevFrame time.Time
-	pos       util.Vector2[int] = util.V2(0, -60)
+	pos       util.Vector2[int] = util.V2(0, 0)
 )
 
 const (
@@ -52,8 +52,7 @@ var Texts = [util.ButtonsCount]*Text{
 	{FontDex, "K", util.V2(2+util.Width-hOffset*2, 2+vOffset*2), util.Red},
 	{FontDex, "L", util.V2(2+util.Width-hOffset, 2+vOffset), util.Red},
 }
-
-var terrain Terrain
+var terrain = &Terrain{}
 
 // ran every frame (or, more like this is what makes the frames)
 func Update(en util.Engine) {
@@ -84,25 +83,19 @@ func Update(en util.Engine) {
 		}
 	}
 
-	// const mul = 2
-	// const div = 4
-	// for x := range terrainX {
-	// 	for y := range terrainY {
-	// 		h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
-	// 		for z := range min(int(h), terrainHeight) {
-	// 			terrain[x][y].Set(z, true)
-	// 		}
-	// 		// for z := range terrainHeight {
-	// 		// 	terrain[x][y].Set(z, true)
-	// 		// }
-	// 	}
-	// }
-	terrain[0][0].Set(6, true)
-	terrain[0][1].Set(6, true)
-	terrain[1][0].Set(7, true)
-	terrain[1][1].Set(7, true)
-
-	// terrain.OcclusionCull()
+	const mul = 2
+	const div = 4
+	for x := range terrainX {
+		for y := range terrainY {
+			// h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
+			for z := range terrainHeight {
+				// 	terrain[x][y].Set(z, true)
+				terrain[x][y].Set(z, (x+y+z)%2==0)
+			}
+		}
+	}
+	// terrain[0][0].Set(6, true)
+	// terrain[1][1].Set(7, true)
 
 	rectsize := util.V2(20, 40)
 	rect := &Rect{

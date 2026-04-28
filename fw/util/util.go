@@ -39,10 +39,7 @@ func (sb *ScreenBuffer) Set(x, y int, px Pixel) {
 	(*sb)[y][x] = px
 }
 
-func (sb *ScreenBuffer) SetAlpha(x, y int, px Pixel, alpha uint8) {
-	if x < 0 || x >= Width || y < 0 || y >= Height {
-		return
-	}
+func (sb *ScreenBuffer) ForceSetAlpha(x, y int, px Pixel, alpha uint8) {
 	r1, g1, b1 := (*sb)[y][x].RGB()
 	r2, g2, b2 := px.RGB()
 
@@ -53,6 +50,13 @@ func (sb *ScreenBuffer) SetAlpha(x, y int, px Pixel, alpha uint8) {
 	b := uint8((uint16(b1)*nua + uint16(b2)*ua) / 0xff)
 
 	(*sb)[y][x] = MakePixel(r, g, b)
+}
+
+func (sb *ScreenBuffer) SetAlpha(x, y int, px Pixel, alpha uint8) {
+	if x < 0 || x >= Width || y < 0 || y >= Height {
+		return
+	}
+	sb.ForceSetAlpha(x, y, px, alpha)
 }
 
 type DisplayDevice interface {
@@ -76,7 +80,7 @@ var (
 	Grey8 = MakePixel(0x80, 0x80, 0x80)
 	GreyB = MakePixel(0xb0, 0xb0, 0xb0)
 
-	Brown = MakePixel(0x60, 0x30, 0x00)
+	Brown  = MakePixel(0x60, 0x30, 0x00)
 	Brown2 = MakePixel(0xc0, 0x60, 0x00)
 )
 
