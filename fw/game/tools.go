@@ -111,7 +111,7 @@ func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
 }
 
 const (
-	terrainSize, terrainHeight = 8, 8
+	terrainSize, terrainHeight = 3, 8
 	terrainX, terrainY         = terrainSize, terrainSize
 	terrainDiagonal            = terrainX + terrainY - 1
 )
@@ -241,8 +241,8 @@ func (p *ProjectionBlock) Render(h, w, cellHeight int, terrain *Terrain, pos uti
 						continue
 					}
 				}
-				// buf.SetAlpha(pos.X+dx, pos.Y+dy, p.topColour.Brightness(p.factor), 0x7f)
-				(*buf)[ry][rx] = p.topColour.Brightness(p.factor)
+				buf.SetAlpha(pos.X+dx, pos.Y+dy, p.topColour.Brightness(p.factor), 0x7f)
+				// (*buf)[ry][rx] = p.topColour.Brightness(p.factor)
 				continue
 			}
 
@@ -262,8 +262,8 @@ func (p *ProjectionBlock) Render(h, w, cellHeight int, terrain *Terrain, pos uti
 					}
 				}
 
-				// buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour1.Brightness(p.factor), 0x7f)
-				(*buf)[ry][rx] = p.baseColour1.Brightness(p.factor)
+				buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour1.Brightness(p.factor), 0x7f)
+				// (*buf)[ry][rx] = p.baseColour1.Brightness(p.factor)
 			} else {
 				// Face 4, 5
 
@@ -279,8 +279,8 @@ func (p *ProjectionBlock) Render(h, w, cellHeight int, terrain *Terrain, pos uti
 					}
 				}
 
-				// buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour2.Brightness(p.factor), 0x7f)
-				(*buf)[ry][rx] = p.baseColour2.Brightness(p.factor)
+				buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour2.Brightness(p.factor), 0x7f)
+				// (*buf)[ry][rx] = p.baseColour2.Brightness(p.factor)
 			}
 		}
 	}

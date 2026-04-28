@@ -97,17 +97,10 @@ func Update(en util.Engine) {
 	// 		// }
 	// 	}
 	// }
-	// terrain[2][0].Set(5, true)
-	// terrain[3][0].Set(6, true)
-	// terrain[4][0].Set(7, true)
-
-	// terrain[0][2].Set(5, true)
-	// terrain[0][3].Set(6, true)
-	// terrain[0][4].Set(7, true)
-
-	terrain[0][0].Set(7, true)
-	terrain[2][0].Set(7, true)
-	terrain[0][2].Set(7, true)
+	terrain[0][0].Set(6, true)
+	terrain[0][1].Set(6, true)
+	terrain[1][0].Set(7, true)
+	terrain[1][1].Set(7, true)
 
 	// terrain.OcclusionCull()
 
