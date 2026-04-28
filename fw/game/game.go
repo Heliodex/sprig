@@ -86,7 +86,7 @@ func Update(en util.Engine) {
 	}
 
 	const mul = 2
-	const div = 2
+	const div = 4
 	for x := range terrainX {
 		for y := range terrainY {
 			h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
@@ -109,7 +109,7 @@ func Update(en util.Engine) {
 	}
 
 	size := 10
-	szsize := terrainDiagonal-1
+	szsize := terrainDiagonal - 1
 	sz := abs(szsize - f%(szsize*2))
 
 	grid := &IsometricProjection{

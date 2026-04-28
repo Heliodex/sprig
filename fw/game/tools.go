@@ -111,12 +111,12 @@ func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
 }
 
 const (
-	terrainSize, terrainHeight = 8, 8
+	terrainSize, terrainHeight = 32, 8
 	terrainX, terrainY         = terrainSize, terrainSize
 	terrainDiagonal            = terrainX + terrainY - 1
 )
 
-type TerrainColumn uint8 // 1d
+type TerrainColumn uint8 // 1d, bitpacked
 
 func (col TerrainColumn) Get(z int) bool {
 	return (col & (1 << z)) != 0
@@ -177,26 +177,18 @@ func (t *Terrain) OcclusionCull() {
 	}
 }
 
-type DiagonalColumn struct {
-	TerrainColumn
-	x, y int
-}
+func (t *Terrain) OrderColsDiagonal() (diags [terrainDiagonal][]util.Vector2[int]) {
+	// so how this works is the columns will be in the order [(0 0)] [(1 0) (0 1)] [(2 0) (1 1) (0 2)] ...
 
-func (t *Terrain) OrderColsDiagonal() [][]DiagonalColumn {
-	// so how this works is the columns will be in the order [(0 0)] [(1 0) (0 1)] [(2 0) (1 1) (0 2)]... yeah
-	diags := make([][]DiagonalColumn, terrainDiagonal)
 	for d := range terrainDiagonal {
-		dl := d + 1
-		diag := make([]DiagonalColumn, dl)
-		for x := range dl {
+		for x := range d + 1 {
 			y := d - x
 			if x < terrainX && y < terrainY {
-				diag[x] = DiagonalColumn{(*t)[x][y], x, y}
+				diags[d] = append(diags[d], util.V2(x, y))
 			}
 		}
-		diags[d] = diag
 	}
-	return diags
+	return
 }
 
 type IsometricProjection struct {
@@ -221,9 +213,11 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 	// 	for y, col := range cols {
 	// we'll draw diagonally instead
 	for i, diag := range g.terrain.OrderColsDiagonal() {
-		for _, col := range diag {
-			x, y := col.x, col.y
+		for _, dcol := range diag {
+			x, y := dcol.X, dcol.Y
+
 			sx := g.pos.X + (x-y)*g.cellSize - g.offset.X
+			col := g.terrain[x][y]
 
 			for z := range terrainHeight {
 				if !col.Get(z) {
