@@ -133,8 +133,8 @@ func Update(en util.Engine) {
 	prevFrame = now
 	fps := int(1 / elapsed.Seconds())
 
-	coords := &Text{FontUnifont, strconv.Itoa(pos.X) + " " + strconv.Itoa(pos.Y), util.V2(55, 2), util.Green}
-	fpst := &Text{FontUnifont, strconv.Itoa(fps) + " FPS", util.V2(55, 2+15), util.Green}
+	coords := &Text{FontUnifont, strconv.Itoa(pos.X) + " " + strconv.Itoa(pos.Y), util.V2(55, 2), util.Red}
+	fpst := &Text{FontUnifont, strconv.Itoa(fps) + " FPS", util.V2(55, 2+15), util.Red}
 
 	ui := []UIElement{grid, coords, fpst}
 	for _, t := range Texts {
