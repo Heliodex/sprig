@@ -117,15 +117,6 @@ const (
 
 type TerrainColumn uint8 // 1d
 
-// func MakeTerrainColumn(t [terrainHeight]bool) (col TerrainColumn) {
-// 	for i := range uint8(terrainHeight) {
-// 		if t[i] {
-// 			col |= 1 << i
-// 		}
-// 	}
-// 	return
-// }
-
 func (col TerrainColumn) Get(z int) bool {
 	return (col & (1 << z)) != 0
 }
@@ -145,10 +136,10 @@ func (t *Terrain) OcclusionCull() {
 	const yl = terrainY - 1
 	const zl = terrainHeight - 1
 
-	for x := range *t {
-		for y := range (*t)[x] {
+	for x, cols := range *t {
+		for y, col := range cols {
 			for z := range terrainHeight {
-				if !(*t)[x][y].Get(z) {
+				if !col.Get(z) {
 					continue
 				}
 
@@ -159,15 +150,15 @@ func (t *Terrain) OcclusionCull() {
 
 				// if all adjacent blocks in the direction of the "camera" are filled, cull this block
 				if (*t)[x+1][y].Get(z) &&
-					(*t)[x][y+1].Get(z) &&
-					(*t)[x][y].Get(z+1) {
+					cols[y+1].Get(z) &&
+					col.Get(z+1) {
 					(*t)[x][y].Set(z, false)
 					continue
 				}
 
 				// if all blocks diagonally adjacent in the direction of the "camera" are filled, cull this block
 				if (*t)[x+1][y+1].Get(z) &&
-					(*t)[x][y+1].Get(z+1) &&
+					cols[y+1].Get(z+1) &&
 					(*t)[x+1][y].Get(z+1) {
 					(*t)[x][y].Set(z, false)
 					continue
@@ -185,17 +176,25 @@ func (t *Terrain) OcclusionCull() {
 	}
 }
 
-func (t *Terrain) GetDiagonal(di int) []TerrainColumn {
-	// get diagonal of terrain for isometric projection
-	cols := []TerrainColumn{}
-	for xc := range terrainX {
-		for yc := range terrainY {
-			if xc+yc == di {
-				cols = append(cols, (*t)[xc][yc])
+type DiagonalColumn struct {
+	TerrainColumn
+	x, y int
+}
+
+func (t *Terrain) OrderColsDiagonal() (diags [][]DiagonalColumn) {
+	// so how this works is the columns will be in the order [(0 0)] [(1 0) (0 1)] [(2 0) (1 1) (0 2)] ...
+
+	for d := 0; d < terrainX+terrainY-1; d++ {
+		var diag []DiagonalColumn
+		for x := 0; x <= d; x++ {
+			y := d - x
+			if x < terrainX && y < terrainY {
+				diag = append(diag, DiagonalColumn{(*t)[x][y], x, y})
 			}
 		}
+		diags = append(diags, diag)
 	}
-	return cols
+	return
 }
 
 type IsometricProjection struct {
@@ -216,32 +215,29 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 
 	var drew int
 
-	// for xc := range g.terrain {
-	// 	for yc := range g.terrain[xc] {
+	// for x, cols := range g.terrain {
+	// 	for y, col := range cols {
 	// we'll draw diagonally instead
-	for di := range max(terrainX, terrainY) {
-		cols := g.terrain.GetDiagonal(di)
-		for yc := range cols {
-			xc := di - yc
+	for i, diag := range g.terrain.OrderColsDiagonal() {
+		if i == g.spriteZ {
+			g.sprite.drawTo(buf)
+		}
 
-			if xc == g.spriteZ && yc == g.spriteZ {
-				g.sprite.drawTo(buf)
-			}
-			for zc := range terrainHeight {
-				if !g.terrain[xc][yc].Get(zc) {
+		for _, col := range diag {
+			x, y := col.x, col.y
+
+			for z := range terrainHeight {
+				if !col.Get(z) {
 					continue
 				}
-
-				const multi = 2
-				x, y, z := xc*multi, yc*multi, zc
 
 				// calculate brightness factor based on height
 				factorf := float64(g.minFactor) + (float64(g.maxFactor-g.minFactor) * float64(z) / float64(g.terrainHeight))
 				factor := uint8(min(factorf, 255))
 
 				// project 3d coordinates to 2d isometric
-				sx := g.pos.X + (x-y)*g.cellSize/2 - g.offset.X
-				sy := g.pos.Y + (x+y)*g.cellSize/4 - g.offset.Y - z*g.cellHeight/2
+				sx := g.pos.X + (x-y)*g.cellSize - g.offset.X
+				sy := g.pos.Y + (x+y)*g.cellSize/2 - g.offset.Y - z*g.cellHeight/2
 				if sx >= util.Width || sy >= util.Height {
 					// cell top is below camera, skip
 					continue

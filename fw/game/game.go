@@ -2,6 +2,7 @@ package game
 
 import (
 	"fw/util"
+	"math"
 	"runtime"
 	"strconv"
 	"time"
@@ -34,7 +35,7 @@ func Splash(en util.Engine) {
 var (
 	f         int
 	prevFrame time.Time
-	pos       util.Vector2[int] = util.V2(0, 50)
+	pos       util.Vector2[int] = util.V2(0, 200)
 )
 
 const (
@@ -60,19 +61,19 @@ func Update(en util.Engine) {
 	btns := en.Buttons()
 
 	if btns[util.W].Pressed() {
-		pos.Y--
+		pos.Y -= 4
 	}
 
 	if btns[util.S].Pressed() {
-		pos.Y++
+		pos.Y += 4
 	}
 
 	if btns[util.A].Pressed() {
-		pos.X--
+		pos.X -= 4
 	}
 
 	if btns[util.D].Pressed() {
-		pos.X++
+		pos.X += 4
 	}
 
 	// read button states
@@ -88,13 +89,13 @@ func Update(en util.Engine) {
 	const div = 2
 	for x := range terrainX {
 		for y := range terrainY {
-			// h := (math.Sin(float64(x)/div) * mul) + (math.Cos(float64(y)/div) * mul) + mul*2 + 1
-			// for z := range min(int(h), terrainHeight) {
-			// 	terrain[x][y].Set(z, true)
-			// }
-			for z := range terrainHeight {
+			h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
+			for z := range min(int(h), terrainHeight) {
 				terrain[x][y].Set(z, true)
 			}
+			// for z := range terrainHeight {
+			// 	terrain[x][y].Set(z, true)
+			// }
 		}
 	}
 
@@ -108,6 +109,8 @@ func Update(en util.Engine) {
 	}
 
 	size := 10
+	sz := abs(62 - f%(62*2))
+	println(sz)
 
 	grid := &IsometricProjection{
 		terrainHeight: 8,
@@ -125,7 +128,7 @@ func Update(en util.Engine) {
 		cellHeight:  20,
 
 		sprite:  rect,
-		spriteZ: 6,
+		spriteZ: sz,
 	}
 
 	// fps counter
