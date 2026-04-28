@@ -18,7 +18,7 @@ type Rect struct {
 func (r *Rect) drawTo(buf *util.ScreenBuffer) {
 	for y := r.pos.Y; y < r.pos.Y+r.size.Y; y++ {
 		for x := r.pos.X; x < r.pos.X+r.size.X; x++ {
-			buf.SetAlpha(x, y, r.colour, 0x40)
+			buf.Set(x, y, r.colour)
 		}
 	}
 }
@@ -264,8 +264,16 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 
 							var c util.Pixel
 							if dx < w/2 {
+								// if there's a block to the front left, no need to draw this
+								if y < terrainY-1 && g.terrain[x][y+1].Get(z) {
+									continue
+								}
 								c = g.baseColour1 // left base
 							} else {
+								// if there's a block to the front right, no need to draw this
+								if x < terrainX-1 && g.terrain[x+1][y].Get(z) {
+									continue
+								}
 								c = g.baseColour2 // right base
 							}
 							// buf.Set(sx+dx, sy+dy, c.Brightness(factor))
@@ -275,8 +283,12 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 						}
 
 						// draw top
-						// buf.Set(sx+dx, sy+dy, g.topColour.Brightness(factor))
+						// buf.SetAlpha(sx+dx, sy+dy, g.topColour.Brightness(factor), 0xff)
 						(*buf)[ry][rx] = g.topColour.Brightness(factor)
+
+						if rx == util.Width/2 && ry == util.Height/2 {
+							println("drawing center pixel of cell at", x, y, z)
+						}
 					}
 				}
 				drew++

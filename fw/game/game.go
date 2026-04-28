@@ -101,7 +101,7 @@ func Update(en util.Engine) {
 
 	terrain.OcclusionCull()
 
-	rectsize := util.V2(util.Width, util.Height)
+	rectsize := util.V2(20, 40)
 	rect := &Rect{
 		pos:    util.V2((util.Width-rectsize.X)/2, (util.Height-rectsize.Y)/2),
 		size:   rectsize,
@@ -109,8 +109,8 @@ func Update(en util.Engine) {
 	}
 
 	size := 10
-	szsize := terrainDiagonal - 1
-	sz := abs(szsize - f%(szsize*2))
+	// szsize := terrainDiagonal - 1
+	// sz := abs(szsize - f%(szsize*2))
 
 	grid := &IsometricProjection{
 		terrainHeight: 8,
@@ -128,7 +128,7 @@ func Update(en util.Engine) {
 		cellHeight:  20,
 
 		sprite:  rect,
-		spriteZ: sz,
+		spriteZ: 25,
 	}
 
 	// fps counter
