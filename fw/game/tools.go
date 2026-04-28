@@ -191,6 +191,85 @@ func (t *Terrain) OrderColsDiagonal() (diags [terrainDiagonal][]util.Vector2[int
 	return
 }
 
+// 0 - left side of top
+// 1 - right side of top
+// 2 - top side of left base
+// 3 - bottom side of left base
+// 4 - top side of right base
+// 5 - bottom side of right base
+type FaceRender [6]bool
+
+type ProjectionBlock struct {
+	topColour, baseColour1, baseColour2 util.Pixel
+	factor                              uint8
+	pos                                 util.Vector2[int]
+	toRender                            FaceRender
+}
+
+func (p *ProjectionBlock) Render(h, w, cellHeight int, terrain *Terrain, pos util.Vector2[int], x, y, z int, extremeX, extremeY bool, buf *util.ScreenBuffer, col TerrainColumn) {
+	for dy := range h + cellHeight {
+		for dx := range w {
+			rx, ry := pos.X+dx, pos.Y+dy
+			if rx < 0 || rx >= util.Width || ry < 0 || ry >= util.Height {
+				// this particular pixel is out of bounds, skip
+				continue
+			}
+			// since we've already checked, we can force set pixels without worrying about bounds from here on
+
+			// <=/< or >=/> chosen based on which prevents double pixels being drawn on edges of blocks
+			if dx+dy*2 <= h /* top left */ ||
+				dy*2+h <= dx /* top right */ ||
+				dy*2-h-cellHeight > dx /* bottom left of top */ ||
+				dx+dy*2 > h+cellHeight+w /* bottom right of top */ {
+				// above top or below base, skip
+				continue
+			}
+
+			if dy*2-h > dx /* Face 2, 3 */ ||
+				dx+dy*2 > h+w /* Face 4, 5 */ {
+				// draw base
+				if dx < w/2 {
+					// Face 2, 3
+					if !p.toRender[2] && !p.toRender[3] {
+						continue
+					}
+					buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour1.Brightness(p.factor), 0x7f)
+					// (*buf)[ry][rx] = p.baseColour1.Brightness(p.factor)
+				} else {
+					// Face 4, 5
+					if !p.toRender[4] && !p.toRender[5] {
+						continue
+					}
+					buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour2.Brightness(p.factor), 0x7f)
+					// (*buf)[ry][rx] = p.baseColour2.Brightness(p.factor)
+				}
+				continue
+			}
+
+			// draw top
+			if dx < w/2 {
+				// Face 0
+				if !p.toRender[0] {
+					continue
+				}
+				buf.SetAlpha(pos.X+dx, pos.Y+dy, p.topColour.Brightness(p.factor), 0x7f)
+				// (*buf)[ry][rx] = p.topColour.Brightness(p.factor)
+			} else {
+				// Face 1
+				if !p.toRender[1] {
+					continue
+				}
+				buf.SetAlpha(pos.X+dx, pos.Y+dy, p.topColour.Brightness(p.factor), 0x7f)
+				// (*buf)[ry][rx] = p.topColour.Brightness(p.factor)
+			}
+
+			// if rx == util.Width/2 && ry == util.Height/2 {
+			// 	println("drawing center pixel of cell at", x, y, z)
+			// }
+		}
+	}
+}
+
 type IsometricProjection struct {
 	terrainHeight int
 	terrain       Terrain
@@ -228,8 +307,6 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 				}
 
 				// calculate brightness factor based on height
-				factorf := float64(g.minFactor) + (float64(g.maxFactor-g.minFactor) * float64(z) / float64(g.terrainHeight))
-				factor := uint8(min(factorf, 255))
 
 				// project 3d coordinates to 2d isometric
 				sy := g.pos.Y + (x+y)*g.cellSize/2 - g.offset.Y - z*g.cellHeight/2
@@ -238,78 +315,82 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 					continue
 				}
 
+				pos := util.V2(sx, sy)
+
 				w := g.cellSize * 2
 				h := g.cellSize
-				if sx+w < 0 || sy+h+g.cellHeight < 0 {
+				if pos.X+w < 0 || pos.Y+h+g.cellHeight < 0 {
 					// cell (including its base) is above camera, skip
 					continue
 				}
 
-				for dy := range h + g.cellHeight {
-					for dx := range w {
-						rx, ry := sx+dx, sy+dy
-						if rx < 0 || rx >= util.Width || ry < 0 || ry >= util.Height {
-							// this particular pixel is out of bounds, skip
-							continue
-						}
+				extremeZ := z == terrainHeight-1
 
-						if dx+dy*2 <= h /* top left */ ||
-							dy*2+h <= dx /* top right */ ||
-							dy*2-h-g.cellHeight > dx /* bottom left of top */ ||
-							dx+dy*2 > h+g.cellHeight+w /* bottom right of top */ {
-							// above top or below base, skip
-							continue
-						}
+				factorf := float64(g.minFactor) + (float64(g.maxFactor-g.minFactor) * float64(z) / float64(g.terrainHeight))
+				factor := uint8(min(factorf, 255))
 
-						extremeZ := z == terrainHeight-1
+				toRender := FaceRender{true, true, true, true, true, true}
 
-						if dy*2-h > dx /* bottom left of base */ ||
-							dx+dy*2 > h+w /* bottom right of base */ {
-							// draw base
+				// if there's a block on top of this one, cull 0, 1
+				if z < terrainHeight-1 && col.Get(z+1) {
+					toRender[0], toRender[1] = false, false
+				}
 
-							var c util.Pixel
-							if dx < w/2 {
-								// if there's a block to the front left, no need to draw this
-								if !extremeY && g.terrain[x][y+1].Get(z) {
-									continue
-								}
-								// if there's a block above the one to the front left AND one in front, no need to draw this
-								if !extremeX && !extremeY && !extremeZ && g.terrain[x][y+1].Get(z+1) && g.terrain[x+1][y+1].Get(z) {
-									continue
-								}
-								c = g.baseColour1 // left base
-							} else {
-								// if there's a block to the front right, no need to draw this
-								if !extremeX && g.terrain[x+1][y].Get(z) {
-									continue
-								}
-								// if there's a block above the one to the front right AND one in front, no need to draw this
-								if !extremeX && !extremeY && !extremeZ && g.terrain[x+1][y].Get(z+1) && g.terrain[x+1][y+1].Get(z) {
-									continue
-								}
-								c = g.baseColour2 // right base
-							}
-							buf.SetAlpha(sx+dx, sy+dy, c.Brightness(factor), 0xff)
-							// since we've already checked, we can force set
-							// (*buf)[ry][rx] = c.Brightness(factor)
-							continue
-						}
+				if !extremeY {
+					frontLeftCol := g.terrain[x][y+1]
 
-						// draw top
+					// if there's a block to the front left, cull 2, 3
+					if frontLeftCol.Get(z) {
+						toRender[2], toRender[3] = false, false
+					}
 
-						// if there's a block on top of this one, no need to draw the top face
-						if z < terrainHeight-1 && col.Get(z+1) {
-							continue
-						}
-
-						buf.SetAlpha(sx+dx, sy+dy, g.topColour.Brightness(factor), 0xff)
-						// (*buf)[ry][rx] = g.topColour.Brightness(factor)
-
-						// if rx == util.Width/2 && ry == util.Height/2 {
-						// 	println("drawing center pixel of cell at", x, y, z)
-						// }
+					// if there's a block above the one to the front left, cull 1, 4
+					if !extremeZ && frontLeftCol.Get(z+1) {
+						toRender[0], toRender[2] = false, false
 					}
 				}
+
+				// if there's a block in front, cull 3, 5
+				if !extremeX && !extremeY && terrain[x+1][y+1].Get(z) {
+					toRender[3], toRender[5] = false, false
+				}
+
+				if !extremeX {
+					frontRightCol := terrain[x+1][y]
+
+					// if there's a block to the front right, cull 4, 5
+					if frontRightCol.Get(z) {
+						toRender[4], toRender[5] = false, false
+					}
+
+					// if there's a block above the one to the front right, cull 1, 4
+					if !extremeZ && frontRightCol.Get(z+1) {
+						toRender[1], toRender[4] = false, false
+					}
+				}
+
+				block := ProjectionBlock{
+					topColour:   g.topColour,
+					baseColour1: g.baseColour1,
+					baseColour2: g.baseColour2,
+					factor:      factor,
+					pos:         pos,
+					toRender:    toRender,
+				}
+
+				var render bool
+				for _, b := range toRender {
+					if b {
+						render = true
+						break
+					}
+				}
+
+				if !render {
+					continue
+				}
+
+				block.Render(h, w, g.cellHeight, &g.terrain, pos, x, y, z, extremeX, extremeY, buf, col)
 				drew++
 			}
 		}
