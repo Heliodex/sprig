@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fw/game"
+	"fw/sim/engine"
 	"os"
 	"time"
 
@@ -8,9 +10,6 @@ import (
 	"golang.org/x/exp/shiny/screen"
 	"golang.org/x/mobile/event/key"
 	"golang.org/x/mobile/event/lifecycle"
-
-	"fw/game"
-	"fw/sim/engine"
 	// "fw/util"
 )
 
@@ -55,7 +54,7 @@ func startUI(s screen.Screen) {
 
 	// game.Splash(en)
 
-	for  {
+	for {
 		game.Update(en)
 		// wait 1 frame
 		time.Sleep(40 * time.Millisecond) // ~25fps, which is how fast my console actually runs, ymmv
