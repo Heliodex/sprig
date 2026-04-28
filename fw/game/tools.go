@@ -216,56 +216,72 @@ func (p *ProjectionBlock) Render(h, w, cellHeight int, terrain *Terrain, pos uti
 			}
 			// since we've already checked, we can force set pixels without worrying about bounds from here on
 
+			dy2 := dy * 2
+
 			// <=/< or >=/> chosen based on which prevents double pixels being drawn on edges of blocks
-			if dx+dy*2 <= h /* top left */ ||
-				dy*2+h <= dx /* top right */ ||
-				dy*2-h-cellHeight > dx /* bottom left of top */ ||
-				dx+dy*2 > h+cellHeight+w /* bottom right of top */ {
+			if dy2-h <= -dx /* top left */ ||
+				dy2+h <= dx /* top right */ ||
+				dy2-h-cellHeight > dx /* bottom left of top */ ||
+				dy2-h-cellHeight-w > -dx /* bottom right of top */ {
 				// above top or below base, skip
 				continue
 			}
 
-			if dy*2-h > dx /* Face 2, 3 */ ||
-				dx+dy*2 > h+w /* Face 4, 5 */ {
-				// draw base
+			if dy2-h <= dx /* Face 2, 3 */ &&
+				dy2+dx <= h+w /* Face 4, 5 */ {
+				// draw top
 				if dx < w/2 {
-					// Face 2, 3
-					if !p.toRender[2] && !p.toRender[3] {
+					// Face 0
+					if !p.toRender[0] {
 						continue
 					}
-					buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour1.Brightness(p.factor), 0x7f)
-					// (*buf)[ry][rx] = p.baseColour1.Brightness(p.factor)
 				} else {
-					// Face 4, 5
-					if !p.toRender[4] && !p.toRender[5] {
+					// Face 1
+					if !p.toRender[1] {
 						continue
 					}
-					buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour2.Brightness(p.factor), 0x7f)
-					// (*buf)[ry][rx] = p.baseColour2.Brightness(p.factor)
 				}
+				// buf.SetAlpha(pos.X+dx, pos.Y+dy, p.topColour.Brightness(p.factor), 0x7f)
+				(*buf)[ry][rx] = p.topColour.Brightness(p.factor)
 				continue
 			}
 
-			// draw top
+			// draw base
 			if dx < w/2 {
-				// Face 0
-				if !p.toRender[0] {
-					continue
-				}
-				buf.SetAlpha(pos.X+dx, pos.Y+dy, p.topColour.Brightness(p.factor), 0x7f)
-				// (*buf)[ry][rx] = p.topColour.Brightness(p.factor)
-			} else {
-				// Face 1
-				if !p.toRender[1] {
-					continue
-				}
-				buf.SetAlpha(pos.X+dx, pos.Y+dy, p.topColour.Brightness(p.factor), 0x7f)
-				// (*buf)[ry][rx] = p.topColour.Brightness(p.factor)
-			}
+				// Face 2, 3
 
-			// if rx == util.Width/2 && ry == util.Height/2 {
-			// 	println("drawing center pixel of cell at", x, y, z)
-			// }
+				if dy2+dx <= h+w {
+					// Face 2
+					if !p.toRender[2] {
+						continue
+					}
+				} else {
+					// Face 3
+					if !p.toRender[3] {
+						continue
+					}
+				}
+
+				// buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour1.Brightness(p.factor), 0x7f)
+				(*buf)[ry][rx] = p.baseColour1.Brightness(p.factor)
+			} else {
+				// Face 4, 5
+
+				if dy2-dx <= h {
+					// Face 4
+					if !p.toRender[4] {
+						continue
+					}
+				} else {
+					// Face 5
+					if !p.toRender[5] {
+						continue
+					}
+				}
+
+				// buf.SetAlpha(pos.X+dx, pos.Y+dy, p.baseColour2.Brightness(p.factor), 0x7f)
+				(*buf)[ry][rx] = p.baseColour2.Brightness(p.factor)
+			}
 		}
 	}
 }
@@ -329,6 +345,7 @@ func (g *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 				factorf := float64(g.minFactor) + (float64(g.maxFactor-g.minFactor) * float64(z) / float64(g.terrainHeight))
 				factor := uint8(min(factorf, 255))
 
+				// Better to draw too many faces and waste cycles than to draw too few and miss pixels... but neither is good
 				toRender := FaceRender{true, true, true, true, true, true}
 
 				// if there's a block on top of this one, cull 0, 1

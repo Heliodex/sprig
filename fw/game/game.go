@@ -106,7 +106,8 @@ func Update(en util.Engine) {
 	// terrain[0][4].Set(7, true)
 
 	terrain[0][0].Set(7, true)
-	terrain[1][1].Set(7, true)
+	terrain[2][0].Set(7, true)
+	terrain[0][2].Set(7, true)
 
 	// terrain.OcclusionCull()
 
