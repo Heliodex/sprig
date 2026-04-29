@@ -202,6 +202,7 @@ func (t *Terrain) OrderColsDiagonal() (diags [terrainDiagonal][]util.Vector2[int
 // 3 - bottom side of left base
 // 4 - top side of right base
 // 5 - bottom side of right base
+// yes, using a uint8 as a bitpack is slower
 type FaceRender [6]bool
 
 type ProjectionBlock struct {
@@ -315,8 +316,8 @@ type IsometricProjection struct {
 	offset, pos, size                   util.Vector2[int]
 	cellSize, cellHeight                int
 
-	sprite  UIElement // to be drawn on top of the terrain at the specified Z height
-	spriteZ int       // Z up I guess
+	sprite  UIElement // to be drawn on top of the terrain at the specified D height
+	spriteD int       // D forward I guess
 }
 
 func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
@@ -449,8 +450,8 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 			}
 		}
 
-		if i == p.spriteZ {
-			// g.sprite.drawTo(buf)
+		if i == p.spriteD {
+			p.sprite.drawTo(buf)
 		}
 	}
 

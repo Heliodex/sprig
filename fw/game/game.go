@@ -2,6 +2,7 @@ package game
 
 import (
 	"fw/util"
+	"math"
 	"runtime"
 	"strconv"
 	"time"
@@ -87,10 +88,10 @@ func Update(en util.Engine) {
 	const div = 4
 	for x := range terrainX {
 		for y := range terrainY {
-			// h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
-			for z := range terrainHeight {
-				// 	terrain[x][y].Set(z, true)
-				terrain[x][y].Set(z, (x+y+z)%2 == 0)
+			h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
+			for z := range int(h) {
+				terrain[x][y].Set(z, true)
+				// terrain[x][y].Set(z, (x+y+z)%2 == 0)
 			}
 		}
 	}
@@ -124,7 +125,7 @@ func Update(en util.Engine) {
 		cellHeight:  20,
 
 		sprite:  rect,
-		spriteZ: 25,
+		spriteD: 25,
 	}
 
 	// fps counter
