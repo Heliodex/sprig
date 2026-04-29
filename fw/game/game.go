@@ -226,7 +226,7 @@ func Update(en util.Engine) {
 
 	// rp := pos.Div(10)
 
-	grid := &IsometricProjection{
+	grid := &DimetricProjection{
 		terrainHeight: 8,
 		terrain:       terrain,
 

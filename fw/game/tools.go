@@ -89,7 +89,7 @@ type DiamondGrid struct {
 }
 
 func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
-	// isometric diamond-style grid
+	// dimetric diamond-style grid
 	for y := range g.size.Y {
 		for x := range g.size.X {
 			var c util.Pixel
@@ -311,7 +311,7 @@ func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf
 	}
 }
 
-type IsometricProjection struct {
+type DimetricProjection struct {
 	terrainHeight float64
 	terrain       *Terrain
 
@@ -324,8 +324,8 @@ type IsometricProjection struct {
 	spriteZ int
 }
 
-func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
-	// isometric diamond-style grid
+func (p *DimetricProjection) drawTo(buf *util.ScreenBuffer) {
+	// dimetric diamond-style grid
 	const xl = terrainX - 1
 	const yl = terrainY - 1
 	const zl = terrainHeight - 1
@@ -354,7 +354,7 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 			extremeX := x == xl
 			extremeY := y == yl
 
-			// project 3d coordinates to 2d isometric
+			// project 3d coordinates to 2d dimetric
 			sx := (x-y)*h - p.offset.X
 			if sx >= util.Width {
 				// cell side is right of camera, skip
