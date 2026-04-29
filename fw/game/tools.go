@@ -185,8 +185,10 @@ func (t *Terrain) OrderColsDiagonal() (diags [terrainDiagonal][]util.Vector2[int
 
 	for d := range terrainDiagonal {
 		for x := range d + 1 {
-			y := d - x
-			if x < terrainX && y < terrainY {
+			if x >= terrainX {
+				continue
+			}
+			if y := d - x; y < terrainY {
 				diags[d] = append(diags[d], util.V2(x, y))
 			}
 		}
@@ -210,8 +212,6 @@ type ProjectionBlock struct {
 }
 
 func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf *util.ScreenBuffer) {
-	w_2 := w / 2
-
 	for dy := range h + cellHeight {
 		ry := pos.Y + dy
 		if ry < 0 || ry >= util.Height {
@@ -248,7 +248,7 @@ func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf
 			if dy2_h <= dx /* Face 2, 3 */ &&
 				dy2_hw <= ndx /* Face 4, 5 */ {
 				// draw top
-				if dx < w_2 {
+				if dx < h {
 					// Face 0
 					if !p.toRender[0] {
 						continue
@@ -267,7 +267,7 @@ func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf
 
 			// draw base
 
-			if dx < w_2 {
+			if dx < h {
 				// Face 2, 3
 
 				if dy2_hw <= ndx {
@@ -313,7 +313,7 @@ type IsometricProjection struct {
 
 	topColour, baseColour1, baseColour2 util.Pixel
 	minFactor, maxFactor                float64
-	pos, offset, size                   util.Vector2[int]
+	offset, pos, size                   util.Vector2[int]
 	cellSize, cellHeight                int
 
 	sprite  UIElement // to be drawn on top of the terrain at the specified Z height
@@ -328,13 +328,15 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 
 	var drew int
 
-	// factorf := float64(p.minFactor) + (float64(p.maxFactor-p.minFactor) * float64(z) / float64(p.terrainHeight))
+	// calculate brightness factor based on height
 	fminf := p.minFactor
 	fdiff := p.maxFactor - p.minFactor
 	fth := p.terrainHeight
 
 	w := p.cellSize * 2
 	h := p.cellSize
+	h_2 := h / 2
+	ch_2 := p.cellHeight / 2
 
 	// for x, cols := range g.terrain {
 	// 	for y, col := range cols {
@@ -346,8 +348,9 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 			extremeX := x == xl
 			extremeY := y == yl
 
+			// project 3d coordinates to 2d isometric
 			sx := p.pos.X + (x-y)*h - p.offset.X
-			sy1 := p.pos.Y + (x+y)*h/2 - p.offset.Y
+			sy1 := p.pos.Y + (x+y)*h_2 - p.offset.Y
 			col := p.terrain[x][y]
 
 		loopcol:
@@ -356,10 +359,7 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 					continue
 				}
 
-				// calculate brightness factor based on height
-
-				// project 3d coordinates to 2d isometric1
-				sy := sy1 - z*p.cellHeight/2
+				sy := sy1 - z*ch_2
 				if sx >= util.Width || sy >= util.Height {
 					// cell top is below camera, skip
 					continue

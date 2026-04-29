@@ -90,7 +90,7 @@ func Update(en util.Engine) {
 			// h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
 			for z := range terrainHeight {
 				// 	terrain[x][y].Set(z, true)
-				terrain[x][y].Set(z, (x+y+z)%2==0)
+				terrain[x][y].Set(z, (x+y+z)%2 == 0)
 			}
 		}
 	}
@@ -117,8 +117,8 @@ func Update(en util.Engine) {
 		baseColour2: util.Brown2,
 		minFactor:   0x20,
 		maxFactor:   0xff,
-		pos:         util.V2(util.Width/2-size, util.Height/2-size),
 		offset:      pos,
+		pos:         util.V2(util.Width/2-size, util.Height/2-size),
 		size:        util.V2(util.Width, util.Height),
 		cellSize:    size,
 		cellHeight:  20,
