@@ -130,7 +130,11 @@ func (col *TerrainColumn) Set(z int, v bool) {
 	}
 }
 
-type Terrain [terrainX][terrainY]TerrainColumn // 3d
+type Terrain [terrainX][terrainY]TerrainColumn //
+
+func (t *Terrain) GetV3(pos util.Vector3[int]) bool {
+	return t[pos.X][pos.Y].Get(pos.Z)
+}
 
 // Flawed, cuts out information that is necessary for future face culling
 /*
@@ -313,7 +317,7 @@ type IsometricProjection struct {
 
 	topColour, baseColour1, baseColour2 util.Pixel
 	minFactor, maxFactor                float64
-	offset, pos                         util.Vector2[int]
+	offset                              util.Vector2[int]
 	cellSize, cellHeight                int
 
 	sprite  UIElement // to be drawn on top of the terrain at the specified D height
@@ -351,13 +355,13 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 			extremeY := y == yl
 
 			// project 3d coordinates to 2d isometric
-			sx := p.pos.X + (x-y)*h - p.offset.X
+			sx := (x-y)*h - p.offset.X
 			if sx >= util.Width {
 				// cell side is right of camera, skip
 				continue
 			}
 
-			sy1 := p.pos.Y + (x+y)*h_2 - p.offset.Y
+			sy1 := (x+y)*h_2 - p.offset.Y
 			col := p.terrain[x][y]
 
 		loopcol:
@@ -461,6 +465,10 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 				drew++
 			}
 		}
+	}
+
+	if !drawn {
+		p.sprite.drawTo(buf)
 	}
 
 	println("drew", drew, "tiles")

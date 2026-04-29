@@ -189,3 +189,19 @@ type Vector3[T Num] struct {
 func V3[T Num](x, y, z T) Vector3[T] {
 	return Vector3[T]{X: x, Y: y, Z: z}
 }
+
+func (v Vector3[T]) Add(o Vector3[T]) Vector3[T] {
+	return Vector3[T]{X: v.X + o.X, Y: v.Y + o.Y, Z: v.Z + o.Z}
+}
+
+func (v Vector3[T]) FloorDiv(scalar T) Vector3[T] {
+	return Vector3[T]{X: T(v.X / scalar), Y: T(v.Y / scalar), Z: T(v.Z / scalar)}
+}
+
+func (v Vector3[T]) Div(scalar float64) Vector3[T] {
+	return Vector3[T]{X: T(float64(v.X) / scalar), Y: T(float64(v.Y) / scalar), Z: T(float64(v.Z) / scalar)}
+}
+
+func (v Vector3[T]) XY() Vector2[T] {
+	return Vector2[T]{X: v.X, Y: v.Y}
+}

@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"fw/util"
 	"math"
 	"runtime"
@@ -65,28 +66,140 @@ func init() {
 				terrain[x][y].Set(z, true)
 				// terrain[x][y].Set(z, (x+y+z)%2 == 0)
 			}
+			// for z := range 7 {
+			// 	terrain[x][y].Set(z, true)
+			// }
 		}
 	}
 }
 
+type Movement struct {
+	gridPosScaled util.Vector3[int]
+	scale         int
+	jumping       uint8
+}
+
+// func (m *Movement) Unscaled() util.Vector3[int] {
+// 	fmt.Println(m.gridPosScaled)
+// 	return m.gridPosScaled.FloorDiv(m.scale)
+// }
+
+func unscaled(v util.Vector3[int], scale int) util.Vector3[int] {
+	return v.FloorDiv(scale)
+}
+
+func (m *Movement) Update() {
+	floorSquare := unscaled(m.gridPosScaled.Add(util.V3(0, 0, -1)), m.scale)
+	currentFloorTile := terrain.GetV3(floorSquare)
+
+	if m.jumping > 0 {
+		println("jumping", m.jumping)
+		m.gridPosScaled.Z += 2
+		m.jumping--
+	}
+
+	if !currentFloorTile {
+		fmt.Println("no tile at", floorSquare)
+
+		if m.jumping == 0 {
+			m.gridPosScaled.Z -= 2 // experience gravity
+		}
+		// } else {
+		// 	m.gridPosScaled.Z += 2 // experience normal force
+	}
+	// gridSquare := m.gridPosScaled
+}
+
+func (m *Movement) ValidX(x int) bool {
+	gridSquare := unscaled(m.gridPosScaled, m.scale)
+	gridSquareNew := unscaled(m.gridPosScaled.Add(util.V3(x, 0, 0)), m.scale)
+	if gridSquareNew.X < 0 || gridSquareNew.X >= terrainX ||
+		gridSquareNew.Y < 0 || gridSquareNew.Y >= terrainY {
+		return false
+	}
+
+	currentTile := terrain.GetV3(gridSquare)
+	if currentTile {
+		m.gridPosScaled.Z += 2 // step up
+		return true            // whatever bruh
+	}
+
+	newTile := terrain.GetV3(gridSquareNew)
+	return !newTile
+}
+
+func (m *Movement) ValidY(y int) bool {
+	gridSquare := unscaled(m.gridPosScaled, m.scale)
+	gridSquareNew := unscaled(m.gridPosScaled.Add(util.V3(0, y, 0)), m.scale)
+	if gridSquareNew.X < 0 || gridSquareNew.X >= terrainX ||
+		gridSquareNew.Y < 0 || gridSquareNew.Y >= terrainY {
+		return false
+	}
+
+	currentTile := terrain.GetV3(gridSquare)
+	if currentTile {
+		m.gridPosScaled.Z += 2 // step up
+		return true            // whatever bruh
+	}
+
+	newTile := terrain.GetV3(gridSquareNew)
+	return !newTile
+}
+
+func (m *Movement) Apply(x, y int) {
+	if m.ValidX(x) {
+		m.gridPosScaled.X += x
+	}
+
+	if m.ValidY(y) {
+		m.gridPosScaled.Y += y
+	}
+}
+
+func (m *Movement) ApplyZ(z int) {
+	m.gridPosScaled.Z += z
+}
+
+func (m *Movement) ToScreen() util.Vector2[int] {
+	sx := (m.gridPosScaled.X - m.gridPosScaled.Y - 68) * m.scale
+	sy := (m.gridPosScaled.X + m.gridPosScaled.Y - 90 - m.gridPosScaled.Z*2) * m.scale / 2
+	return util.V2(sx, sy).FloorDiv(m.scale)
+}
+
+// func x2screen(x int) int {}
+// func y2screen(x int) int {}
+
+const size = 10
+
+var mvmt = &Movement{
+	gridPosScaled: util.V3(0, 0, 8*size),
+	scale:         size,
+}
+
 // ran every frame (or, more like this is what makes the frames)
 func Update(en util.Engine) {
+	mvmt.Update()
+
 	btns := en.Buttons()
 
 	if btns[util.W].Pressed() {
-		pos.Y -= 2
+		mvmt.Apply(-2, -2)
 	}
 
 	if btns[util.S].Pressed() {
-		pos.Y += 2
+		mvmt.Apply(2, 2)
 	}
 
 	if btns[util.A].Pressed() {
-		pos.X -= 2
+		mvmt.Apply(-1, 1)
 	}
 
 	if btns[util.D].Pressed() {
-		pos.X += 2
+		mvmt.Apply(1, -1)
+	}
+
+	if btns[util.I].Pressed() {
+		mvmt.jumping = 5
 	}
 
 	// read button states
@@ -103,12 +216,11 @@ func Update(en util.Engine) {
 
 	rectsize := util.V2(10, 20)
 	rect := &Rect{
-		pos:    util.V2((util.Width-rectsize.X)/2, (util.Height-rectsize.Y)/2),
+		pos:    util.V2((util.Width-rectsize.X)/2, (util.Height/2 - rectsize.Y)),
 		size:   rectsize,
 		colour: util.Magenta,
 	}
 
-	size := 10
 	// szsize := terrainDiagonal - 1
 	// sz := abs(szsize - f%(szsize*2))
 
@@ -123,13 +235,12 @@ func Update(en util.Engine) {
 		baseColour2: util.Brown2,
 		minFactor:   0x20,
 		maxFactor:   0xff,
-		offset:      util.V2(pos.X, pos.Y),
-		pos:         util.V2(util.Width/2-size, util.Height/2-size),
+		offset:      mvmt.ToScreen(),
 		cellSize:    size,
 		cellHeight:  20,
 
 		sprite:  rect,
-		spriteZ: 5,
+		spriteZ: unscaled(mvmt.gridPosScaled, mvmt.scale).Z,
 	}
 
 	// fps counter
