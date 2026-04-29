@@ -1,0 +1,8 @@
+{
+	"go.toolsEnvVars": {
+		"GOOS": "linux",
+		"GOARCH": "arm",
+		"GOROOT": "/home/heliodex/.cache/tinygo/goroot-7de52b68b74b38461ef1159134318e13ef3249ee2fd4363571b57d81673eebb9",
+		"GOFLAGS": "-tags=cortexm,baremetal,linux,arm,rp2350,rp,pico2,tinygo,purego,osusergo,math_big_pure_go,gc.conservative,scheduler.tasks,serial.usb,tinygo.unicore"
+	}
+}

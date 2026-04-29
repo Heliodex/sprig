@@ -338,10 +338,12 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 	h_2 := h / 2
 	ch_2 := p.cellHeight / 2
 
+	// var FNT int
+
 	// for x, cols := range g.terrain {
 	// 	for y, col := range cols {
 	// we'll draw diagonally instead
-	for i, diag := range p.terrain.OrderColsDiagonal() {
+	for _, diag := range p.terrain.OrderColsDiagonal() {
 		for _, dcol := range diag {
 			x, y := dcol.X, dcol.Y
 
@@ -357,6 +359,15 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 
 			sy1 := p.pos.Y + (x+y)*h_2 - p.offset.Y
 			col := p.terrain[x][y]
+
+			// if sy1 >= util.Height/2 {
+			// 	// continue // debug
+			// 	FNT++
+			// }
+
+			// if FNT == 1 {
+			// 	p.sprite.drawTo(buf)
+			// }
 
 		loopcol:
 			for z := range terrainHeight {
@@ -453,10 +464,6 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 				block.Render(h, w, p.cellHeight, pos, buf)
 				drew++
 			}
-		}
-
-		if i == p.spriteD {
-			p.sprite.drawTo(buf)
 		}
 	}
 

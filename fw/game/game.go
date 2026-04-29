@@ -101,7 +101,7 @@ func Update(en util.Engine) {
 	// terrain[0][0].Set(6, true)
 	// terrain[1][1].Set(7, true)
 
-	rectsize := util.V2(20, 40)
+	rectsize := util.V2(20, util.Height)
 	rect := &Rect{
 		pos:    util.V2((util.Width-rectsize.X)/2, (util.Height-rectsize.Y)/2),
 		size:   rectsize,
