@@ -350,6 +350,11 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 
 			// project 3d coordinates to 2d isometric
 			sx := p.pos.X + (x-y)*h - p.offset.X
+			if sx >= util.Width {
+				// cell side is right of camera, skip
+				continue
+			}
+
 			sy1 := p.pos.Y + (x+y)*h_2 - p.offset.Y
 			col := p.terrain[x][y]
 
@@ -360,7 +365,7 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 				}
 
 				sy := sy1 - z*ch_2
-				if sx >= util.Width || sy >= util.Height {
+				if sy >= util.Height {
 					// cell top is below camera, skip
 					continue
 				}

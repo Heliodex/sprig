@@ -55,6 +55,20 @@ var Texts = [util.ButtonsCount]*Text{
 }
 var terrain = &Terrain{}
 
+func init() {
+	const mul = 2
+	const div = 4
+	for x := range terrainX {
+		for y := range terrainY {
+			h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
+			for z := range int(h) {
+				terrain[x][y].Set(z, true)
+				// terrain[x][y].Set(z, (x+y+z)%2 == 0)
+			}
+		}
+	}
+}
+
 // ran every frame (or, more like this is what makes the frames)
 func Update(en util.Engine) {
 	btns := en.Buttons()
@@ -84,17 +98,6 @@ func Update(en util.Engine) {
 		}
 	}
 
-	const mul = 2
-	const div = 4
-	for x := range terrainX {
-		for y := range terrainY {
-			h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
-			for z := range int(h) {
-				terrain[x][y].Set(z, true)
-				// terrain[x][y].Set(z, (x+y+z)%2 == 0)
-			}
-		}
-	}
 	// terrain[0][0].Set(6, true)
 	// terrain[1][1].Set(7, true)
 
