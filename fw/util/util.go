@@ -147,6 +147,10 @@ func (v Vector2[T]) Mul(scalar float64) Vector2[T] {
 	return Vector2[T]{X: T(float64(v.X) * scalar), Y: T(float64(v.Y) * scalar)}
 }
 
+func (v Vector2[T]) FloorDiv(scalar T) Vector2[T] {
+	return Vector2[T]{X: T(v.X / scalar), Y: T(v.Y / scalar)}
+}
+
 func (v Vector2[T]) Div(scalar float64) Vector2[T] {
 	return Vector2[T]{X: T(float64(v.X) / scalar), Y: T(float64(v.Y) / scalar)}
 }

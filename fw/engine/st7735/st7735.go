@@ -29,6 +29,9 @@ type Device struct {
 // Tx sends data to the display
 func (d *Device) Tx(data []byte, isCommand bool) {
 	d.dcPin.Set(!isCommand)
+
+	// TODO: optimise
+	// len(data) is always > 0 (check for yourself, all calls to this function are in this very file)
 	d.bus.Tx(data, nil)
 }
 
@@ -48,7 +51,7 @@ func (d *Device) SetRotation() {
 	d.Data(MADCTL_MX | MADCTL_MV) // we like it this way
 }
 
-// Configure initializes the display with default configuration
+// Configure initialises the display with default configuration
 func (d *Device) Configure() {
 	// reset the device
 	d.resetPin.High()
@@ -63,13 +66,15 @@ func (d *Device) Configure() {
 	time.Sleep(150 * time.Millisecond)
 	d.Command(SLPOUT)
 	time.Sleep(500 * time.Millisecond)
+
+	frmctr := []byte{0x01, 0x2C, 0x2D}
 	d.Command(FRMCTR1)
-	d.Data(0x01, 0x2C, 0x2D)
+	d.Data(frmctr...)
 	d.Command(FRMCTR2)
-	d.Data(0x01, 0x2C, 0x2D)
+	d.Data(frmctr...)
 	d.Command(FRMCTR3)
 	for range 2 {
-		d.Data(0x01, 0x2C, 0x2D)
+		d.Data(frmctr...)
 	}
 	d.Command(INVCTR)
 	d.Data(0x07)
@@ -89,7 +94,7 @@ func (d *Device) Configure() {
 	d.Invert(false)
 	d.SetRotation()
 
-	// Set the color format depending on the generic type.
+	// Set the color format as a constant
 	d.Command(COLMOD)
 	d.Data(0x05) // 16 bits per pixel
 
@@ -98,7 +103,7 @@ func (d *Device) Configure() {
 	d.Data(0x02, 0x1C, 0x07, 0x12, 0x37, 0x32, 0x29, 0x2D, 0x29, 0x25, 0x2B, 0x39, 0x00, 0x01, 0x03, 0x10)
 	d.Command(GMCTRN1)
 	d.Data(0x03, 0x1D, 0x07, 0x06, 0x2E, 0x2C, 0x29, 0x2D, 0x2E, 0x2E, 0x37, 0x3F, 0x00, 0x00, 0x02, 0x10)
-	d.Command(NORON)
+	d.Command(NORON) // you a noron
 	time.Sleep(10 * time.Millisecond)
 	d.Command(DISPON)
 	time.Sleep(100 * time.Millisecond)
@@ -130,7 +135,7 @@ func (d *Device) setWindow(y, h int16) {
 	d.Command(CASET)
 	d.Data(0, 0, byte((h-1)>>8), byte(h-1))
 	d.Command(RASET)
-	d.Data(byte(y>>8), byte(y), byte((y)>>8), byte(y))
+	d.Data(byte(y>>8), byte(y), byte(y>>8), byte(y))
 	d.Command(RAMWR)
 }
 

@@ -74,19 +74,19 @@ func Update(en util.Engine) {
 	btns := en.Buttons()
 
 	if btns[util.W].Pressed() {
-		pos.Y -= 4
+		pos.Y -= 2
 	}
 
 	if btns[util.S].Pressed() {
-		pos.Y += 4
+		pos.Y += 2
 	}
 
 	if btns[util.A].Pressed() {
-		pos.X -= 4
+		pos.X -= 2
 	}
 
 	if btns[util.D].Pressed() {
-		pos.X += 4
+		pos.X += 2
 	}
 
 	// read button states
@@ -101,7 +101,7 @@ func Update(en util.Engine) {
 	// terrain[0][0].Set(6, true)
 	// terrain[1][1].Set(7, true)
 
-	rectsize := util.V2(20, util.Height)
+	rectsize := util.V2(10, 20)
 	rect := &Rect{
 		pos:    util.V2((util.Width-rectsize.X)/2, (util.Height-rectsize.Y)/2),
 		size:   rectsize,
@@ -112,6 +112,8 @@ func Update(en util.Engine) {
 	// szsize := terrainDiagonal - 1
 	// sz := abs(szsize - f%(szsize*2))
 
+	// rp := pos.Div(10)
+
 	grid := &IsometricProjection{
 		terrainHeight: 8,
 		terrain:       terrain,
@@ -121,13 +123,13 @@ func Update(en util.Engine) {
 		baseColour2: util.Brown2,
 		minFactor:   0x20,
 		maxFactor:   0xff,
-		offset:      pos,
+		offset:      util.V2(pos.X, pos.Y),
 		pos:         util.V2(util.Width/2-size, util.Height/2-size),
 		cellSize:    size,
 		cellHeight:  20,
 
-		sprite:    rect,
-		spritePos: util.V3(0, 0, 0),
+		sprite:  rect,
+		spriteZ: 5,
 	}
 
 	// fps counter

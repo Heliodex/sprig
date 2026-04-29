@@ -316,8 +316,8 @@ type IsometricProjection struct {
 	offset, pos                         util.Vector2[int]
 	cellSize, cellHeight                int
 
-	sprite    UIElement // to be drawn on top of the terrain at the specified D height
-	spritePos util.Vector3[int]
+	sprite  UIElement // to be drawn on top of the terrain at the specified D height
+	spriteZ int
 }
 
 func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
@@ -338,7 +338,7 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 	h_2 := h / 2
 	ch_2 := p.cellHeight / 2
 
-	// var FNT int
+	var drawn bool
 
 	// for x, cols := range g.terrain {
 	// 	for y, col := range cols {
@@ -360,15 +360,6 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 			sy1 := p.pos.Y + (x+y)*h_2 - p.offset.Y
 			col := p.terrain[x][y]
 
-			// if sy1 >= util.Height/2 {
-			// 	// continue // debug
-			// 	FNT++
-			// }
-
-			// if FNT == 1 {
-			// 	p.sprite.drawTo(buf)
-			// }
-
 		loopcol:
 			for z := range terrainHeight {
 				if !col.Get(z) {
@@ -379,6 +370,11 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 				if sy >= util.Height {
 					// cell top is below camera, skip
 					continue
+				}
+
+				if !drawn && sy > util.Height/2 && z == p.spriteZ {
+					p.sprite.drawTo(buf)
+					drawn = true
 				}
 
 				pos := util.V2(sx, sy)
