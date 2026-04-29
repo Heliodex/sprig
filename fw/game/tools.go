@@ -206,16 +206,15 @@ type FaceRender [6]bool
 
 type ProjectionBlock struct {
 	topColour, baseColour1, baseColour2 util.Pixel
-	factor                              uint8
 	pos                                 util.Vector2[int]
-	toRender                            FaceRender
+	toSkip                              FaceRender
 }
 
 func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf *util.ScreenBuffer) {
 	for dy := range h + cellHeight {
 		ry := pos.Y + dy
 		if ry < 0 || ry >= util.Height {
-			// this particular pixel is out of bounds, skip
+			// this particular pixel is out of bounds vertically, skip
 			continue
 		}
 
@@ -229,7 +228,7 @@ func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf
 		for dx := range w {
 			rx := pos.X + dx
 			if rx < 0 || rx >= util.Width {
-				// this particular pixel is out of bounds, skip
+				// this particular pixel is out of bounds horizontally, skip
 				continue
 			}
 			// since we've already checked (on both axes), we can force set pixels without worrying about bounds from here on
@@ -250,18 +249,18 @@ func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf
 				// draw top
 				if dx < h {
 					// Face 0
-					if !p.toRender[0] {
+					if p.toSkip[0] {
 						continue
 					}
 				} else {
 					// Face 1
-					if !p.toRender[1] {
+					if p.toSkip[1] {
 						continue
 					}
 				}
 
-				// buf.ForceSetAlpha(rx, ry, p.topColour.Brightness(p.factor), 0x7f)
-				(*buf)[ry][rx] = p.topColour.Brightness(p.factor)
+				// buf.ForceSetAlpha(rx, ry, p.topColour, 0x7f)
+				(*buf)[ry][rx] = p.topColour
 				continue
 			}
 
@@ -272,18 +271,18 @@ func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf
 
 				if dy2_hw <= ndx {
 					// Face 2
-					if !p.toRender[2] {
+					if p.toSkip[2] {
 						continue
 					}
 				} else {
 					// Face 3
-					if !p.toRender[3] {
+					if p.toSkip[3] {
 						continue
 					}
 				}
 
-				// buf.ForceSetAlpha(rx, ry, p.baseColour1.Brightness(p.factor), 0x7f)
-				(*buf)[ry][rx] = p.baseColour1.Brightness(p.factor)
+				// buf.ForceSetAlpha(rx, ry, p.baseColour1, 0x7f)
+				(*buf)[ry][rx] = p.baseColour1
 				continue
 			}
 
@@ -291,18 +290,18 @@ func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf
 
 			if dy2_h <= dx {
 				// Face 4
-				if !p.toRender[4] {
+				if p.toSkip[4] {
 					continue
 				}
 			} else {
 				// Face 5
-				if !p.toRender[5] {
+				if p.toSkip[5] {
 					continue
 				}
 			}
 
-			// buf.ForceSetAlpha(rx, ry, p.baseColour2.Brightness(p.factor), 0x7f)
-			(*buf)[ry][rx] = p.baseColour2.Brightness(p.factor)
+			// buf.ForceSetAlpha(rx, ry, p.baseColour2, 0x7f)
+			(*buf)[ry][rx] = p.baseColour2
 		}
 	}
 }
@@ -373,12 +372,12 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 
 				factorf := fminf + (fdiff * float64(z) / (fth /*- 1*/)) // -1? TODO
 
-				// Better to draw too many faces and waste cycles than to draw too few and miss pixels... but neither is good
-				toRender := FaceRender{true, true, true, true, true, true}
+				// Better to draw too many faces and waste cycles than to draw too few and miss pixels... though neither is good
+				var toSkip FaceRender
 
 				// if there's a block on top of this one, cull 0, 1
 				if z < terrainHeight-1 && col.Get(z+1) {
-					toRender[0], toRender[1] = false, false
+					toSkip[0], toSkip[1] = true, true
 				}
 
 				// if another block is on the diagonal between this block and the "camera", cull it
@@ -395,17 +394,17 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 
 					// if there's a block to the front left, cull 2, 3
 					if frontLeftCol.Get(z) {
-						toRender[2], toRender[3] = false, false
+						toSkip[2], toSkip[3] = true, true
 					}
 
 					// if there's a block above the one to the front left, cull 1, 4
 					if !extremeZ && frontLeftCol.Get(z+1) {
-						toRender[0], toRender[2] = false, false
+						toSkip[0], toSkip[2] = true, true
 					}
 
 					// if there's a block in front, cull 3, 5
 					if !extremeX && p.terrain[x+1][y+1].Get(z) {
-						toRender[3], toRender[5] = false, false
+						toSkip[3], toSkip[5] = true, true
 					}
 				}
 
@@ -414,18 +413,18 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 
 					// if there's a block to the front right, cull 4, 5
 					if frontRightCol.Get(z) {
-						toRender[4], toRender[5] = false, false
+						toSkip[4], toSkip[5] = true, true
 					}
 
 					// if there's a block above the one to the front right, cull 1, 4
 					if !extremeZ && frontRightCol.Get(z+1) {
-						toRender[1], toRender[4] = false, false
+						toSkip[1], toSkip[4] = true, true
 					}
 				}
 
 				var render bool
-				for _, b := range toRender {
-					if b {
+				for _, b := range toSkip {
+					if !b {
 						render = true
 						break
 					}
@@ -435,13 +434,14 @@ func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
 					continue
 				}
 
+				factor := uint8(min(factorf, 255))
+
 				block := ProjectionBlock{
-					topColour:   p.topColour,
-					baseColour1: p.baseColour1,
-					baseColour2: p.baseColour2,
-					factor:      uint8(min(factorf, 255)),
+					topColour:   p.topColour.Brightness(factor),
+					baseColour1: p.baseColour1.Brightness(factor),
+					baseColour2: p.baseColour2.Brightness(factor),
 					pos:         pos,
-					toRender:    toRender,
+					toSkip:      toSkip,
 				}
 
 				block.Render(h, w, p.cellHeight, pos, buf)
