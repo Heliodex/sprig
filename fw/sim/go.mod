@@ -14,7 +14,7 @@ require (
 	github.com/jezek/xgb v1.1.1 // indirect
 	golang.org/x/image v0.38.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
-	tinygo.org/x/drivers v0.31.0 // indirect
+	tinygo.org/x/drivers v0.35.0 // indirect
 )
 
 replace fw => ..
