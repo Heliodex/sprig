@@ -177,3 +177,11 @@ func (v Vector2[float64]) Int() Vector2[int] {
 func (v Vector2[int]) Float64() Vector2[float64] {
 	return V2(float64(v.X), float64(v.Y))
 }
+
+type Vector3[T Num] struct {
+	X, Y, Z T
+}
+
+func V3[T Num](x, y, z T) Vector3[T] {
+	return Vector3[T]{X: x, Y: y, Z: z}
+}

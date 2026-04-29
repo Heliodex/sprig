@@ -123,12 +123,11 @@ func Update(en util.Engine) {
 		maxFactor:   0xff,
 		offset:      pos,
 		pos:         util.V2(util.Width/2-size, util.Height/2-size),
-		size:        util.V2(util.Width, util.Height),
 		cellSize:    size,
 		cellHeight:  20,
 
-		sprite:  rect,
-		spriteD: 25,
+		sprite:    rect,
+		spritePos: util.V3(0, 0, 0),
 	}
 
 	// fps counter

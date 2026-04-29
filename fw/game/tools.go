@@ -313,11 +313,11 @@ type IsometricProjection struct {
 
 	topColour, baseColour1, baseColour2 util.Pixel
 	minFactor, maxFactor                float64
-	offset, pos, size                   util.Vector2[int]
+	offset, pos                         util.Vector2[int]
 	cellSize, cellHeight                int
 
-	sprite  UIElement // to be drawn on top of the terrain at the specified D height
-	spriteD int       // D forward I guess
+	sprite    UIElement // to be drawn on top of the terrain at the specified D height
+	spritePos util.Vector3[int]
 }
 
 func (p *IsometricProjection) drawTo(buf *util.ScreenBuffer) {
