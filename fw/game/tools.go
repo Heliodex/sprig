@@ -12,7 +12,7 @@ type UIElement interface {
 
 type Rect struct {
 	pos, size util.Vector2[int]
-	colour    util.Pixel
+	colour util.Pixel
 }
 
 func (r *Rect) drawTo(buf *util.ScreenBuffer) {
@@ -24,9 +24,9 @@ func (r *Rect) drawTo(buf *util.ScreenBuffer) {
 }
 
 type Text struct {
-	font   *Font
-	text   string
-	pos    util.Vector2[int]
+	font *Font
+	text string
+	pos util.Vector2[int]
 	colour util.Pixel
 }
 
@@ -48,7 +48,7 @@ func (t *Text) drawTo(buf *util.ScreenBuffer) {
 }
 
 type Grid struct {
-	colour1, colour2            util.Pixel
+	colour1, colour2 util.Pixel
 	pos, offset, size, cellSize util.Vector2[int]
 }
 
@@ -82,10 +82,10 @@ func abs(x int) int {
 }
 
 type DiamondGrid struct {
-	colour1, colour2  util.Pixel
+	colour1, colour2 util.Pixel
 	pos, offset, size util.Vector2[int]
-	cellSize          int
-	heightMulti       float64
+	cellSize int
+	heightMulti float64
 }
 
 func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
@@ -112,8 +112,8 @@ func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
 
 const (
 	terrainSize, terrainHeight = 32, 8
-	terrainX, terrainY         = terrainSize, terrainSize
-	terrainDiagonal            = terrainX + terrainY - 1
+	terrainX, terrainY = terrainSize, terrainSize
+	terrainDiagonal = terrainX + terrainY - 1
 )
 
 type TerrainColumn uint8 // 1d, bitpacked
@@ -211,8 +211,8 @@ type FaceRender [6]bool
 
 type ProjectionBlock struct {
 	topColour, baseColour1, baseColour2 util.Pixel
-	pos                                 util.Vector2[int]
-	toSkip                              FaceRender
+	pos util.Vector2[int]
+	toSkip FaceRender
 }
 
 func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf *util.ScreenBuffer) {
@@ -313,14 +313,14 @@ func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf
 
 type DimetricProjection struct {
 	terrainHeight float64
-	terrain       *Terrain
+	terrain *Terrain
 
 	topColour, baseColour1, baseColour2 util.Pixel
-	minFactor, maxFactor                float64
-	offset                              util.Vector2[int]
-	cellSize, cellHeight                int
+	minFactor, maxFactor float64
+	offset util.Vector2[int]
+	cellSize, cellHeight int
 
-	sprite  UIElement // to be drawn on top of the terrain at the specified D height
+	sprite UIElement // to be drawn on top of the terrain at the specified D height
 	spriteZ int
 }
 
@@ -454,11 +454,11 @@ func (p *DimetricProjection) drawTo(buf *util.ScreenBuffer) {
 				factor := uint8(min(factorf, 255))
 
 				block := ProjectionBlock{
-					topColour:   p.topColour.Brightness(factor),
+					topColour: p.topColour.Brightness(factor),
 					baseColour1: p.baseColour1.Brightness(factor),
 					baseColour2: p.baseColour2.Brightness(factor),
-					pos:         pos,
-					toSkip:      toSkip,
+					pos: pos,
+					toSkip: toSkip,
 				}
 
 				block.Render(h, w, p.cellHeight, pos, buf)
@@ -475,8 +475,8 @@ func (p *DimetricProjection) drawTo(buf *util.ScreenBuffer) {
 }
 
 type SineWave struct {
-	colour                       util.Pixel
-	pos                          util.Vector2[int]
+	colour util.Pixel
+	pos util.Vector2[int]
 	amplitude, wavelength, phase int
 }
 
@@ -713,8 +713,8 @@ func Distance(a, b Vector3) float32 {
 }
 
 type Cube3D struct {
-	colour               util.Pixel
-	pos                  util.Vector2[int]
+	colour util.Pixel
+	pos util.Vector2[int]
 	size, angle1, angle2 int
 }
 
@@ -773,7 +773,7 @@ func (c *Cube3D) drawTo(buf *util.ScreenBuffer) {
 
 type Tri struct {
 	a, b, c Vector3
-	colour  util.Pixel
+	colour util.Pixel
 }
 
 func tri(a, b, c Vector3, colour util.Pixel) *Tri {
@@ -851,9 +851,9 @@ func NewCube3D(colour util.Pixel, position Vector3, size float32) *Object3D {
 }
 
 type Scene3D struct {
-	objects                []*Object3D
+	objects []*Object3D
 	camera, cameraRotation Vector3
-	zoom                   int
+	zoom int
 }
 
 func (s *Scene3D) drawTo(buf *util.ScreenBuffer) {
@@ -945,14 +945,14 @@ func (dp *DoublePendulum) drawTo(buf *util.ScreenBuffer) {
 
 type Mass struct {
 	position, velocity util.Vector2[float64]
-	mass, charge       float64
-	colour             util.Pixel
+	mass, charge float64
+	colour util.Pixel
 }
 
 type Crosshair struct {
-	pos    util.Vector2[int]
+	pos util.Vector2[int]
 	colour util.Pixel
-	size   int
+	size int
 }
 
 func (c *Crosshair) drawTo(buf *util.ScreenBuffer) {

@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	Scale  = 4
-	width  = util.Width * Scale * 1.5
+	Scale = 4
+	width = util.Width * Scale * 1.5
 	height = util.Height * Scale
 )
 
@@ -46,8 +46,8 @@ var bg color.Color = color.Gray{0x10}
 
 const (
 	buttonSize = 12 * Scale
-	ledSize    = 4 * Scale
-	pad        = 2 * Scale
+	ledSize = 4 * Scale
+	pad = 2 * Scale
 )
 
 // sprig has 8kro, my keyboard has 6kro, it's joever
@@ -65,14 +65,14 @@ var buttonPoss = [util.ButtonsCount]util.Vector2[int]{
 }
 
 var (
-	ledLeftPos  = util.Vector2[int]{X: pad, Y: pad}
+	ledLeftPos = util.Vector2[int]{X: pad, Y: pad}
 	ledRightPos = util.Vector2[int]{X: width - ledSize*1.5 - pad, Y: pad}
 )
 
 type ButtonImpl struct {
-	pos    util.Vector2[int]
+	pos util.Vector2[int]
 	window screen.Window
-	state  bool
+	state bool
 }
 
 func (b *ButtonImpl) Pressed() bool {
@@ -93,18 +93,18 @@ type Buttons [util.ButtonsCount]*ButtonImpl
 
 type Engine struct {
 	backlight bool
-	screen    screen.Screen
+	screen screen.Screen
 	screen.Window
 	ButtonImpls Buttons
 
 	windowBuffer screen.Buffer
-	buffer       *util.ScreenBuffer
-	buttons      util.Buttons
+	buffer *util.ScreenBuffer
+	buttons util.Buttons
 }
 
 func New(s screen.Screen) *Engine {
 	w, err := s.NewWindow(&screen.NewWindowOptions{
-		Width:  width,
+		Width: width,
 		Height: height,
 	})
 	if err != nil {
@@ -120,7 +120,7 @@ func New(s screen.Screen) *Engine {
 	var btns util.Buttons
 	for i := range btns {
 		bi := &ButtonImpl{
-			pos:    buttonPoss[i],
+			pos: buttonPoss[i],
 			window: w,
 		}
 		btnimpls[i] = bi
@@ -132,14 +132,14 @@ func New(s screen.Screen) *Engine {
 	w.Fill(image.Rect(0, 0, width, height), bg, screen.Src)
 
 	return &Engine{
-		backlight:   true,
-		screen:      s,
-		Window:      w,
+		backlight: true,
+		screen: s,
+		Window: w,
 		ButtonImpls: btnimpls,
 
 		windowBuffer: wbuf,
-		buffer:       &util.ScreenBuffer{},
-		buttons:      btns,
+		buffer: &util.ScreenBuffer{},
+		buttons: btns,
 	}
 }
 

@@ -8,12 +8,12 @@ import (
 // 270MHz
 
 const (
-	rx  = machine.GP16
+	rx = machine.GP16
 	sck = machine.GP18
-	tx  = machine.GP19
+	tx = machine.GP19
 
-	cs  = machine.GP20
-	dc  = machine.GP22
+	cs = machine.GP20
+	dc = machine.GP22
 	rst = machine.GP26
 )
 
@@ -26,13 +26,13 @@ func (b *Button) Pressed() bool {
 var sb = &util.ScreenBuffer{}
 
 type Engine struct {
-	buffer  *util.ScreenBuffer
+	buffer *util.ScreenBuffer
 	buttons util.Buttons
 	display *Display
 }
 
 var (
-	ledLeft  = machine.PWM6 // GP28, channel A
+	ledLeft = machine.PWM6 // GP28, channel A
 	ledRight = machine.PWM2 // GP4, channel A
 )
 
@@ -67,7 +67,7 @@ func New() *Engine {
 
 	// and fire up the engine
 	return &Engine{
-		buffer:  sb,
+		buffer: sb,
 		buttons: buttons,
 		display: display,
 	}

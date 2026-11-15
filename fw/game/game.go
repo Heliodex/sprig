@@ -34,7 +34,7 @@ func Splash(en util.Engine) {
 }
 
 var (
-	f         int
+	f int
 	prevFrame time.Time
 )
 
@@ -74,8 +74,8 @@ func init() {
 
 type Movement struct {
 	gridPosScaled util.Vector3[int]
-	scale         int
-	jumping       uint8
+	scale int
+	jumping uint8
 }
 
 // func (m *Movement) Unscaled() util.Vector3[int] {
@@ -120,7 +120,7 @@ func (m *Movement) ValidX(x int) bool {
 	currentTile := terrain.GetV3(gridSquare)
 	if currentTile {
 		m.gridPosScaled.Z += 2 // step up
-		return true            // whatever bruh
+		return true // whatever bruh
 	}
 
 	newTile := terrain.GetV3(gridSquareNew)
@@ -138,7 +138,7 @@ func (m *Movement) ValidY(y int) bool {
 	currentTile := terrain.GetV3(gridSquare)
 	if currentTile {
 		m.gridPosScaled.Z += 2 // step up
-		return true            // whatever bruh
+		return true // whatever bruh
 	}
 
 	newTile := terrain.GetV3(gridSquareNew)
@@ -172,7 +172,7 @@ const size = 10
 
 var mvmt = &Movement{
 	gridPosScaled: util.V3(0, 0, 8*size),
-	scale:         size,
+	scale: size,
 }
 
 // ran every frame (or, more like this is what makes the frames)
@@ -215,8 +215,8 @@ func Update(en util.Engine) {
 
 	rectsize := util.V2(10, 20)
 	rect := &Rect{
-		pos:    util.V2((util.Width-rectsize.X)/2, (util.Height/2 - rectsize.Y)),
-		size:   rectsize,
+		pos: util.V2((util.Width-rectsize.X)/2, (util.Height/2 - rectsize.Y)),
+		size: rectsize,
 		colour: util.Magenta,
 	}
 
@@ -227,18 +227,18 @@ func Update(en util.Engine) {
 
 	grid := &DimetricProjection{
 		terrainHeight: 8,
-		terrain:       terrain,
+		terrain: terrain,
 
-		topColour:   util.Green,
+		topColour: util.Green,
 		baseColour1: util.Brown,
 		baseColour2: util.Brown2,
-		minFactor:   0x20,
-		maxFactor:   0xff,
-		offset:      mvmt.ToScreen(),
-		cellSize:    size,
-		cellHeight:  20,
+		minFactor: 0x20,
+		maxFactor: 0xff,
+		offset: mvmt.ToScreen(),
+		cellSize: size,
+		cellHeight: 20,
 
-		sprite:  rect,
+		sprite: rect,
 		spriteZ: unscaled(mvmt.gridPosScaled, mvmt.scale).Z,
 	}
 

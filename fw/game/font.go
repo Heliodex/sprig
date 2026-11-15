@@ -23,25 +23,25 @@ var brightnessMap = map[byte]uint8{
 }
 
 type Char struct {
-	width   uint8
+	width uint8
 	content [][]uint8
 }
 
 type Font struct {
-	name          string
-	dir           embed.FS
+	name string
+	dir embed.FS
 	crush, height uint8
-	charset       [256]Char
+	charset [256]Char
 }
 
 var FontDex = &Font{
 	name: "dex",
-	dir:  dirDex,
+	dir: dirDex,
 }
 
 var FontUnifont = &Font{
-	name:  "unifont",
-	dir:   dirUnifont,
+	name: "unifont",
+	dir: dirUnifont,
 	crush: 8,
 }
 

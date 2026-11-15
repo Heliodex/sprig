@@ -16,13 +16,13 @@ import (
 // these are Dvorak because I'm a nerd
 var codeMap = map[key.Code]uint8{
 	key.CodeComma: 0,
-	key.CodeA:     1,
-	key.CodeO:     2,
-	key.CodeE:     3,
-	key.CodeC:     4,
-	key.CodeH:     5,
-	key.CodeT:     6,
-	key.CodeN:     7,
+	key.CodeA: 1,
+	key.CodeO: 2,
+	key.CodeE: 3,
+	key.CodeC: 4,
+	key.CodeH: 5,
+	key.CodeT: 6,
+	key.CodeN: 7,
 }
 
 func startUI(s screen.Screen) {

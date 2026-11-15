@@ -58,9 +58,9 @@ var spi = machine.SPI0
 func NewDisplay() *Display {
 	spi.Configure(machine.SPIConfig{
 		Frequency: 36_000_000, // 36 I think is the design limit
-		SDI:       rx,
-		SCK:       sck,
-		SDO:       tx,
+		SDI: rx,
+		SCK: sck,
+		SDO: tx,
 	})
 
 	d := st7735.New(spi, rst, dc, cs, machine.GP17)

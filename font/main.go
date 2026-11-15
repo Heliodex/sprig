@@ -11,7 +11,7 @@ import (
 func dexDisplay() {
 	const (
 		height = 24
-		fifth  = 0xffff / 5
+		fifth = 0xffff / 5
 		charsDir = "./dex"
 	)
 
@@ -99,7 +99,7 @@ func unifont() {
 
 	const (
 		startx, starty = 52, 39
-		width, height  = 16, 16
+		width, height = 16, 16
 	)
 	bounds := img.Bounds()
 	dx, dy := bounds.Dx(), bounds.Dy()

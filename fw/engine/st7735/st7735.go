@@ -14,16 +14,16 @@ import (
 
 const (
 	// yes, rly
-	Width       = util.Height
-	Height      = util.Width
+	Width = util.Height
+	Height = util.Width
 	BatchLength = Height
 )
 
 // Device wraps an SPI connection.
 type Device struct {
-	bus                                drivers.SPI
+	bus drivers.SPI
 	dcPin, resetPin /*csPin, */, blPin machine.Pin
-	rotation                           drivers.Rotation
+	rotation drivers.Rotation
 }
 
 // Tx sends data to the display
@@ -120,8 +120,8 @@ func New(bus drivers.SPI, resetPin, dcPin, csPin, blPin machine.Pin) Device {
 	blPin.Configure(pc)
 
 	d := Device{
-		bus:      bus,
-		dcPin:    dcPin,
+		bus: bus,
+		dcPin: dcPin,
 		resetPin: resetPin,
 		// csPin:    csPin,
 		blPin: blPin,
