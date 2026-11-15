@@ -36,7 +36,6 @@ func Splash(en util.Engine) {
 var (
 	f         int
 	prevFrame time.Time
-	pos       util.Vector2[int] = util.V2(0, 0)
 )
 
 const (
@@ -249,7 +248,7 @@ func Update(en util.Engine) {
 	prevFrame = now
 	fps := int(1 / elapsed.Seconds())
 
-	coords := &Text{FontUnifont, strconv.Itoa(pos.X) + " " + strconv.Itoa(pos.Y), util.V2(55, 2), util.Red}
+	coords := &Text{FontUnifont, strconv.Itoa(mvmt.gridPosScaled.X) + " " + strconv.Itoa(mvmt.gridPosScaled.Y), util.V2(55, 2), util.Red}
 	fpst := &Text{FontUnifont, strconv.Itoa(fps) + " FPS", util.V2(55, 2+15), util.Red}
 
 	ui := []UIElement{grid, coords, fpst}
