@@ -165,8 +165,8 @@ func (v Vector2[int]) Float64() Vector2[float64] {
 
 func (v Vector2[T]) FloorDiv(scalar T) Vector2[T] {
 	return Vector2[T]{
-		X: T(v.X / scalar),
-		Y: T(v.Y / scalar),
+		X: v.X / scalar,
+		Y: v.Y / scalar,
 	}
 }
 
@@ -230,9 +230,9 @@ func (v Vector2[T]) Norm() Vector2[T] {
 
 func (v Vector3[T]) FloorDiv(scalar T) Vector3[T] {
 	return Vector3[T]{
-		X: T(v.X / scalar),
-		Y: T(v.Y / scalar),
-		Z: T(v.Z / scalar),
+		X: v.X / scalar,
+		Y: v.Y / scalar,
+		Z: v.Z / scalar,
 	}
 }
 
