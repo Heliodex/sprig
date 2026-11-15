@@ -9,58 +9,55 @@ import (
 	"time"
 )
 
-// intro to show, in the event that something else is loading or to show information
-func Splash(en util.Engine) {
-	freq := en.CPUFrequency()
-
-	engineText := &Text{FontDex, "Grips Engine", util.V2(25, 5), util.Red} // I'm calling it this because it's an anagram of Sprig
-	buildText := &Text{FontUnifont, strconv.Itoa(runtime.NumCPU()) + " cores", util.V2(5, 35), util.Blue}
-	freqText := &Text{FontUnifont, strconv.Itoa(int(freq/1_000_000)) + "MHz", util.V2(5, 50), util.Green}
-
-	ui := []UIElement{engineText, buildText, freqText}
-	if freq >= 270_000_000 {
-		ui = append(ui, &Text{FontUnifont, "OVERCLOCKED!", util.V2(5, 65), util.Red})
-	} else {
-		ui = append(ui, &Text{FontUnifont, "(could be better)", util.V2(5, 65), util.White})
-	}
-
-	for _, e := range ui {
-		e.drawTo(en.ScreenBuffer())
-	}
-	en.Render()
-
-	time.Sleep(time.Second)
-	println("Splash complete")
+type Movement struct {
+	gridPosScaled util.Vector3[int]
+	scale int
+	jumping uint8
 }
+
+const (
+	hOffset = 15
+
+	// func x2screen(x int) int {}
+	// func y2screen(x int) int {}
+
+	size = 10
+	vOffset = 18
+)
 
 var (
 	f int
 	prevFrame time.Time
 )
 
-const (
-	hOffset = 15
-	vOffset = 18
+func (m *Movement) ApplyZ(z int) {
+	m.gridPosScaled.Z += z
+}
+
+var (
+	Texts = [util.ButtonsCount]*Text{
+		{FontDex, "W", util.V2(2+hOffset-2, 2), util.Red},
+		{FontDex, "A", util.V2(2, 2+vOffset), util.Red},
+		{FontDex, "S", util.V2(2+hOffset, 2+vOffset*2), util.Red},
+		{FontDex, "D", util.V2(2+hOffset*2, 2+vOffset), util.Red},
+		{FontDex, "I", util.V2(2+util.Width-hOffset*2, 2), util.Red},
+		{FontDex, "J", util.V2(2+util.Width-hOffset*3, 2+vOffset), util.Red},
+		{FontDex, "K", util.V2(2+util.Width-hOffset*2, 2+vOffset*2), util.Red},
+		{FontDex, "L", util.V2(2+util.Width-hOffset, 2+vOffset), util.Red},
+	}
+	terrain = &Terrain{}
 )
 
-var Texts = [util.ButtonsCount]*Text{
-	{FontDex, "W", util.V2(2+hOffset-2, 2), util.Red},
-	{FontDex, "A", util.V2(2, 2+vOffset), util.Red},
-	{FontDex, "S", util.V2(2+hOffset, 2+vOffset*2), util.Red},
-	{FontDex, "D", util.V2(2+hOffset*2, 2+vOffset), util.Red},
-	{FontDex, "I", util.V2(2+util.Width-hOffset*2, 2), util.Red},
-	{FontDex, "J", util.V2(2+util.Width-hOffset*3, 2+vOffset), util.Red},
-	{FontDex, "K", util.V2(2+util.Width-hOffset*2, 2+vOffset*2), util.Red},
-	{FontDex, "L", util.V2(2+util.Width-hOffset, 2+vOffset), util.Red},
-}
-var terrain = &Terrain{}
-
 func init() {
-	const mul = 2
-	const div = 4
+	const (
+		mul = 2
+		div = 4
+	)
+
 	for x := range terrainX {
 		for y := range terrainY {
 			h := math.Sin(float64(x)/div)*mul + math.Cos(float64(y)/div)*mul + mul*2 + 1
+
 			for z := range int(h) {
 				terrain[x][y].Set(z, true)
 				// terrain[x][y].Set(z, (x+y+z)%2 == 0)
@@ -72,10 +69,33 @@ func init() {
 	}
 }
 
-type Movement struct {
-	gridPosScaled util.Vector3[int]
-	scale int
-	jumping uint8
+func (m *Movement) ToScreen() util.Vector2[int] {
+	sx := (m.gridPosScaled.X - m.gridPosScaled.Y - 68) * m.scale
+	sy := (m.gridPosScaled.X + m.gridPosScaled.Y - 90 - m.gridPosScaled.Z*2) * m.scale / 2
+
+	return util.V2(sx, sy).FloorDiv(m.scale)
+}
+
+// intro to show, in the event that something else is loading or to show information
+func Splash(en util.Engine) {
+	freq := en.CPUFrequency()
+	engineText := &Text{FontDex, "Grips Engine", util.V2(25, 5), util.Red} // I'm calling it this because it's an anagram of Sprig
+	buildText := &Text{FontUnifont, strconv.Itoa(runtime.NumCPU()) + " cores", util.V2(5, 35), util.Blue}
+	freqText := &Text{FontUnifont, strconv.Itoa(int(freq/1_000_000)) + "MHz", util.V2(5, 50), util.Green}
+	ui := []UIElement{engineText, buildText, freqText}
+
+	if freq >= 270_000_000 {
+		ui = append(ui, &Text{FontUnifont, "OVERCLOCKED!", util.V2(5, 65), util.Red})
+	} else {
+		ui = append(ui, &Text{FontUnifont, "(could be better)", util.V2(5, 65), util.White})
+	}
+
+	for _, e := range ui {
+		e.drawTo(en.ScreenBuffer())
+	}
+	en.Render()
+	time.Sleep(time.Second)
+	println("Splash complete")
 }
 
 // func (m *Movement) Unscaled() util.Vector3[int] {
@@ -93,13 +113,13 @@ func (m *Movement) Update() {
 
 	if m.jumping > 0 {
 		println("jumping", m.jumping)
+
 		m.gridPosScaled.Z += 2
 		m.jumping--
 	}
 
 	if !currentFloorTile {
 		fmt.Println("no tile at", floorSquare)
-
 		if m.jumping == 0 {
 			m.gridPosScaled.Z -= 2 // experience gravity
 		}
@@ -112,8 +132,7 @@ func (m *Movement) Update() {
 func (m *Movement) ValidX(x int) bool {
 	gridSquare := unscaled(m.gridPosScaled, m.scale)
 	gridSquareNew := unscaled(m.gridPosScaled.Add(util.V3(x, 0, 0)), m.scale)
-	if gridSquareNew.X < 0 || gridSquareNew.X >= terrainX ||
-		gridSquareNew.Y < 0 || gridSquareNew.Y >= terrainY {
+	if gridSquareNew.X < 0 || gridSquareNew.X >= terrainX || gridSquareNew.Y < 0 || gridSquareNew.Y >= terrainY {
 		return false
 	}
 
@@ -124,14 +143,14 @@ func (m *Movement) ValidX(x int) bool {
 	}
 
 	newTile := terrain.GetV3(gridSquareNew)
+
 	return !newTile
 }
 
 func (m *Movement) ValidY(y int) bool {
 	gridSquare := unscaled(m.gridPosScaled, m.scale)
 	gridSquareNew := unscaled(m.gridPosScaled.Add(util.V3(0, y, 0)), m.scale)
-	if gridSquareNew.X < 0 || gridSquareNew.X >= terrainX ||
-		gridSquareNew.Y < 0 || gridSquareNew.Y >= terrainY {
+	if gridSquareNew.X < 0 || gridSquareNew.X >= terrainX || gridSquareNew.Y < 0 || gridSquareNew.Y >= terrainY {
 		return false
 	}
 
@@ -142,6 +161,7 @@ func (m *Movement) ValidY(y int) bool {
 	}
 
 	newTile := terrain.GetV3(gridSquareNew)
+
 	return !newTile
 }
 
@@ -155,21 +175,6 @@ func (m *Movement) Apply(x, y int) {
 	}
 }
 
-func (m *Movement) ApplyZ(z int) {
-	m.gridPosScaled.Z += z
-}
-
-func (m *Movement) ToScreen() util.Vector2[int] {
-	sx := (m.gridPosScaled.X - m.gridPosScaled.Y - 68) * m.scale
-	sy := (m.gridPosScaled.X + m.gridPosScaled.Y - 90 - m.gridPosScaled.Z*2) * m.scale / 2
-	return util.V2(sx, sy).FloorDiv(m.scale)
-}
-
-// func x2screen(x int) int {}
-// func y2screen(x int) int {}
-
-const size = 10
-
 var mvmt = &Movement{
 	gridPosScaled: util.V3(0, 0, 8*size),
 	scale: size,
@@ -180,7 +185,6 @@ func Update(en util.Engine) {
 	mvmt.Update()
 
 	btns := en.Buttons()
-
 	if btns[util.W].Pressed() {
 		mvmt.Apply(-2, -2)
 	}
@@ -215,7 +219,7 @@ func Update(en util.Engine) {
 
 	rectsize := util.V2(10, 20)
 	rect := &Rect{
-		pos: util.V2((util.Width-rectsize.X)/2, (util.Height/2 - rectsize.Y)),
+		pos: util.V2((util.Width-rectsize.X)/2, util.Height/2-rectsize.Y),
 		size: rectsize,
 		colour: util.Magenta,
 	}
@@ -228,7 +232,6 @@ func Update(en util.Engine) {
 	grid := &DimetricProjection{
 		terrainHeight: 8,
 		terrain: terrain,
-
 		topColour: util.Green,
 		baseColour1: util.Brown,
 		baseColour2: util.Brown2,
@@ -237,7 +240,6 @@ func Update(en util.Engine) {
 		offset: mvmt.ToScreen(),
 		cellSize: size,
 		cellHeight: 20,
-
 		sprite: rect,
 		spriteZ: unscaled(mvmt.gridPosScaled, mvmt.scale).Z,
 	}
@@ -247,11 +249,15 @@ func Update(en util.Engine) {
 	elapsed := now.Sub(prevFrame)
 	prevFrame = now
 	fps := int(1 / elapsed.Seconds())
-
-	coords := &Text{FontUnifont, strconv.Itoa(mvmt.gridPosScaled.X) + " " + strconv.Itoa(mvmt.gridPosScaled.Y), util.V2(55, 2), util.Red}
+	coords := &Text{
+		FontUnifont,
+		strconv.Itoa(mvmt.gridPosScaled.X) + " " + strconv.Itoa(mvmt.gridPosScaled.Y),
+		util.V2(55, 2),
+		util.Red,
+	}
 	fpst := &Text{FontUnifont, strconv.Itoa(fps) + " FPS", util.V2(55, 2+15), util.Red}
-
 	ui := []UIElement{grid, coords, fpst}
+
 	for _, t := range Texts {
 		ui = append(ui, t)
 	}
@@ -263,7 +269,7 @@ func Update(en util.Engine) {
 	for _, e := range Texts {
 		e.drawTo(en.ScreenBuffer())
 	}
-
 	en.Render()
+
 	f++
 }

@@ -40,9 +40,9 @@ func startUI(s screen.Screen) {
 					if e.Code == key.CodeEscape {
 						os.Exit(0)
 					}
+
 					continue
 				}
-
 				en.ButtonImpls[btn].Set(e.Direction == key.DirPress)
 			case lifecycle.Event:
 				if e.To == lifecycle.StageDead {

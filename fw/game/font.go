@@ -6,44 +6,46 @@ import (
 	"strings"
 )
 
-// we're doing ascii for now for shits n giggles
+type (
+	Char struct {
+		width uint8
+		content [][]uint8
+	}
 
-//go:embed dex
-var dirDex embed.FS
+	Font struct {
+		name string
+		dir embed.FS
+		crush, height uint8
+		charset [256]Char
+	}
+)
 
-//go:embed unifont
-var dirUnifont embed.FS
+var (
+	brightnessMap = map[byte]uint8{
+		' ': 0,
+		'-': 64, // We make em slightly brighter than originally
+		'=': 128,
+		'#': 192,
+		'@': 255,
+	}
 
-var brightnessMap = map[byte]uint8{
-	' ': 0,
-	'-': 64, // We make em slightly brighter than originally
-	'=': 128,
-	'#': 192,
-	'@': 255,
-}
+	// we're doing ascii for now for shits n giggles
 
-type Char struct {
-	width uint8
-	content [][]uint8
-}
+	//go:embed dex
+	dirDex embed.FS
+	FontDex = &Font{
+		name: "dex",
+		dir: dirDex,
+	}
 
-type Font struct {
-	name string
-	dir embed.FS
-	crush, height uint8
-	charset [256]Char
-}
-
-var FontDex = &Font{
-	name: "dex",
-	dir: dirDex,
-}
-
-var FontUnifont = &Font{
-	name: "unifont",
-	dir: dirUnifont,
-	crush: 8,
-}
+	//go:embed unifont
+	dirUnifont embed.FS
+	FontUnifont = &Font{
+		name: "unifont",
+		dir: dirUnifont,
+		crush: 8,
+	}
+)
 
 func loadChar(font *Font, i uint8, dir embed.FS) {
 	hexbyte := hex.EncodeToString([]byte{i})
@@ -84,8 +86,8 @@ func init() {
 
 func textToChars(font *Font, text string) (chars []Char) {
 	bt := []byte(text)
-
 	chars = make([]Char, len(bt))
+
 	for i, b := range bt {
 		chars[i] = font.charset[b]
 	}

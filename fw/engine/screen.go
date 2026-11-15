@@ -1,48 +1,38 @@
 package engine
 
 import (
-	"image/color"
-	"machine"
-
 	"fw/engine/st7735"
 	"fw/util"
+	"image/color"
+	"machine"
 )
 
-// nothing cares about the opacity anyway
-type RGB struct {
-	R, G, B uint8
-}
-
-func (c RGB) RGBA() color.RGBA {
-	return color.RGBA{c.R, c.G, c.B, 0xff}
-}
-
-func Greyscale(v uint8) RGB {
-	return RGB{v, v, v}
-}
-
-func FromRGBA(c color.RGBA) RGB {
-	return RGB{
-		uint8(uint16(c.R) * uint16(c.A) / 0xff),
-		uint8(uint16(c.G) * uint16(c.A) / 0xff),
-		uint8(uint16(c.B) * uint16(c.A) / 0xff),
+type (
+	Display struct {
+		d util.DisplayDevice
 	}
-}
 
-const bpp = 2
+	// nothing cares about the opacity anyway
+	RGB struct {
+		R, G, B uint8
+	}
+)
 
-type Display struct {
-	d util.DisplayDevice
-}
+const (
+	bpp = 2
 
-// idky
-const interlaced = false
+	// idky
+	interlaced = false
+)
+
+var spi = machine.SPI0
 
 func (d *Display) Render(buf *util.ScreenBuffer) {
 	if interlaced {
 		for i := int16(0); i < util.Height; i += 2 {
 			d.d.SetScreen(buf, i)
 		}
+
 		for i := int16(1); i < util.Height; i += 2 {
 			d.d.SetScreen(buf, i)
 		}
@@ -53,7 +43,17 @@ func (d *Display) Render(buf *util.ScreenBuffer) {
 	}
 }
 
-var spi = machine.SPI0
+func FromRGBA(c color.RGBA) RGB {
+	return RGB{
+		uint8(uint16(c.R) * uint16(c.A) / 0xff),
+		uint8(uint16(c.G) * uint16(c.A) / 0xff),
+		uint8(uint16(c.B) * uint16(c.A) / 0xff),
+	}
+}
+
+func Greyscale(v uint8) RGB {
+	return RGB{v, v, v}
+}
 
 func NewDisplay() *Display {
 	spi.Configure(machine.SPIConfig{
@@ -68,4 +68,8 @@ func NewDisplay() *Display {
 	return &Display{
 		d: &d,
 	}
+}
+
+func (c RGB) RGBA() color.RGBA {
+	return color.RGBA{c.R, c.G, c.B, 0xff}
 }

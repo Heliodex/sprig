@@ -14,9 +14,9 @@ import (
 	"github.com/gotracker/playback/song"
 )
 
-var instruments = []rune{'~', '^', '-', '/'}
-
 const bpr = 4
+
+var instruments = []rune{'~', '^', '-', '/'}
 
 func main() {
 	data, err := it.IT.Load("./track.it", []feature.Feature{})
@@ -25,8 +25,7 @@ func main() {
 	}
 
 	bpm := float64(data.GetInitialBPM())
-	ms := int((60 / bpm) * 1000 / bpr)
-
+	ms := int(60 / bpm * 1000 / bpr)
 	patterns := []index.Pattern{0, 1, 3, 2}
 
 	var toPrint strings.Builder
@@ -38,11 +37,13 @@ func main() {
 		}
 
 		rows := pattern.NumRows()
+
 		for i := range index.Row(rows) {
 			toPrint.WriteString(fmt.Sprintf("\n%d", ms))
-			firstNote := true
 
+			firstNote := true
 			row := pattern.GetRow(i).(layout.Row[period.Linear])
+
 			row.ForEach(func(c index.Channel, d song.ChannelData[volume.Volume]) (bool, error) {
 				n := d.GetNote()
 				ns := n.String()
@@ -61,13 +62,12 @@ func main() {
 				} else {
 					toPrint.WriteString(" + ")
 				}
+
 				firstNote = false
 
 				toPrint.WriteString(fmt.Sprintf("%s%c%d", note, instruments[inst], ms))
-
 				return c < 4, nil // 5 channelz
 			})
-
 			toPrint.WriteString(",")
 		}
 	}
@@ -77,8 +77,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	defer f.Close()
+
 	_, err = f.WriteString(toPrint.String())
+
 	if err != nil {
 		panic(err)
 	}
