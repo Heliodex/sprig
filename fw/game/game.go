@@ -28,13 +28,6 @@ const (
 var (
 	f int
 	prevFrame time.Time
-)
-
-func (m *Movement) ApplyZ(z int) {
-	m.gridPosScaled.Z += z
-}
-
-var (
 	Texts = [util.ButtonsCount]*Text{
 		{FontDex, "W", util.V2(2+hOffset-2, 2), util.Red},
 		{FontDex, "A", util.V2(2, 2+vOffset), util.Red},
@@ -46,7 +39,15 @@ var (
 		{FontDex, "L", util.V2(2+util.Width-hOffset, 2+vOffset), util.Red},
 	}
 	terrain = &Terrain{}
+	mvmt = &Movement{
+		gridPosScaled: util.V3(0, 0, 8*size),
+		scale: size,
+	}
 )
+
+func (m *Movement) ApplyZ(z int) {
+	m.gridPosScaled.Z += z
+}
 
 func init() {
 	const (
@@ -173,11 +174,6 @@ func (m *Movement) Apply(x, y int) {
 	if m.ValidY(y) {
 		m.gridPosScaled.Y += y
 	}
-}
-
-var mvmt = &Movement{
-	gridPosScaled: util.V3(0, 0, 8*size),
-	scale: size,
 }
 
 // ran every frame (or, more like this is what makes the frames)
