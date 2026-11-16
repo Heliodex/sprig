@@ -20,10 +20,10 @@ type (
 	Buttons [util.ButtonsCount]*ButtonImpl
 
 	Engine struct {
-		backlight bool
-		screen screen.Screen
 		screen.Window
 
+		backlight bool
+		screen screen.Screen
 		ButtonImpls Buttons
 		windowBuffer screen.Buffer
 		buffer *util.ScreenBuffer
@@ -182,9 +182,9 @@ func New(s screen.Screen) *Engine {
 	w.Fill(image.Rect(0, 0, width, height), bg, screen.Src)
 
 	return &Engine{
+		Window: w,
 		backlight: true,
 		screen: s,
-		Window: w,
 		ButtonImpls: btnimpls,
 		windowBuffer: wbuf,
 		buffer: &util.ScreenBuffer{},
