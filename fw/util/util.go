@@ -107,6 +107,7 @@ func (sb *ScreenBuffer) SetAlpha(x, y int, px Pixel, alpha uint8) {
 	if x < 0 || x >= Width || y < 0 || y >= Height {
 		return
 	}
+
 	sb.ForceSetAlpha(x, y, px, alpha)
 }
 

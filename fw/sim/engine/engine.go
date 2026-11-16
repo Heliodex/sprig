@@ -23,6 +23,7 @@ type (
 		backlight bool
 		screen screen.Screen
 		screen.Window
+
 		ButtonImpls Buttons
 		windowBuffer screen.Buffer
 		buffer *util.ScreenBuffer
@@ -102,6 +103,7 @@ func (b *ButtonImpl) Set(pressed bool) {
 			Y: 0x80,
 		}
 	}
+
 	b.window.Fill(image.Rect(b.pos.X, b.pos.Y, b.pos.X+buttonSize, b.pos.Y+buttonSize), c, screen.Src)
 }
 
@@ -133,6 +135,7 @@ func (e *Engine) SetLeft(on uint16) {
 		v := Log(on)
 		c = color.RGBA{v, v, v, 0xff} // white
 	}
+
 	e.Window.Fill(image.Rect(ledLeftPos.X, ledLeftPos.Y, ledLeftPos.X+ledSize*1.5, ledLeftPos.Y+ledSize), c, screen.Src)
 }
 
@@ -143,6 +146,7 @@ func (e *Engine) SetRight(on uint16) {
 		v := Log(on)
 		c = color.RGBA{0, v, v, 0xff} // cyan
 	}
+
 	e.Window.Fill(image.Rect(ledRightPos.X, ledRightPos.Y, ledRightPos.X+ledSize*1.5, ledRightPos.Y+ledSize), c, screen.Src)
 }
 
@@ -173,9 +177,10 @@ func New(s screen.Screen) *Engine {
 		btnimpls[i] = bi
 		btns[i] = bi
 	}
-	time.Sleep(20 * time.Millisecond) // we need at least 4ms to initialise afaict
 
+	time.Sleep(20 * time.Millisecond) // we need at least 4ms to initialise afaict
 	w.Fill(image.Rect(0, 0, width, height), bg, screen.Src)
+
 	return &Engine{
 		backlight: true,
 		screen: s,

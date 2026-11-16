@@ -47,12 +47,14 @@ func main() {
 			row.ForEach(func(c index.Channel, d song.ChannelData[volume.Volume]) (bool, error) {
 				n := d.GetNote()
 				ns := n.String()
+
 				if ns == "C-0" {
 					return c < 4, nil
 				}
 
 				note := strings.ReplaceAll(ns, "-", "")
 				inst := d.GetInstrument() - 1
+
 				if inst < 0 {
 					return c < 4, nil
 				}
@@ -66,6 +68,7 @@ func main() {
 				firstNote = false
 
 				toPrint.WriteString(fmt.Sprintf("%s%c%d", note, instruments[inst], ms))
+
 				return c < 4, nil // 5 channelz
 			})
 			toPrint.WriteString(",")
@@ -81,7 +84,6 @@ func main() {
 	defer f.Close()
 
 	_, err = f.WriteString(toPrint.String())
-
 	if err != nil {
 		panic(err)
 	}

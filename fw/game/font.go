@@ -49,6 +49,7 @@ var (
 
 func loadChar(font *Font, i uint8, dir embed.FS) {
 	hexbyte := hex.EncodeToString([]byte{i})
+
 	data, err := dir.ReadFile(font.name + "/" + hexbyte)
 	if err != nil {
 		return
@@ -56,7 +57,6 @@ func loadChar(font *Font, i uint8, dir embed.FS) {
 
 	lines := strings.Split(string(data), "\n")
 	lines = lines[:len(lines)-1] // remove last empty line
-
 	char := &font.charset[i]
 	char.width = uint8(len(lines[0]))
 	font.height = uint8(len(lines))

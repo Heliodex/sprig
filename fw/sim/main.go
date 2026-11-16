@@ -43,6 +43,7 @@ func startUI(s screen.Screen) {
 
 					continue
 				}
+
 				en.ButtonImpls[btn].Set(e.Direction == key.DirPress)
 			case lifecycle.Event:
 				if e.To == lifecycle.StageDead {
@@ -53,7 +54,6 @@ func startUI(s screen.Screen) {
 	}()
 
 	// game.Splash(en)
-
 	for {
 		game.Update(en)
 		// wait 1 frame

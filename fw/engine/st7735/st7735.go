@@ -22,7 +22,6 @@ type Device struct {
 }
 
 const (
-
 	// yes, rly
 	Width = util.Height
 	Height = util.Width
@@ -107,9 +106,11 @@ func (d *Device) Configure() {
 	d.Command(FRMCTR2)
 	d.Data(frmctr...)
 	d.Command(FRMCTR3)
+
 	for range 2 {
 		d.Data(frmctr...)
 	}
+
 	d.Command(INVCTR)
 	d.Data(0x07)
 	d.Command(PWCTR1)
@@ -180,5 +181,6 @@ func New(bus drivers.SPI, resetPin, dcPin, csPin, blPin machine.Pin) Device {
 	}
 
 	d.Configure()
+
 	return d
 }

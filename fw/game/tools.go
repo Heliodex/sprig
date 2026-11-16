@@ -138,8 +138,8 @@ func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf
 				// this particular pixel is out of bounds horizontally, skip
 				continue
 			}
-			// since we've already checked (on both axes), we can force set pixels without worrying about bounds from here on
 
+			// since we've already checked (on both axes), we can force set pixels without worrying about bounds from here on
 			ndx := -dx
 
 			// <=/< or >=/> chosen based on which prevents double pixels being drawn on edges of blocks
@@ -164,14 +164,13 @@ func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf
 
 				// buf.ForceSetAlpha(rx, ry, p.topColour, 0x7f)
 				(*buf)[ry][rx] = p.topColour
+
 				continue
 			}
 
 			// draw base
-
 			if dx < h {
 				// Face 2, 3
-
 				if dy2_hw <= ndx {
 					// Face 2
 					if p.toSkip[2] {
@@ -186,11 +185,11 @@ func (p ProjectionBlock) Render(h, w, cellHeight int, pos util.Vector2[int], buf
 
 				// buf.ForceSetAlpha(rx, ry, p.baseColour1, 0x7f)
 				(*buf)[ry][rx] = p.baseColour1
+
 				continue
 			}
 
 			// Face 4, 5
-
 			if dy2_h <= dx {
 				// Face 4
 				if p.toSkip[4] {
@@ -259,7 +258,6 @@ func (t *Terrain) OcclusionCull() {
 
 func (t *Terrain) OrderColsDiagonal() (diags [terrainDiagonal][]util.Vector2[int]) {
 	// so how this works is the columns will be in the order [(0 0)] [(1 0) (0 1)] [(2 0) (1 1) (0 2)] ...
-
 	for d := range terrainDiagonal {
 		for x := range d + 1 {
 			if x >= terrainX {
@@ -434,11 +432,13 @@ func (g *DiamondGrid) drawTo(buf *util.ScreenBuffer) {
 
 			xo, yo := abs(x+g.offset.X), abs(y+g.offset.Y)
 			diamondWidth := abs(g.cellSize - int(float64(yo)*g.heightMulti)%(g.cellSize*2))
+
 			if diamondHeight := abs(g.cellSize - xo%(g.cellSize*2)); diamondWidth+diamondHeight <= g.cellSize {
 				c = g.colour1
 			} else {
 				c = g.colour2
 			}
+
 			buf.Set(g.pos.X+x, g.pos.Y+y, c)
 		}
 	}
@@ -489,10 +489,9 @@ func drawLine(buf *util.ScreenBuffer, p1, p2 util.Vector2[int], colour util.Pixe
 		sy = 1
 	}
 
-	e := dx + dy
-
-	for {
+	for e := dx + dy; ; {
 		buf.Set(p1.X, p1.Y, colour)
+
 		if p1.X == p2.X && p1.Y == p2.Y {
 			break
 		}
@@ -528,10 +527,10 @@ func (c *Cube3D) drawTo(buf *util.ScreenBuffer) {
 		// rotate around Y axis
 		xz := x*cos1 - z*sin1
 		z = x*sin1 + z*cos1
-		x = xz
 
 		// rotate around X axis
 		yz := y*cos2 - z*sin2
+		x = xz
 		z = y*sin2 + z*cos2
 		y = yz
 
@@ -597,6 +596,7 @@ func drawTriangle2D(buf *util.ScreenBuffer, p1, p2, p3 util.Vector2[int], colour
 		for y := clampY(p1.Y); y <= clampY(p2.Y); y++ {
 			ex := int(float32(p1.X) + float32(y-p1.Y)*dx2)
 			sx := int(float32(p1.X) + float32(y-p1.Y)*dx1)
+
 			if sx > ex {
 				sx, ex = ex, sx
 			}
@@ -612,6 +612,7 @@ func drawTriangle2D(buf *util.ScreenBuffer, p1, p2, p3 util.Vector2[int], colour
 		for y := clampY(p2.Y); y <= clampY(p3.Y); y++ {
 			ex := int(float32(p1.X) + float32(y-p1.Y)*dx2)
 			sx := int(float32(p2.X) + float32(y-p2.Y)*dx3)
+
 			if sx > ex {
 				sx, ex = ex, sx
 			}
@@ -753,6 +754,7 @@ func (p *DimetricProjection) drawTo(buf *util.ScreenBuffer) {
 
 			col := p.terrain[x][y]
 			sy1 := (x+y)*h_2 - p.offset.Y
+
 		loopcol:
 			for z := range terrainHeight {
 				if !col.Get(z) {
@@ -780,6 +782,7 @@ func (p *DimetricProjection) drawTo(buf *util.ScreenBuffer) {
 				factorf := fminf + fdiff*float64(z)/fth /*- 1*/ // -1? TODO
 
 				// Better to draw too many faces and waste cycles than to draw too few and miss pixels... though neither is good
+
 				var toSkip FaceRender
 
 				// if there's a block on top of this one, cull 0, 1
@@ -861,6 +864,7 @@ func (p *DimetricProjection) drawTo(buf *util.ScreenBuffer) {
 	if !drawn {
 		p.sprite.drawTo(buf)
 	}
+
 	println("drew", drew, "tiles")
 }
 
@@ -902,6 +906,7 @@ func floorint(x float32) int {
 func drawLineAntialiased(buf *util.ScreenBuffer, p1, p2 util.Vector2[int], colour util.Pixel) {
 	dx, dy := p2.X-p1.X, p2.Y-p1.Y
 	steep := abs(dy) > abs(dx)
+
 	if steep {
 		p1, p2 = p1.Swap(), p2.Swap()
 		dx, dy = dy, dx
@@ -916,7 +921,6 @@ func drawLineAntialiased(buf *util.ScreenBuffer, p1, p2 util.Vector2[int], colou
 	gradient := float32(dy) / float32(dx)
 
 	// idc about endpoints it works well enough without them
-
 	intery := float32(p1.Y) + gradient
 
 	// main loop

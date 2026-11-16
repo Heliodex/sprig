@@ -21,7 +21,6 @@ func dexDisplay() {
 	}
 
 	err = os.MkdirAll("out/dex", 0o755)
-
 	if err != nil {
 		panic(err)
 	}
@@ -71,12 +70,13 @@ func dexDisplay() {
 					p.WriteByte('@')
 				}
 			}
+
 			p.WriteByte('\n')
 		}
 
 		nhex := hex.EncodeToString([]byte(n))
-		err = os.WriteFile("out/dex/"+nhex, []byte(p.String()), 0o644)
 
+		err = os.WriteFile("out/dex/"+nhex, []byte(p.String()), 0o644)
 		if err != nil {
 			panic(err)
 		}
@@ -84,6 +84,11 @@ func dexDisplay() {
 }
 
 func unifont() {
+	const (
+		startx, starty = 52, 39
+		width, height = 16, 16
+	)
+
 	file, err := os.Open("./uni.png")
 	if err != nil {
 		panic(err)
@@ -92,7 +97,6 @@ func unifont() {
 	defer file.Close()
 
 	err = os.MkdirAll("out/unifont", 0o755)
-
 	if err != nil {
 		panic(err)
 	}
@@ -101,11 +105,6 @@ func unifont() {
 	if err != nil {
 		panic(err)
 	}
-
-	const (
-		startx, starty = 52, 39
-		width, height = 16, 16
-	)
 
 	bounds := img.Bounds()
 	dx, dy := bounds.Dx(), bounds.Dy()
@@ -124,14 +123,16 @@ func unifont() {
 						p.WriteByte(' ')
 						continue
 					}
+
 					p.WriteByte('@')
 				}
+
 				p.WriteByte('\n')
 			}
 
 			nhex := hex.EncodeToString([]byte{i})
-			err = os.WriteFile("out/unifont/"+nhex, []byte(p.String()), 0o644)
 
+			err = os.WriteFile("out/unifont/"+nhex, []byte(p.String()), 0o644)
 			if err != nil {
 				panic(err)
 			}

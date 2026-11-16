@@ -94,6 +94,7 @@ func Splash(en util.Engine) {
 	for _, e := range ui {
 		e.drawTo(en.ScreenBuffer())
 	}
+
 	en.Render()
 	time.Sleep(time.Second)
 	println("Splash complete")
@@ -121,6 +122,7 @@ func (m *Movement) Update() {
 
 	if !currentFloorTile {
 		fmt.Println("no tile at", floorSquare)
+
 		if m.jumping == 0 {
 			m.gridPosScaled.Z -= 2 // experience gravity
 		}
@@ -133,6 +135,7 @@ func (m *Movement) Update() {
 func (m *Movement) ValidX(x int) bool {
 	gridSquare := unscaled(m.gridPosScaled, m.scale)
 	gridSquareNew := unscaled(m.gridPosScaled.Add(util.V3(x, 0, 0)), m.scale)
+
 	if gridSquareNew.X < 0 || gridSquareNew.X >= terrainX || gridSquareNew.Y < 0 || gridSquareNew.Y >= terrainY {
 		return false
 	}
@@ -140,6 +143,7 @@ func (m *Movement) ValidX(x int) bool {
 	currentTile := terrain.GetV3(gridSquare)
 	if currentTile {
 		m.gridPosScaled.Z += 2 // step up
+
 		return true // whatever bruh
 	}
 
@@ -151,6 +155,7 @@ func (m *Movement) ValidX(x int) bool {
 func (m *Movement) ValidY(y int) bool {
 	gridSquare := unscaled(m.gridPosScaled, m.scale)
 	gridSquareNew := unscaled(m.gridPosScaled.Add(util.V3(0, y, 0)), m.scale)
+
 	if gridSquareNew.X < 0 || gridSquareNew.X >= terrainX || gridSquareNew.Y < 0 || gridSquareNew.Y >= terrainY {
 		return false
 	}
@@ -158,6 +163,7 @@ func (m *Movement) ValidY(y int) bool {
 	currentTile := terrain.GetV3(gridSquare)
 	if currentTile {
 		m.gridPosScaled.Z += 2 // step up
+
 		return true // whatever bruh
 	}
 
@@ -212,7 +218,6 @@ func Update(en util.Engine) {
 
 	// terrain[0][0].Set(6, true)
 	// terrain[1][1].Set(7, true)
-
 	rectsize := util.V2(10, 20)
 	rect := &Rect{
 		pos: util.V2((util.Width-rectsize.X)/2, util.Height/2-rectsize.Y),
@@ -224,7 +229,6 @@ func Update(en util.Engine) {
 	// sz := abs(szsize - f%(szsize*2))
 
 	// rp := pos.Div(10)
-
 	grid := &DimetricProjection{
 		terrainHeight: 8,
 		terrain: terrain,
@@ -265,6 +269,7 @@ func Update(en util.Engine) {
 	for _, e := range Texts {
 		e.drawTo(en.ScreenBuffer())
 	}
+
 	en.Render()
 
 	f++
